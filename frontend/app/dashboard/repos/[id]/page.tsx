@@ -437,7 +437,12 @@ export default function RepoDetailPage() {
                       <span className="pill pill-amber" style={{ fontSize: 11, textTransform: "capitalize" }}>
                         {issue.issue_type.replace(/_/g, " ")}
                       </span>
-                      <div className="small" style={{ marginTop: 4 }}>{issue.description}</div>
+                      {/* Clamped to 3 lines so one huge finding cannot destroy
+                          the row/column layout; full text stays in the DOM
+                          (title tooltip) and on the health issues detail page. */}
+                      <div className="small clamp-3" style={{ marginTop: 4 }} title={issue.description}>
+                        {issue.description}
+                      </div>
                     </td>
                     <td data-label="File">
                       <code className="small">

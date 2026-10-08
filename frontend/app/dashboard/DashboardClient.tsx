@@ -1,18 +1,17 @@
 ﻿"use client";
 
 // ---------------------------------------------------------------------------
-// Breaklytix — Monitoring Dashboard (Session-9 redesign, Session-10 prune).
-// EVERY metric comes from the real backend: provider connections, real
-// provider incidents, real alerts, real repository scans. NO simulated data.
-// Repository data lives ONLY in the Code Intelligence section; provider
-// metrics are connection-scoped (runtime). The API Usage panel summarizes the
-// real changelog-monitored providers plus what code scans have detected.
+// Breaklytix — Monitoring Overview (GLOBAL).
+// This page aggregates the user's monitoring state across ALL connected
+// repositories and providers. It is NOT repository-scoped: no repository
+// selector here. Repository intelligence (per-repo findings/scans/impact)
+// lives on repository pages and /dashboard/health, where repository_id is
+// enforced by the backend. EVERY metric comes from the real backend —
+// NO simulated data, NO fake trends.
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import RepositorySelector from "../../components/RepositorySelector";
 import {
   AlertWithRepo,
   DashboardStats,
@@ -61,11 +60,9 @@ function dotTone(tone: string): string {
 }
 
 export default function DashboardClient() {
-  const searchParams = useSearchParams();
-  // The selected repository (?repository_id=) scopes every data panel. When no
-  // repo is selected yet, panels stay empty instead of silently aggregating
-  // ALL repositories' data (same contract as the repo-scoped sub-pages).
-  const repositoryId = searchParams.get("repository_id") ?? "";
+  // GLOBAL overview: intentionally NOT scoped by ?repository_id. All fetches
+  // are unscoped (the backend still enforces per-user ownership), so the page
+  // loads without any repository selection.
   const [connections, setConnections] = useState<ProviderConnection[] | null>(null);
   const [alerts, setAlerts] = useState<AlertWithRepo[] | null>(null);
   const [errors, setErrors] = useState<HealthRuntimeList<"errors"> | null>(null);
@@ -76,27 +73,16 @@ export default function DashboardClient() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    // Connection/provider overview (registry-wide) stays unscoped; repo data
-    // (alerts, errors, incidents) is scoped to the selected repository only.
-    if (!repositoryId) {
-      setConnections(null);
-      setAlerts([]);
-      setErrors(null);
-      setStats(null);
-      setIncidents([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setLoadError(null);
     try {
       const [conns, al, er, st, rp, inc] = await Promise.all([
         getProviderConnections().catch(() => ({ connections: [] as ProviderConnection[] })),
-        listAllAlerts(repositoryId).catch(() => [] as AlertWithRepo[]),
-        getHealthErrors(200, repositoryId).catch(() => null),
+        listAllAlerts().catch(() => [] as AlertWithRepo[]),
+        getHealthErrors(200).catch(() => null),
         getDashboardStats().catch(() => null),
         listRepos().catch(() => [] as Repo[]),
-        getProviderIncidentsFeed(repositoryId)
+        getProviderIncidentsFeed()
           .then((r) => r.incidents || [])
           .catch(() => [] as ProviderIncident[]),
       ]);
@@ -111,13 +97,12 @@ export default function DashboardClient() {
     } finally {
       setLoading(false);
     }
-  }, [repositoryId]);
+  }, []);
 
   useEffect(() => {
     refresh();
-    // Re-fetch whenever the selected repository changes in the URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repositoryId]);
+  }, []);
 
   const connected = useMemo(() => connections ?? [], [connections]);
   const openAlerts = useMemo(
@@ -240,8 +225,6 @@ export default function DashboardClient() {
     );
   }, [errorIssues]);
 
-  const lastUpdated =
-    connected.map((c) => c.connected_at ?? "").concat(openAlerts.map((a) => a.created_at ?? "")).sort().slice(-1)[0] || null;
 
   if (loading) {
     return (
@@ -261,56 +244,54 @@ export default function DashboardClient() {
     <div className="mc-grid mc-stack" style={{ padding: 4 }}>
       {/* ── Header ─────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Monitoring Dashboard</h1>
-          <p className="mc-header-note" style={{ margin: "4px 0 0" }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Monitoring Overview</h1>
+          <p className="mc-header-note" style={{ margin: "4px 0 0", overflowWrap: "anywhere" }}>
             {connected.length} connected provider{connected.length !== 1 ? "s" : ""} ·{" "}
             {(repos ?? []).length} monitored repositor{(repos ?? []).length !== 1 ? "ies" : "y"}
-            {lastUpdated ? ` · updated ${timeAgo(lastUpdated)}` : ""}
+            {stats && stats.last_scan_at ? ` · updated ${timeAgo(stats.last_scan_at)}` : ""}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <RepositorySelector value={repositoryId} onChange={() => { /* URL write is enough; refresh follows the param */ }} />
-          <Link href="/dashboard/health" className="mc-status" style={{ textDecoration: "none" }}>
-            <span className={`mc-dot ${healthTone(healthStatus)}`} />
-            {healthStatus}
-          </Link>
-        </div>
+        <Link href="/dashboard/health" className="mc-status" style={{ textDecoration: "none", flexShrink: 0 }}>
+          <span className={`mc-dot ${healthTone(healthStatus)}`} />
+          {healthStatus}
+        </Link>
       </div>
 
-      {/* ── Metric cards (real) ────────────────────────────────── */}
+      {/* ── Metric cards (real, GLOBAL aggregates) ─────────────── */}
       <div className="mc-grid mc-cards">
-        <StatCard label="Connections" value={connected.length} tone={connected.length > 0 ? "accent" : "gray"} delta="provider API keys connected" />
+        <StatCard label="Connected Providers" value={connected.length} tone={connected.length > 0 ? "accent" : "gray"} delta={connected.length > 0 ? "provider connections active" : "connect a provider to begin"} />
+        <StatCard label="Monitored Repositories" value={(repos ?? []).length} tone={(repos ?? []).length > 0 ? "accent" : "gray"} delta={(repos ?? []).length > 0 ? "GitHub repositories connected" : "no repositories yet"} />
         <StatCard
           label="Monitored APIs"
           value={stats ? stats.monitored_api_count : "—"}
           tone={stats && stats.monitored_api_count > 0 ? "green" : "gray"}
-          delta={stats ? "changelogs watched daily" : "no data"}
-        />
-        <StatCard
-          label="Degraded"
-          value={connected.filter((c) => c.last_error).length}
-          tone={connected.some((c) => c.last_error) ? "amber" : "gray"}
-          delta={connected.some((c) => c.last_error) ? "connections with collector errors" : "all connections healthy"}
-        />
-        <StatCard label="Incidents" value={openIncidents.length} tone={openIncidents.length > 0 ? "red" : "gray"} delta={openIncidents.length === 0 && incidents ? "no active incidents" : undefined} />
-        <StatCard
-          label="API Errors"
-          value={errors ? errors.total : "Unknown"}
-          tone={(errors?.total ?? 0) > 0 ? "red" : "gray"}
-          delta={errors ? `${errors.critical ?? 0} critical` : "no data"}
+          delta={stats ? "provider changelogs watched daily" : "no data"}
         />
         <StatCard
           label="Potential Breaks"
-          value={alerts ? openAlerts.length : "Unknown"}
+          value={alerts ? openAlerts.length : "—"}
           tone={openAlerts.length > 0 ? "amber" : "gray"}
-          delta={openAlerts.length === 0 ? "no open alerts" : undefined}
+          delta={!alerts ? "no data" : openAlerts.length === 0 ? "no open alerts" : "open breaking-change alerts"}
+        />
+        <StatCard label="Active Incidents" value={incidents ? openIncidents.length : "—"} tone={openIncidents.length > 0 ? "red" : "gray"} delta={!incidents ? "no data" : openIncidents.length === 0 ? "no active incidents" : "provider incidents open"} />
+        <StatCard
+          label="API Errors"
+          value={errors ? errors.total : "—"}
+          tone={(errors?.total ?? 0) > 0 ? "red" : "gray"}
+          delta={!errors ? "no data" : `${errors.critical ?? 0} critical · ${errors.high ?? 0} high`}
         />
         <StatCard
           label="Scans Completed"
-          value={stats ? stats.scans_completed : "Unknown"}
+          value={stats ? stats.scans_completed : "—"}
           tone={(stats?.scans_completed ?? 0) > 0 ? "green" : "gray"}
-          delta={stats && stats.last_scan_at ? `last ${timeAgo(stats.last_scan_at)}` : "no scans yet"}
+          delta={stats && stats.last_scan_at ? `last scan ${timeAgo(stats.last_scan_at)}` : "no scans yet"}
+        />
+        <StatCard
+          label="Degraded Providers"
+          value={connected.filter((c) => c.last_error).length}
+          tone={connected.some((c) => c.last_error) ? "amber" : "gray"}
+          delta={connected.some((c) => c.last_error) ? "connection requires attention" : connected.length > 0 ? "all connections healthy" : "no connections yet"}
         />
       </div>
 
@@ -369,19 +350,13 @@ export default function DashboardClient() {
         <h3>API Usage</h3>
         <div className="mc-grid mc-cards" style={{ marginBottom: 12 }}>
           <StatCard
-            label="Monitored Changelogs"
-            value={stats ? stats.monitored_api_count : "—"}
-            tone={stats && stats.monitored_api_count > 0 ? "green" : "gray"}
-            delta={stats ? "provider changelogs scanned daily" : "no data"}
-          />
-          <StatCard
             label="Integrations in Code"
             value={stats ? stats.providers_monitored : "—"}
             tone={stats && stats.providers_monitored > 0 ? "accent" : "gray"}
             delta={stats && stats.providers_monitored === 0 ? "connect a repo and scan to detect" : "detected by static analysis"}
           />
           <StatCard label="Findings" value={stats ? stats.findings_total : "—"} tone={(stats?.findings_open ?? 0) > 0 ? "amber" : "gray"} delta={stats ? `${stats.findings_open} open` : undefined} />
-          <StatCard label="Scans Completed" value={stats ? stats.scans_completed : "—"} tone={(stats?.scans_completed ?? 0) > 0 ? "green" : "gray"} />
+          <StatCard label="Auto-Fix PRs" value={stats ? stats.prs_created : "—"} tone={(stats?.prs_created ?? 0) > 0 ? "green" : "gray"} delta={stats ? `${stats.fixes_created} fixes generated` : undefined} />
         </div>
         <p className="mc-empty" style={{ marginTop: 0 }}>
           {stats && stats.providers_monitored === 0
@@ -419,7 +394,7 @@ export default function DashboardClient() {
         )}
       </div>
 
-      {/* ── Code Intelligence (repository data ONLY here) ──────── */}
+      {/* ── Code Intelligence pointer (repository data lives on repo pages) ──── */}
       <div className="mc-panel">
         <h3>Code Intelligence</h3>
         {!stats || (stats.repos === 0 && (repos ?? []).length === 0) ? (
@@ -427,13 +402,11 @@ export default function DashboardClient() {
             No repositories monitored. <Link href="/dashboard/repos" style={{ color: "var(--accent)" }}>Connect a GitHub repository</Link> to enable code intelligence.
           </p>
         ) : (
-          <div className="mc-grid mc-cards" style={{ marginBottom: 12 }}>
-            <StatCard label="Repositories" value={stats.repos} tone="accent" />
-            <StatCard label="API Integrations" value={stats.providers_monitored} tone="accent" delta="detected in code" />
-            <StatCard label="Scans Completed" value={stats.scans_completed} tone="green" delta={stats.last_scan_at ? `last ${timeAgo(stats.last_scan_at)}` : undefined} />
-            <StatCard label="Findings" value={stats.findings_total} tone={stats.findings_open > 0 ? "amber" : "gray"} delta={`${stats.findings_open} open`} />
-            <StatCard label="Auto-Fix PRs" value={stats.prs_created} tone={stats.prs_created > 0 ? "green" : "gray"} delta={`${stats.fixes_created} fixes`} />
-          </div>
+          <p className="mc-empty" style={{ marginTop: 0 }}>
+            Repository-scoped intelligence (findings, API dependency maps, impact analysis, per-repo
+            scans) lives on each repository&apos;s page and under System Health. Totals above aggregate
+            all {stats.repos} monitored repositories.
+          </p>
         )}
       </div>
 

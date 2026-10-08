@@ -122,7 +122,7 @@ export function StatCard({
   icon,
   tone = "accent",
   delta,
-  deltaDir = "up",
+  deltaDir = "none",
   spark,
 }: {
   label: string;
@@ -130,7 +130,11 @@ export function StatCard({
   icon?: ReactNode;
   tone?: "accent" | "green" | "amber" | "red" | "gray";
   delta?: string;
-  deltaDir?: "up" | "down" | "flat";
+  /** ONLY set this when delta is a MEASURED trend (vs a prior period).
+   * Descriptions like "provider API keys connected" are not trends — the
+   * default renders plain text with no arrow. Never fake a positive trend,
+   * especially for degraded/error states. */
+  deltaDir?: "up" | "down" | "flat" | "none";
   spark?: number[];
 }) {
   return (
@@ -158,8 +162,12 @@ export function StatCard({
         </div>
       </div>
       {delta && (
-        <div className={`p-stat-delta p-stat-delta--${deltaDir}`}>
-          {deltaDir === "up" ? "↑" : deltaDir === "down" ? "↓" : "→"} {delta}
+        <div
+          className={`p-stat-delta p-stat-delta--${deltaDir}`}
+          style={{ overflowWrap: "anywhere" }}
+        >
+          {deltaDir === "up" ? "↑ " : deltaDir === "down" ? "↓ " : deltaDir === "flat" ? "→ " : ""}
+          {delta}
         </div>
       )}
       {spark && spark.length >= 2 && (

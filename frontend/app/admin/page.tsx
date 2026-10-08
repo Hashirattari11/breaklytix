@@ -70,7 +70,8 @@ export default function AdminOverviewPage() {
           value={data.alerts_pending}
           tone={data.alerts_pending > 0 ? "red" : "green"}
           delta={data.alerts_pending > 0 ? "needs review" : "queue clear"}
-          deltaDir={data.alerts_pending > 0 ? "down" : "flat"}
+          // Alert backlog count is a status, not a measured trend — no arrow.
+          deltaDir="none"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
         <StatCard label="Alerts dismissed" value={data.alerts_dismissed} tone="gray"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M5.6 5.6l12.8 12.8" /></svg>} />

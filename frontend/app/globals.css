@@ -2676,3 +2676,73 @@ code.issue-loc-pill {
 }
 .table.responsive-cards .pill,
 .mc-table.responsive-cards .pill { display: inline-flex; align-items: center; }
+
+/* ============================================================================
+   GLOBAL OVERFLOW SAFETY (reusable — applies everywhere, not per-page)
+   Every cell/card/row can contain unbounded text: long file paths, API names,
+   error messages, changelog text. Rules below WRAP long content safely
+   (overflow-wrap: anywhere) instead of clipping it, and give flex/grid/table
+   children min-width: 0 so they can actually shrink below their content size.
+   Deliberately NO blanket overflow: hidden (that hides information).
+   ============================================================================ */
+
+/* Table cells: wrap long tokens (paths, URLs, code) inside their column. */
+.table td,
+.table th,
+.mc-table td,
+.mc-table th {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* Inline code anywhere (tables, cards, lists): wrap, never force one line. */
+.table code,
+.mc-table code,
+.card code,
+.issue-card code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Cards & panels: allow shrinking; wrap unbounded text. */
+.card,
+.mc-panel,
+.issue-card,
+.p-stat-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.p-stat-value,
+.p-stat-label,
+.p-stat-delta,
+.issue-title,
+.issue-description,
+.issue-action,
+.mc-empty,
+.mc-header-note {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Flex rows (mc-row): children must be shrinkable or ellipsis breaks. */
+.mc-row { min-width: 0; }
+.mc-row > * { min-width: 0; }
+
+/* Media and pre blocks never exceed their container. */
+img, svg, video { max-width: 100%; height: auto; }
+pre { max-width: 100%; overflow-x: auto; }
+
+/* Optional line-clamp utilities (progressive enhancement; text stays in DOM
+   for screen readers and the full text remains available on detail pages). */
+.clamp-2,
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }

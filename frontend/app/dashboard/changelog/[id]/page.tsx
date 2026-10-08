@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 import { Spinner } from "@/components/ui";
+import { htmlToReadableText } from "@/lib/sanitize";
 import {
   getProviderEvent,
   reviewProviderEvent,
@@ -144,7 +145,14 @@ export default function ChangelogEventDetailPage() {
 
       <section className="card" style={{ padding: 20, marginBottom: 16 }}>
         <h3 style={{ marginTop: 0 }}>What changed</h3>
-        <p>{event.description || "No description provided for this change."}</p>
+        {/* Provider descriptions contain rich HTML — NEVER render it (XSS risk
+            and raw-tag soup). htmlToReadableText converts it to safe plain
+            text: paragraphs readable, code backticked, links visible. */}
+        <p style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>
+          {event.description
+            ? htmlToReadableText(event.description)
+            : "No description provided for this change."}
+        </p>
         {event.last_seen_at && (
           <p className="muted small" style={{ marginTop: 8 }}>
             Last seen: {new Date(event.last_seen_at).toLocaleString()}
