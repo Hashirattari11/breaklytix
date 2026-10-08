@@ -18,6 +18,10 @@ _bearer = HTTPBearer(auto_error=False)
 # Session tokens (our own JWT, issued after GitHub OAuth completes).
 # ---------------------------------------------------------------------------
 def issue_session_token(user_id: str) -> str:
+    if not settings.jwt_secret:
+        # Fail closed: an empty secret would let anyone forge HS256 tokens
+        # signed with "". Refuse to issue rather than sign a worthless token.
+        raise RuntimeError("JWT_SECRET is not configured — refusing to issue session tokens")
     now = int(time.time())
     payload = {
         "sub": user_id,
@@ -35,6 +39,10 @@ def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing bearer token",
         )
+    if not settings.jwt_secret:
+        # Fail closed: without a configured secret no token could have been
+        # validly issued, so every presented token must be rejected.
+        raise HTTPException(status_code=401, detail="Invalid session token")
     try:
         payload = jwt.decode(creds.credentials, settings.jwt_secret, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:

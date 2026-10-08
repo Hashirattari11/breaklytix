@@ -5,7 +5,9 @@ import { LogoMark } from "@/components/Logo";
 import { DocsSearch } from "@/components/DocsSearch";
 
 export const metadata: Metadata = {
-  title: "Documentation | Breaklytix",
+  // No "| Breaklytix" suffix here — the root layout title template already
+  // appends "· Breaklytix" (a full suffix produced a duplicated brand).
+  title: "Documentation",
   description: "Guides for monitoring provider APIs, detecting code breaks, and using the Impact Engine.",
   robots: { index: true, follow: true },
   alternates: { canonical: `${SITE_URL}/docs` },

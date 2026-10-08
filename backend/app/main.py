@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
 from .deps import require_internal_secret
+from .ratelimit import RateLimitMiddleware
 from .routers import auth, billing, cli, fixes, internal, repos, slack, public_api, agency, admin, health, notifications, impact, consent, digital_twin
 from .routers.admin import router as admin_router
 from .changelog.router import router as changelog_router
@@ -99,6 +100,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting sits INSIDE the security-headers middleware (which is added
+# last and therefore runs first) so 429 responses still carry CSP/HSTS etc.
+app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(SecurityHeadersMiddleware)
 

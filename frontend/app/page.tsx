@@ -18,12 +18,32 @@ export const metadata: Metadata = {
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Breaklytix",
-  applicationCategory: "DeveloperApplication",
-  operatingSystem: "Web",
-  url: SITE_URL + "/",
-  description: SITE_DESCRIPTION,
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "Breaklytix",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      url: SITE_URL + "/",
+      description: SITE_DESCRIPTION,
+      offers: {
+        "@type": "Offer",
+        url: SITE_URL + "/pricing",
+      },
+    },
+    {
+      "@type": "Organization",
+      name: "Breaklytix",
+      url: SITE_URL + "/",
+      logo: SITE_URL + "/opengraph-image.png",
+    },
+    {
+      "@type": "WebSite",
+      name: "Breaklytix",
+      url: SITE_URL + "/",
+      publisher: { "@type": "Organization", name: "Breaklytix" },
+    },
+  ],
 };
 
 export default function Page() {

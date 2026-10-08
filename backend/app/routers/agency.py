@@ -702,7 +702,16 @@ def complete_authorization(token: str, body: CompleteAuthIn):
 
     # Connect repos — for each repo, fetch from GitHub and create in repos table
     connected_count = 0
+    import re
+    # Strict owner/repo shape: blocks path tricks in the GitHub API URL the
+    # token would be sent to (the value is interpolated into the request path).
+    _REPO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     for repo_name in body.repos:
+        if not isinstance(repo_name, str) or not _REPO_NAME_RE.match(repo_name):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid repository name: {repo_name!r} (expected 'owner/repo')",
+            )
         try:
             # Fetch repo info from GitHub
             import httpx
