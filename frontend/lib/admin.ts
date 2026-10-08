@@ -78,6 +78,10 @@ export type AdminRepository = {
 
 export type AdminUsersResponse = {
   users: AdminUser[];
+  /** True when the DB is missing admin columns (migration not yet applied);
+   * the list is served from base columns with defaulted admin fields. */
+  schema_degraded?: boolean;
+  degraded_reason?: string;
 };
 
 export const getAdminOverview = () => request<AdminOverview>("/admin/overview");

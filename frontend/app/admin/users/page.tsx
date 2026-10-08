@@ -15,6 +15,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "suspended">("all");
   const [error, setError] = useState<string | null>(null);
+  const [degradedReason, setDegradedReason] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -22,7 +23,10 @@ export default function AdminUsersPage() {
     try {
       const result = await getAdminUsers(search, status === "all" ? undefined : status);
       setUsers(result.users);
+      setDegradedReason(result.schema_degraded ? (result.degraded_reason || "Database migration pending — some account fields are unavailable.") : null);
     } catch (e: any) {
+      setUsers(null);
+      setDegradedReason(null);
       setError(e?.message || "Failed to load users");
     }
   }, [search, status]);
@@ -87,6 +91,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      {degradedReason && <div className="card" style={{ padding: 16, marginBottom: 16, borderLeft: "4px solid #f59e0b" }}><p className="muted" style={{ margin: 0 }}><strong style={{ color: "#f59e0b" }}>Limited data:</strong> {degradedReason}</p></div>}
       {error && <div className="card" style={{ padding: 16, marginBottom: 16 }}><p className="error-text" style={{ margin: 0 }}>{error}</p></div>}
       {!users?.length ? <div className="card" style={{ padding: 32, textAlign: "center" }}><p className="muted" style={{ margin: 0 }}>No matching users.</p></div> : (
         <div className="card" style={{ padding: 0, overflow: "auto" }}>

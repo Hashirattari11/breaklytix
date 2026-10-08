@@ -66,6 +66,82 @@ def _in_chunks(items: list[str], size: int = 100) -> list[list[str]]:
 
 
 # ---------------------------------------------------------------------------
+# Pre-migration schema handling: the admin columns/tables exist only after
+# db/migration_admin_columns.sql is applied. A select naming a missing column
+# makes PostgREST reject the WHOLE query (PGRST204) which used to surface as
+# an unhandled 500 "Internal server error" on the Admin Panel. These helpers
+# detect exactly that condition so routes can degrade with a clear message —
+# every OTHER failure still propagates (never masked).
+# ---------------------------------------------------------------------------
+_MIGRATION_HINT = (
+    "Database migration pending: run db/migration_admin_columns.sql in the "
+    "Supabase SQL editor to enable full admin features (admin flags, "
+    "suspension, system health)."
+)
+
+
+def _is_schema_mismatch(exc: Exception) -> bool:
+    """True when the failure is a missing column/table (pre-migration DB)."""
+    code = str(getattr(exc, "code", "") or "")
+    if code in {"PGRST204", "PGRST205", "42703", "42P01"}:
+        return True
+    msg = str(exc).lower()
+    if "could not find the" in msg and ("column" in msg or "table" in msg):
+        return True
+    return "relation" in msg and "does not exist" in msg
+
+
+_ADMIN_USER_COLUMNS = (
+    "id,email,github_login,plan,is_admin,is_agency,created_at,"
+    "is_suspended,suspended_at,suspended_reason"
+)
+_ADMIN_USER_BASE_COLUMNS = "id,email,github_login,plan,created_at"
+
+
+def _fetch_admin_users(limit: int) -> tuple[list[dict], bool]:
+    """Fetch the admin user list, degrading gracefully on a pre-migration DB.
+
+    PostgREST rejects the whole select when ANY requested column is missing.
+    Instead of crashing the panel with a 500, retry with the base columns that
+    always exist, default the admin/suspension fields, and mark the response
+    ``schema_degraded`` so the UI can explain what is missing. Other failures
+    are NOT masked: they surface as a clear 503, never as fake data.
+    """
+    try:
+        rows = (
+            db()
+            .table("users")
+            .select(_ADMIN_USER_COLUMNS)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return rows.data or [], False
+    except Exception as exc:
+        if not _is_schema_mismatch(exc):
+            raise
+    try:
+        rows = (
+            db()
+            .table("users")
+            .select(_ADMIN_USER_BASE_COLUMNS)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"User list unavailable: {exc}")
+    users = rows.data or []
+    for u in users:
+        u.setdefault("is_admin", False)
+        u.setdefault("is_agency", False)
+        u.setdefault("is_suspended", False)
+        u.setdefault("suspended_at", None)
+        u.setdefault("suspended_reason", None)
+    return users, True
+
+
+# ---------------------------------------------------------------------------
 # Overview
 # ---------------------------------------------------------------------------
 @router.get("/overview")
@@ -233,14 +309,21 @@ def reject_alert(alert_id: str) -> dict:
 # ---------------------------------------------------------------------------
 @router.get("/health")
 def system_health() -> dict:
-    rows = (
-        db()
-        .table("system_health")
-        .select("*")
-        .order("ran_at", desc=True)
-        .limit(100)
-        .execute()
-    )
+    try:
+        rows = (
+            db()
+            .table("system_health")
+            .select("*")
+            .order("ran_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_schema_mismatch(exc):
+            # Table only exists after db/migration_admin_columns.sql — explain
+            # instead of a bare 500.
+            raise HTTPException(status_code=503, detail=_MIGRATION_HINT)
+        raise
     return {"rows": rows.data or []}
 
 
@@ -253,15 +336,7 @@ def admin_users(
     search: str | None = Query(None, max_length=120),
     status: str | None = Query(None, pattern="^(active|suspended)$"),
 ) -> dict:
-    rows = (
-        db()
-        .table("users")
-        .select("id,email,github_login,plan,is_admin,is_agency,created_at,is_suspended,suspended_at,suspended_reason")
-        .order("created_at", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    users = rows.data or []
+    users, schema_degraded = _fetch_admin_users(limit)
     needle = (search or "").strip().lower()
     if needle:
         users = [u for u in users if needle in str(u.get("email") or "").lower() or needle in str(u.get("github_login") or "").lower()]
@@ -291,7 +366,10 @@ def admin_users(
     for user in users:
         user["repositories"] = repos_by_user.get(user.get("id"), [])
         user["repository_count"] = len(user["repositories"])
-    return {"users": users}
+    response: dict[str, Any] = {"users": users, "schema_degraded": schema_degraded}
+    if schema_degraded:
+        response["degraded_reason"] = _MIGRATION_HINT
+    return response
 
 
 @router.patch("/users/{user_id}/status")
@@ -303,7 +381,14 @@ def update_user_status(user_id: str, body: UserStatusUpdate, admin: dict = Depen
         "suspended_at": _now_iso() if body.suspended else None,
         "suspended_reason": body.reason.strip() if body.suspended and body.reason else None,
     }
-    result = db().table("users").update(payload).eq("id", user_id).execute()
+    try:
+        result = db().table("users").update(payload).eq("id", user_id).execute()
+    except Exception as exc:
+        if _is_schema_mismatch(exc):
+            # Suspension columns only exist after the migration — a clear 503
+            # beats an unhandled 500 crash here too.
+            raise HTTPException(status_code=503, detail=_MIGRATION_HINT)
+        raise
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
     return {"ok": True, "user": result.data[0]}
