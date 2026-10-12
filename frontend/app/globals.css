@@ -2644,7 +2644,7 @@ body {
 code.issue-loc-pill {
   display: inline-block;
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   word-break: break-word;
   white-space: normal;
   padding: 3px 10px;
@@ -2668,7 +2668,7 @@ code.issue-loc-pill {
 .mc-table.responsive-cards td[data-label="Location"] > code,
 .mc-table.responsive-cards td[data-label="File"] > code {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   word-break: break-word;
   text-align: left;
   line-height: 1.55;
@@ -2681,19 +2681,26 @@ code.issue-loc-pill {
    GLOBAL OVERFLOW SAFETY (reusable — applies everywhere, not per-page)
    Every cell/card/row can contain unbounded text: long file paths, API names,
    error messages, changelog text. Rules below WRAP long content safely
-   (overflow-wrap: anywhere) instead of clipping it, and give flex/grid/table
+   (word-break: break-word) instead of clipping it, and give flex/grid/table
    children min-width: 0 so they can actually shrink below their content size.
-   Deliberately NO blanket overflow: hidden (that hides information).
+   Deliberately NO blanket overflow: hidden (that hides information), and NO
+   overflow-wrap: anywhere on table/flex/grid children: "anywhere" collapses a
+   box's min-content width to a single character, which lets dense tables
+   shrink columns to 1-glyph width (vertical text — the reported bug).
    ============================================================================ */
 
-/* Table cells: wrap long tokens (paths, URLs, code) inside their column. */
+/* Table cells: wrap long tokens (paths, URLs, code) inside their column.
+   IMPORTANT: use word-break: break-word (NOT overflow-wrap: anywhere).
+   "anywhere" reduces a cell's min-content width to a single character, so on
+   dense tables the browser shrinks columns to 1-glyph width and renders text
+   vertically (the reported severity/description bug on many pages). */
 .table td,
 .table th,
 .mc-table td,
 .mc-table th {
   min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Inline code anywhere (tables, cards, lists): wrap, never force one line. */
@@ -2702,7 +2709,7 @@ code.issue-loc-pill {
 .card code,
 .issue-card code {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
 }
@@ -2713,7 +2720,7 @@ code.issue-loc-pill {
 .issue-card,
 .p-stat-card {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .p-stat-value,
 .p-stat-label,
@@ -2723,7 +2730,7 @@ code.issue-loc-pill {
 .issue-action,
 .mc-empty,
 .mc-header-note {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   min-width: 0;
 }
 
@@ -2742,7 +2749,7 @@ pre { max-width: 100%; overflow-x: auto; }
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .clamp-2 { -webkit-line-clamp: 2; }
 .clamp-3 { -webkit-line-clamp: 3; }
