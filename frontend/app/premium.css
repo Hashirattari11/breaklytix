@@ -1492,20 +1492,17 @@ a.p-list-item {
    M10 — RESPONSIVE PASS (global layer for every page)
    ============================================================================ */
 
-/* Data tables become horizontally scrollable on small screens.
-   display:block keeps the box bounded to the container; cells stay table-layout;
-   white-space:nowrap lets the content scroll instead of squeezing to death. */
+/* Data tables on <=720px keep their natural multi-column table layout and
+   scroll horizontally inside .p-table-scroll. NEVER set display:block/nowrap
+   here — it squeezes cells into 1-glyph-wide columns (severity text rendering
+   vertically was the reported bug). Phones <=660px get true card stacking
+   from the responsive-cards rules later in this file. */
 @media (max-width: 720px) {
   .table,
   .data-table,
   .graph-table,
   .mc-table {
-    display: block;
-    width: 100% !important;
-    min-width: 0 !important;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
+    min-width: 0;
   }
   .table th,
   .table td,
@@ -1515,7 +1512,7 @@ a.p-list-item {
   .graph-table td,
   .mc-table th,
   .mc-table td {
-    white-space: nowrap;
+    white-space: normal;
   }
 }
 
@@ -1610,22 +1607,19 @@ canvas {
   .p-filter-group .input { flex: 1 1 auto; width: auto !important; min-width: 0; }
 }
 
-/* 2) Tables: scroll inside the card on tablets (no page overflow). */
-.p-table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
+/* 2) Mid-width screens (661-900px): tables keep their natural multi-column
+   layout and scroll horizontally inside the card. NEVER collapse columns here —
+   display:block/nowrap at these widths squeezes cells to 1-glyph-wide columns
+   (severity text rendering vertically), which is exactly the bug reported on
+   /dashboard/alerts. Small phones <=660px get the responsive-cards stacking
+   below, so this band only needs clean scrolling. */
 @media (max-width: 900px) {
   .table, .data-table, .graph-table, .mc-table {
-    display: block;
-    width: 100% !important;
-    min-width: 0 !important;
-    overflow-x: auto;
-    white-space: nowrap;
+    min-width: 0;
   }
   .table th, .table td, .data-table th, .data-table td,
   .graph-table th, .graph-table td, .mc-table th, .mc-table td {
-    white-space: nowrap;
+    white-space: normal;
   }
 }
 
