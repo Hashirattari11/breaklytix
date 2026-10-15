@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+// ALLOW_LOCAL_API=1 (build-time only) whitelists http://localhost:8000 in
+// connect-src so the local mock API (scripts/mock-api.py) can serve fixtures
+// for offline UI width audits. Production/Vercel builds never set it, so the
+// CSP there stays exactly as before.
+const localApiSrc = process.env.ALLOW_LOCAL_API === "1" ? " http://localhost:8000" : "";
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
@@ -14,7 +19,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://backend-virid-ten-43.vercel.app https://api.github.com https://github.com",
+              "connect-src 'self' https://backend-virid-ten-43.vercel.app https://api.github.com https://github.com" + localApiSrc,
               "frame-src 'self'",
               "base-uri 'self'",
               "form-action 'self'",

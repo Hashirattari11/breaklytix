@@ -121,6 +121,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [router]);
 
+  // Close the mobile drawer whenever the route changes so the overlay
+  // cannot sit on top of Alerts / API Errors after a nav tap.
+  useEffect(() => {
+    setSidebarOpen(false);
+    setBellOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
+
   // Real alerts for the notification bell (no fake counts).
   // The badge counts UNREAD open alerts only (server-backed read_at);
   // opening the Alerts page marks them read and this count refreshes on
@@ -157,7 +165,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
     window.addEventListener("breaklytix:alerts-read", onAlertsRead);
     return () => window.removeEventListener("breaklytix:alerts-read", onAlertsRead);
-  }, []);
+  }, [pathname]);
 
   // Restore the user's expanded/collapsed sidebar state after first paint
   // (avoids hydration mismatch; defaults stay collapsed on a fresh visit).
@@ -237,7 +245,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="dashboard-content">
-            <div className="container">{children}</div>
+            <div className="dashboard-container">{children}</div>
           </main>
         </div>
       </div>
@@ -310,6 +318,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             className={`sidebar-link p-sb-item ${active ? "active p-sb-item--active" : ""}`}
                             aria-current={active ? "page" : undefined}
                             title={minimized ? item.name : undefined}
+                            onClick={() => setSidebarOpen(false)}
                           >
                             <span className="p-sb-icon"><item.icon /></span>
                             <span className="p-sb-text">{item.name}</span>
@@ -334,6 +343,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     className={`sidebar-link p-sb-item ${active ? "active p-sb-item--active" : ""}`}
                     aria-current={active ? "page" : undefined}
                     title={minimized ? item.name : undefined}
+                    onClick={() => setSidebarOpen(false)}
                   >
                     <span className="p-sb-icon"><item.icon /></span>
                     <span className="p-sb-text">{item.name}</span>
@@ -493,7 +503,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         <main className="dashboard-content">
-          <div className="container">{children}</div>
+          <div className="dashboard-container">{children}</div>
         </main>
       </div>
 

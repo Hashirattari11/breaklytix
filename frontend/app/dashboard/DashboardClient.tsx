@@ -246,7 +246,7 @@ export default function DashboardClient() {
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Monitoring Overview</h1>
-          <p className="mc-header-note" style={{ margin: "4px 0 0", overflowWrap: "anywhere" }}>
+          <p className="mc-header-note" style={{ margin: "4px 0 0", overflowWrap: "break-word" }}>
             {connected.length} connected provider{connected.length !== 1 ? "s" : ""} ·{" "}
             {(repos ?? []).length} monitored repositor{(repos ?? []).length !== 1 ? "ies" : "y"}
             {stats && stats.last_scan_at ? ` · updated ${timeAgo(stats.last_scan_at)}` : ""}
@@ -273,6 +273,7 @@ export default function DashboardClient() {
           value={alerts ? openAlerts.length : "—"}
           tone={openAlerts.length > 0 ? "amber" : "gray"}
           delta={!alerts ? "no data" : openAlerts.length === 0 ? "no open alerts" : "open breaking-change alerts"}
+          href="/dashboard/alerts"
         />
         <StatCard label="Active Incidents" value={incidents ? openIncidents.length : "—"} tone={openIncidents.length > 0 ? "red" : "gray"} delta={!incidents ? "no data" : openIncidents.length === 0 ? "no active incidents" : "provider incidents open"} />
         <StatCard
@@ -280,6 +281,7 @@ export default function DashboardClient() {
           value={errors ? errors.total : "—"}
           tone={(errors?.total ?? 0) > 0 ? "red" : "gray"}
           delta={!errors ? "no data" : `${errors.critical ?? 0} critical · ${errors.high ?? 0} high`}
+          href="/dashboard/health/errors"
         />
         <StatCard
           label="Scans Completed"
@@ -418,6 +420,7 @@ export default function DashboardClient() {
         ) : openAlerts.length === 0 ? (
           <p className="mc-empty">No potential breaks detected.</p>
         ) : (
+          <div className="p-table-scroll">
           <table className="mc-table responsive-cards">
             <thead>
               <tr>
@@ -440,6 +443,7 @@ export default function DashboardClient() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
         <div style={{ marginTop: 10 }}>
           <Link href="/dashboard/alerts" style={{ fontSize: 12, color: "var(--accent)" }}>View all alerts →</Link>
@@ -475,9 +479,14 @@ export default function DashboardClient() {
             ))}
           </div>
         )}
-        <Link href="/dashboard/health/issues" style={{ fontSize: 12, color: "var(--accent)" }}>
-          View all issues →
-        </Link>
+        <div style={{ marginTop: 10, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <Link href="/dashboard/health/errors" style={{ fontSize: 12, color: "var(--accent)" }}>
+            View API errors →
+          </Link>
+          <Link href="/dashboard/health/issues" style={{ fontSize: 12, color: "var(--accent)" }}>
+            View all issues →
+          </Link>
+        </div>
       </div>
 
       {/* ── Quick Actions ──────────────────────────────────────── */}
@@ -487,6 +496,7 @@ export default function DashboardClient() {
           <Link href="/dashboard/repos" className="btn btn-primary">+ Connect Repository</Link>
           <Link href="/dashboard/health/scanner" className="btn btn-secondary">Run Repository Scan</Link>
           <Link href="/dashboard/health/incidents" className="btn btn-secondary">View Incidents</Link>
+          <Link href="/dashboard/health/errors" className="btn btn-secondary">View API Errors</Link>
           <Link href="/dashboard/alerts" className="btn btn-secondary">View Alerts</Link>
         </div>
       </div>

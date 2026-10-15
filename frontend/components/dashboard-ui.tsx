@@ -124,6 +124,7 @@ export function StatCard({
   delta,
   deltaDir = "none",
   spark,
+  href,
 }: {
   label: string;
   value: ReactNode;
@@ -136,8 +137,9 @@ export function StatCard({
    * especially for degraded/error states. */
   deltaDir?: "up" | "down" | "flat" | "none";
   spark?: number[];
+  href?: string;
 }) {
-  return (
+  const card = (
     <div className={`p-stat-card p-stat-card--${tone === "accent" ? "accent" : tone}`}>
       <div className="p-stat-top">
         {icon && (
@@ -162,10 +164,7 @@ export function StatCard({
         </div>
       </div>
       {delta && (
-        <div
-          className={`p-stat-delta p-stat-delta--${deltaDir}`}
-          style={{ overflowWrap: "anywhere" }}
-        >
+        <div className={`p-stat-delta p-stat-delta--${deltaDir}`}>
           {deltaDir === "up" ? "↑ " : deltaDir === "down" ? "↓ " : deltaDir === "flat" ? "→ " : ""}
           {delta}
         </div>
@@ -176,6 +175,12 @@ export function StatCard({
         </div>
       )}
     </div>
+  );
+  if (!href) return card;
+  return (
+    <Link href={href} className="p-stat-card-link" aria-label={label}>
+      {card}
+    </Link>
   );
 }
 

@@ -58,6 +58,15 @@ code {
   padding: 0 20px;
 }
 
+/* Dashboard pages: wider than marketing .container, and allowed to shrink
+   so inner lists/cards wrap instead of squeezing table glyphs vertically. */
+.dashboard-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
 /* ---- Header / nav ---- */
 .nav {
   background: var(--surface);
@@ -224,11 +233,22 @@ h2 {
 .pill {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 6px;
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.severity-badge {
+  flex-shrink: 0;
+  max-width: none;
+  overflow: visible;
 }
 .pill-green {
   background: var(--green-bg);
@@ -1181,6 +1201,7 @@ h2 {
   margin-left: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 100vh;
   transition: margin-left 0.25s ease;
 }
@@ -1238,6 +1259,7 @@ h2 {
 .dashboard-content {
   flex: 1;
   padding: 32px 24px 64px;
+  min-width: 0;
 }
 
 /* ---- Responsive ---- */
@@ -1262,8 +1284,14 @@ h2 {
     display: none;
   }
 
+  /* Sidebar is in-flow (sticky) at this breakpoint — do not also offset main,
+     or the content column is squeezed by ~260px and dense tables collapse. */
   .dashboard-main {
-    margin-left: 260px;
+    margin-left: 0;
+    min-width: 0;
+  }
+  .dashboard-shell.p-sidebar-collapsed .dashboard-main {
+    margin-left: 0;
   }
 
   .header-user {
@@ -1367,68 +1395,68 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  marginBottom: 16px;
-  paddingBottom: 12px;
-  borderBottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .card-header h2 {
   margin: 0;
-  fontSize: 18px;
-  fontWeight: 700;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .user-avatar-large {
   width: 56px;
   height: 56px;
-  borderRadius: 50%;
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
   color: white;
   display: flex;
-  alignItems: center;
-  justifyContent: center;
-  fontWeight: 700;
-  fontSize: 20px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
 }
 
 .user-details-expanded {
   flex: 1;
-  minWidth: 0;
+  min-width: 0;
 }
 
 .user-name-large {
-  fontSize: 18px;
-  fontWeight: 700;
-  marginBottom: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
 }
 
 .user-email-large {
-  fontSize: 14px;
+  font-size: 14px;
   color: var(--muted);
-  marginBottom: 8px;
+  margin-bottom: 8px;
 }
 
 .user-meta {
   display: flex;
-  alignItems: center;
+  align-items: center;
   gap: 12px;
-  flexWrap: wrap;
+  flex-wrap: wrap;
 }
 
 .preference-item {
   display: flex;
-  alignItems: center;
+  align-items: center;
   gap: 12px;
   padding: 16px;
   background: var(--bg);
   border: 1px solid var(--border);
-  borderRadius: var(--radius);
+  border-radius: var(--radius);
   cursor: pointer;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 
 .preference-item:hover:not(.disabled) {
-  borderColor: var(--accent);
+  border-color: var(--accent);
 }
 
 .preference-item.disabled {
@@ -1438,25 +1466,25 @@ h2 {
 .preference-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accentColor: var(--accent);
-  flexShrink: 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .preference-info {
   flex: 1;
   display: flex;
-  flexDirection: column;
+  flex-direction: column;
   gap: 2px;
 }
 
 .preference-title {
-  fontSize: 14px;
-  fontWeight: 600;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text);
 }
 
 .preference-desc {
-  fontSize: 13px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1464,79 +1492,79 @@ h2 {
   padding: 16px;
   background: var(--bg);
   border: 1px solid var(--border);
-  borderRadius: var(--radius);
+  border-radius: var(--radius);
 }
 
 .billing-stat-label {
   display: block;
-  fontSize: 12px;
-  fontWeight: 600;
-  textTransform: uppercase;
-  letterSpacing: 0.03em;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: var(--muted);
-  marginBottom: 4px;
+  margin-bottom: 4px;
 }
 
 .billing-stat-value {
-  fontSize: 16px;
-  fontWeight: 600;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text);
 }
 
 .danger-zone {
-  borderColor: #fecaca;
+  border-color: #fecaca;
 }
 
 .danger-zone .card-header h2 {
   display: flex;
-  alignItems: center;
+  align-items: center;
   color: var(--red);
 }
 
 .confirm-dialog {
-  marginTop: 16px;
+  margin-top: 16px;
   padding: 20px;
   background: var(--red-bg);
   border: 1px solid #f3c9c6;
-  borderRadius: var(--radius);
+  border-radius: var(--radius);
 }
 
 .confirm-content h3 {
   margin: 0 0 4px;
-  fontSize: 16px;
-  fontWeight: 700;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--red);
 }
 
 .confirm-content ul {
   margin: 0;
-  paddingLeft: 20px;
+  padding-left: 20px;
 }
 
 .confirm-content li {
-  marginBottom: 8px;
-  lineHeight: 1.5;
+  margin-bottom: 8px;
+  line-height: 1.5;
 }
 
 .confirm-content li:last-child {
-  marginBottom: 0;
+  margin-bottom: 0;
 }
 
 .btn-danger {
   background: var(--red);
-  borderColor: var(--red);
+  border-color: var(--red);
   color: white;
 }
 
 .btn-danger:hover:not(:disabled) {
   background: #991b1b;
-  borderColor: #991b1b;
+  border-color: #991b1b;
 }
 
 @media (max-width: 640px) {
   .user-meta {
-    flexDirection: column;
-    alignItems: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
   }
 }
@@ -2245,9 +2273,17 @@ h2 {
   text-transform: capitalize;
 }
 .issue-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   margin: 0 0 4px;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.issue-title a {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 .issue-description {
   color: var(--muted);
@@ -2585,11 +2621,13 @@ h2 {
    Catches inline-style overflow that class-based breakpoints can't reach.
    ============================================================================ */
 img,
-svg,
 video,
 canvas {
   max-width: 100%;
   height: auto;
+}
+svg {
+  max-width: 100%;
 }
 pre,
 code {
@@ -2645,7 +2683,9 @@ code.issue-loc-pill {
   display: inline-block;
   max-width: 100%;
   overflow-wrap: break-word;
-  word-break: break-word;
+  /* "normal", not break-word: break-word collapses min-content to one glyph
+     and word-break is inherited, which re-creates the vertical-text squeeze. */
+  word-break: normal;
   white-space: normal;
   padding: 3px 10px;
   border-radius: 999px;
@@ -2669,7 +2709,7 @@ code.issue-loc-pill {
 .mc-table.responsive-cards td[data-label="File"] > code {
   white-space: normal;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
   text-align: left;
   line-height: 1.55;
   max-width: 100%;
@@ -2690,31 +2730,43 @@ code.issue-loc-pill {
    ============================================================================ */
 
 /* Table cells: wrap long tokens (paths, URLs, code) inside their column.
-   IMPORTANT: use word-break: break-word (NOT overflow-wrap: anywhere).
-   "anywhere" reduces a cell's min-content width to a single character, so on
-   dense tables the browser shrinks columns to 1-glyph width and renders text
-   vertically (the reported severity/description bug on many pages). */
+   IMPORTANT: overflow-wrap: break-word only (NOT "anywhere") and
+   word-break: normal (NOT break-word).
+   - "anywhere" reduces a cell's min-content width to one character, so dense
+     tables shrink columns to 1-glyph width and render text vertically (the
+     reported severity/description bug on many pages).
+   - word-break is an INHERITED property: setting break-word on td also broke
+     single-word children (pills like "Pending", links) character-by-character,
+     re-creating the squeeze. "normal" keeps whole-word min-content, so the
+     table scrolls (via .p-table-scroll / card overflow) instead of cramping. */
 .table td,
 .table th,
 .mc-table td,
 .mc-table th {
-  min-width: 0;
+  min-width: 5.5rem;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
 }
 
-/* Inline code anywhere (tables, cards, lists): wrap, never force one line. */
+/* Inline code anywhere (tables, cards, lists): wrap, never force one line.
+   word-break stays "normal": overflow-wrap: break-word already wraps long
+   tokens when needed, while "normal" keeps the token's natural width as the
+   table column's min-content so columns scroll instead of collapsing to
+   1-glyph widths. */
 .table code,
 .mc-table code,
 .card code,
 .issue-card code {
   white-space: normal;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
   max-width: 100%;
 }
 
-/* Cards & panels: allow shrinking; wrap unbounded text. */
+/* Cards & panels: allow shrinking; wrap unbounded text.
+   Cards that contain a data table scroll horizontally instead of squeezing
+   columns to 1-glyph widths. Scoped with :has() so cards without tables
+   (pricing tiers with overflowing badges, etc.) never clip their content. */
 .card,
 .mc-panel,
 .issue-card,
@@ -2722,7 +2774,13 @@ code.issue-loc-pill {
   min-width: 0;
   overflow-wrap: break-word;
 }
-.p-stat-value,
+.card:has(> .table),
+.card:has(> .p-table-scroll),
+.card:has(.table.responsive-cards),
+section.card:has(> table),
+.mc-panel:has(.mc-table) {
+  overflow-x: auto;
+}
 .p-stat-label,
 .p-stat-delta,
 .issue-title,
@@ -2731,6 +2789,12 @@ code.issue-loc-pill {
 .mc-empty,
 .mc-header-note {
   overflow-wrap: break-word;
+  word-break: normal;
+  min-width: 0;
+}
+.p-stat-value {
+  overflow-wrap: normal;
+  word-break: normal;
   min-width: 0;
 }
 
@@ -2739,7 +2803,8 @@ code.issue-loc-pill {
 .mc-row > * { min-width: 0; }
 
 /* Media and pre blocks never exceed their container. */
-img, svg, video { max-width: 100%; height: auto; }
+img, video { max-width: 100%; height: auto; }
+svg { max-width: 100%; }
 pre { max-width: 100%; overflow-x: auto; }
 
 /* Optional line-clamp utilities (progressive enhancement; text stays in DOM

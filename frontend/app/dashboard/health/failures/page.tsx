@@ -29,16 +29,8 @@ function FailuresPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    if (!repositoryId) {
-      // Never silently show ALL repositories' data before a repo is selected.
-      setIssues([]);
-      setSummary({ total: 0, customer_code: 0, provider_incident: 0, other: 0 });
-      setLoading(false);
-      return;
-    }
     setLoading(true);
-    setIssues([]); // clear previous repository's results while loading
-    getHealthFailures(500, repositoryId)
+    getHealthFailures(500, repositoryId || undefined)
       .then((res) => {
         setIssues(Array.isArray(res.failures) ? res.failures : []);
         setSummary({ total: res.total, customer_code: res.customer_code, provider_incident: res.provider_incident, other: res.other || 0 });
@@ -76,7 +68,7 @@ function FailuresPage() {
       <h1>Runtime &amp; Usage Intelligence · Failures</h1>
       <p className="subtitle">Code-side failures and provider incidents — scoped to the selected repository</p>
       <div style={{ margin: "12px 0" }}>
-        <RepositorySelector />
+        <RepositorySelector allowAll />
       </div>
       <p style={{ color: "var(--muted)", fontSize: 13, marginTop: -8 }}>
         {summary.total} open failure{summary.total !== 1 ? "s" : ""} · {summary.customer_code} code-side · {summary.provider_incident} provider · {summary.other} config/usage

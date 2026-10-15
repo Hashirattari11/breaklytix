@@ -46,23 +46,15 @@ export function SeverityBadge({ severity, reason }: { severity: string; reason?:
   const meta = SEVERITY_COLOR[severity] ?? SEVERITY_COLOR.medium;
   return (
     <span
-      className="pill"
+      className="pill severity-badge"
       title={reason || undefined}
       style={{
         background: meta.bg,
         color: meta.fg,
         border: `1px solid ${meta.bg}`,
-        display: "inline-block",
-        marginBottom: 4,
       }}
     >
       {meta.label}
-      {reason && (
-        <span className="muted small" style={{ color: meta.fg, fontWeight: 400 }}>
-          {" "}
-          — {reason}
-        </span>
-      )}
     </span>
   );
 }

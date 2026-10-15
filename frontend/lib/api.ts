@@ -248,8 +248,15 @@ export const getRepo = (id: string) => request<Repo>(`/repos/${id}`);
 export const getDetections = (id: string) =>
   request<DetectionsResponse>(`/repos/${id}/detections`);
 export const getAlerts = (id: string) => request<Alert[]>(`/repos/${id}/alerts`);
-export const listAllAlerts = (repositoryId?: string) =>
-  request<AlertWithRepo[]>(`/repos/alerts${repositoryId ? `?repository_id=${encodeURIComponent(repositoryId)}` : ""}`);
+export const listAllAlerts = async (repositoryId?: string) => {
+  const path = `/repos/alerts${repositoryId ? `?repository_id=${encodeURIComponent(repositoryId)}` : ""}`;
+  const data = await request<AlertWithRepo[] | { alerts?: AlertWithRepo[]; items?: AlertWithRepo[]; data?: AlertWithRepo[] }>(path);
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.alerts)) return data.alerts;
+  if (data && Array.isArray(data.items)) return data.items;
+  if (data && Array.isArray(data.data)) return data.data;
+  return [];
+};
 // Alert lifecycle: mark alerts READ (server-backed, ownership enforced).
 // No ids => ALL of the user's currently-unread alerts become read.
 export const markAlertsRead = (alertIds?: string[]) =>

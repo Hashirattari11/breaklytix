@@ -2,17 +2,32 @@
 
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useState, Suspense} from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { AlertWithRepo, listAllAlerts, markAlertsRead, updateAlertStatus } from "@/lib/api";
 import RepositorySelector from "@/components/RepositorySelector";
 
 import { formatDate, SeverityBadge, Spinner } from "@/components/ui";
 import { ErrorCard, PageHeader } from "@/components/dashboard-ui";
 
+function normalizeAlerts(payload: unknown): AlertWithRepo[] {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === "object") {
+    const maybe = payload as { alerts?: unknown; items?: unknown; data?: unknown };
+    if (Array.isArray(maybe.alerts)) return maybe.alerts as AlertWithRepo[];
+    if (Array.isArray(maybe.items)) return maybe.items as AlertWithRepo[];
+    if (Array.isArray(maybe.data)) return maybe.data as AlertWithRepo[];
+  }
+  return [];
+}
+
+function isOpenStatus(status?: string | null) {
+  const s = (status || "open").toLowerCase();
+  return s !== "resolved" && s !== "ignored";
+}
+
 function AlertsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const repositoryId = searchParams.get("repository_id") ?? "";
   const [alerts, setAlerts] = useState<AlertWithRepo[] | null>(null);
@@ -20,8 +35,8 @@ function AlertsPage() {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("open");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const markedIds = useRef<Set<string>>(new Set());
 
-  // Alert lifecycle: an alert is READ once the server recorded read_at.
   const isRead = (a: AlertWithRepo) => !!a.read_at;
 
   const setStatus = async (id: string, status: "resolved" | "ignored") => {
@@ -29,8 +44,8 @@ function AlertsPage() {
     try {
       await updateAlertStatus(id, status);
       await load();
-    } catch (e: any) {
-      setError(e.message || "Failed to update alert");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to update alert");
     } finally {
       setBusyId(null);
     }
@@ -38,12 +53,12 @@ function AlertsPage() {
 
   const load = useCallback(async () => {
     try {
-      // repository_id is enforced backend-side (ownership check); without it
-      // the endpoint returns the aggregate across the user's repositories.
+      setError(null);
       const a = await listAllAlerts(repositoryId || undefined);
-      setAlerts(a);
-    } catch (e: any) {
-      setError(e.message || "Failed to load alerts");
+      setAlerts(normalizeAlerts(a));
+    } catch (e: unknown) {
+      setAlerts([]);
+      setError(e instanceof Error ? e.message : "Failed to load alerts");
     }
   }, [repositoryId]);
 
@@ -51,36 +66,36 @@ function AlertsPage() {
     load();
   }, [load]);
 
-  // Opening the Alerts page marks the visible alerts READ server-side
-  // (persistent; the sidebar/bell unread badge recalculates from the DB).
   useEffect(() => {
     if (!alerts || alerts.length === 0) return;
-    const unread = alerts.filter((a) => !isRead(a)).map((a) => a.id);
+    const unread = alerts
+      .filter((a) => !isRead(a) && !markedIds.current.has(a.id))
+      .map((a) => a.id);
     if (unread.length === 0) return;
+    unread.forEach((id) => markedIds.current.add(id));
     let cancelled = false;
     markAlertsRead(unread)
       .then(() => {
         if (cancelled) return;
-        // Refetch so read_at comes from the database (not optimistic local state).
-        return load();
-      })
-      .then(() => {
-        if (cancelled) return;
-        // Tell the dashboard layout to recompute the unread badge from the DB.
+        const stamped = new Date().toISOString();
+        setAlerts((prev) =>
+          (prev ?? []).map((a) =>
+            unread.includes(a.id) && !a.read_at ? { ...a, read_at: stamped } : a
+          )
+        );
         window.dispatchEvent(new CustomEvent("breaklytix:alerts-read"));
       })
-      .catch(() => { /* badge stays accurate on next load; error already surfaced by load */ });
+      .catch(() => {
+        unread.forEach((id) => markedIds.current.delete(id));
+      });
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alerts]);
 
   const filtered = (alerts ?? []).filter(
     (a) =>
       (severityFilter === "all" || a.severity === severityFilter) &&
       (statusFilter === "all" ||
-        (statusFilter === "open"
-          ? a.status !== "resolved" && a.status !== "ignored"
-          : a.status === statusFilter))
+        (statusFilter === "open" ? isOpenStatus(a.status) : a.status === statusFilter))
   );
 
   return (
@@ -96,25 +111,14 @@ function AlertsPage() {
 
       {error && <ErrorCard title="Could not load alerts" body={error} retry={load} />}
 
-      <section className="card" style={{ padding: 0 }}>
-        <div
-          className="p-toolbar"
-          style={{
-            padding: "16px 20px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-          }}
-        >
-          <div className="p-filters" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div className="p-filter-group" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <label className="muted small" htmlFor="sevFilter" style={{ margin: 0 }}>Severity</label>
+      <section className="card alert-board">
+        <div className="p-toolbar alert-board-toolbar">
+          <div className="p-filters">
+            <div className="p-filter-group">
+              <label className="muted small" htmlFor="sevFilter">Severity</label>
               <select
                 id="sevFilter"
                 className="input"
-                style={{ width: "auto", padding: "6px 10px" }}
                 value={severityFilter}
                 onChange={(e) => setSeverityFilter(e.target.value)}
               >
@@ -125,15 +129,14 @@ function AlertsPage() {
                 <option value="low">Low</option>
               </select>
             </div>
-            <div className="p-filter-group" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div className="p-filter-group">
               <RepositorySelector allowAll />
             </div>
-            <div className="p-filter-group" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <label className="muted small" htmlFor="statusFilter" style={{ margin: 0 }}>Status</label>
+            <div className="p-filter-group">
+              <label className="muted small" htmlFor="statusFilter">Status</label>
               <select
                 id="statusFilter"
                 className="input"
-                style={{ width: "auto", padding: "6px 10px" }}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -144,93 +147,93 @@ function AlertsPage() {
               </select>
             </div>
           </div>
+          {alerts !== null && (
+            <p className="muted small alert-board-count">
+              {filtered.length} of {alerts.length} alert{alerts.length === 1 ? "" : "s"}
+            </p>
+          )}
         </div>
 
         {alerts === null ? (
-          <div style={{ padding: 20 }}><Spinner /> Loading…</div>
+          <div className="alert-board-loading"><Spinner /> Loading…</div>
         ) : filtered.length === 0 ? (
-          <div className="empty" style={{ marginTop: 16 }}>
+          <div className="empty">
             {alerts.length === 0 ? "No alerts yet. You're all clear. 🎉" : "No alerts match the current filters."}
           </div>
         ) : (
-          <div className="p-table-scroll">
-            <table className="table responsive-cards">
-              <thead>
-                <tr>
-                  <th>Severity</th>
-                  <th>Change</th>
-                  <th>Repository</th>
-                  <th>Affected location</th>
-                  <th>Email</th>
-                  <th>Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((a) => (
-                  <tr key={a.id}>
-                    <td data-label="Severity">
-                      <SeverityBadge severity={a.severity} reason={a.severity_reason} />
-                    </td>
-                    <td data-label="Change">
-                      <span className="pill pill-amber" style={{ marginBottom: 4 }}>
-                        {a.change_type.replace(/_/g, " ")}
-                      </span>
-                      <div className="small" style={{ marginTop: 4 }}>{a.description}</div>
-                      {a.source_url && (
-                        <a className="small" href={a.source_url} target="_blank" rel="noreferrer">
-                          Changelog →
-                        </a>
-                      )}
-                    </td>
-                    <td data-label="Repository">
-                      <Link className="small" href={`/dashboard/repos/${a.repo_id}`}>{a.repo_name}</Link>
-                    </td>
-                    <td data-label="Location">
-                      {a.file_path ? (
-                        <code style={{ whiteSpace: "normal", wordBreak: "break-word" }}>
-                          {a.file_path}
-                          {a.line_number ? `:${a.line_number}` : ""}
-                        </code>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td data-label="Email">
-                      {a.email_sent ? (
-                        <span className="pill pill-green">Sent</span>
-                      ) : (
-                        <span className="pill pill-gray">Pending</span>
-                      )}
-                    </td>
-                    <td data-label="Date" className="muted small">{formatDate(a.created_at)}</td>
-                    <td data-label="Actions" className="p-card-actions">
-                      {a.status === "resolved" || a.status === "ignored" ? (
-                        <span className="pill pill-gray" style={{ textTransform: "capitalize" }}>{a.status}</span>
-                      ) : (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button
-                            className="btn btn-secondary btn-small"
-                            disabled={busyId === a.id}
-                            onClick={() => setStatus(a.id, "resolved")}
-                          >
-                            Resolve
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-small"
-                            disabled={busyId === a.id}
-                            onClick={() => setStatus(a.id, "ignored")}
-                          >
-                            Ignore
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="alert-list">
+            {filtered.map((a) => (
+              <li key={a.id} className={`alert-card${isRead(a) ? " is-read" : ""}`}>
+                <div className="alert-card-top">
+                  <div className="alert-card-flags">
+                    <SeverityBadge severity={a.severity} reason={a.severity_reason} />
+                    <span className="pill pill-amber">
+                      {(a.change_type || "change").replace(/_/g, " ")}
+                    </span>
+                    {a.email_sent ? (
+                      <span className="pill pill-green">Email sent</span>
+                    ) : (
+                      <span className="pill pill-gray">Email pending</span>
+                    )}
+                  </div>
+                  <time className="muted small alert-card-date" dateTime={a.created_at || undefined}>
+                    {formatDate(a.created_at)}
+                  </time>
+                </div>
+
+                <h2 className="alert-card-title">
+                  {a.description || a.severity_reason || "Alert"}
+                </h2>
+                {a.severity_reason && a.severity_reason !== a.description && (
+                  <p className="alert-card-reason">{a.severity_reason}</p>
+                )}
+
+                <div className="alert-card-meta">
+                  {a.repo_id ? (
+                    <Link className="alert-card-repo" href={`/dashboard/repos/${a.repo_id}`}>
+                      {a.repo_name}
+                    </Link>
+                  ) : (
+                    <span className="alert-card-repo">{a.repo_name}</span>
+                  )}
+                  {a.file_path && (
+                    <code className="alert-card-loc">
+                      {a.file_path}
+                      {a.line_number ? `:${a.line_number}` : ""}
+                    </code>
+                  )}
+                  {a.source_url && (
+                    <a className="small" href={a.source_url} target="_blank" rel="noreferrer">
+                      Changelog →
+                    </a>
+                  )}
+                </div>
+
+                <div className="alert-card-actions">
+                  {a.status === "resolved" || a.status === "ignored" ? (
+                    <span className="pill pill-gray" style={{ textTransform: "capitalize" }}>{a.status}</span>
+                  ) : (
+                    <>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={busyId === a.id}
+                        onClick={() => setStatus(a.id, "resolved")}
+                      >
+                        Resolve
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={busyId === a.id}
+                        onClick={() => setStatus(a.id, "ignored")}
+                      >
+                        Ignore
+                      </button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>
