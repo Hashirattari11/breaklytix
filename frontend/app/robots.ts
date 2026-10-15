@@ -7,7 +7,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard", "/admin", "/auth", "/authorize"],
+        // /authorize is intentionally absent — it returns 404 and disallowing a
+        // non-existent URL only adds noise to the ruleset.
+        disallow: ["/dashboard", "/admin", "/auth"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

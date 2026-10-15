@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle, LEGAL_LINKS } from "@/components/LegalLayout";
 import Link from "next/link";
-import { SITE_URL, SITE_NAME, SUPPORT_EMAIL, LEGAL_ENTITY, LEGAL_ADDRESS } from "@/lib/site";
+import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contact & Support",
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     `Get help with ${SITE_NAME}: support email, GitHub issues, and how to configure your support contact.`,
   alternates: { canonical: SITE_URL + "/contact" },
   robots: { index: true, follow: true },
+  openGraph: pageOpenGraph("/contact"),
 };
 
 const TOC = [

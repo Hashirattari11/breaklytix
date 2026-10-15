@@ -33,5 +33,38 @@ Thumbs.db
 .vscode/
 *.swp
 
-.vercel
-.env*
+# ---- Vercel (any variant, not just the canonical folder) ----
+# Vercel's own .vercel/README.txt says the folder must not be shared.
+.vercel*
+!.vercel/.gitignore
+
+# ---- Local deploy / tooling scratch ----
+# Ad-hoc patch, sweep and repair scripts and their output logs.
+_*.py
+_*.log
+*_deploy*.log
+deploy_*.txt
+deploy_*.log
+*_deploy_rc.txt
+*_deploy_target_*.txt
+deploy_log.txt
+prod_url.txt
+name_prod.txt
+final_deploy_report.txt
+*.bak
+.vercel.log
+.devserver*.log
+.prodserver.log
+dt_*.json
+err.txt
+out.txt
+
+# ---- Local dev servers / scratch output ----
+frontend/b2s.txt
+frontend/*_out.txt
+frontend/*_report.txt
+frontend/fullscan*.txt
+frontend/build_log*.txt
+frontend/tc_report.txt
+frontend/wrap_out.txt
+frontend/clean_out.txt

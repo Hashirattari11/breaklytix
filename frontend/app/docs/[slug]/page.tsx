@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDoc, docsBySection, relatedDocs, prevNext, type DocBlock } from "@/lib/docs";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, SITE_NAME } from "@/lib/site";
 import { LogoMark } from "@/components/Logo";
 
 export function generateStaticParams() {
@@ -11,12 +11,73 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const doc = getDoc(params.slug);
   if (!doc) return {};
+  const url = `${SITE_URL}/docs/${doc.slug}`;
   return {
-    title: `${doc.title} | Breaklytix Documentation`,
+    // Only the article title here — the root layout's `%s · Breaklytix`
+    // template appends the brand once. The old
+    // `${doc.title} | Breaklytix Documentation` produced
+    // "What is Breaklytix? | Breaklytix Documentation · Breaklytix",
+    // repeating the brand up to three times in one <title>.
+    title: doc.title,
     description: doc.summary,
     robots: { index: true, follow: true },
-    alternates: { canonical: `${SITE_URL}/docs/${doc.slug}` },
+    alternates: { canonical: url },
+    openGraph: { url, type: "website", siteName: SITE_NAME },
   };
+}
+
+/** Docs › Section › Article breadcrumb, emitted on every article page. */
+function BreadcrumbJsonLd({ doc }: { doc: { title: string; slug: string; section: string } }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: "Docs", item: `${SITE_URL}/docs` },
+      { "@type": "ListItem", position: 3, name: doc.section, item: `${SITE_URL}/docs` },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: doc.title,
+        item: `${SITE_URL}/docs/${doc.slug}`,
+      },
+    ],
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+/**
+ * FAQPage JSON-LD for articles that declare `faq` pairs. The rendered <h3>/<p>
+ * and this data come from the same source, so the structured data can never
+ * drift from what a visitor reads on the page.
+ */
+function FaqJsonLd({
+  doc,
+  faq,
+}: {
+  doc: { title: string; slug: string };
+  faq: { q: string; a: string }[];
+}) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
 }
 
 function Block({ b }: { b: DocBlock }) {
@@ -59,6 +120,8 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
 
   return (
     <div className="p-docs" style={{ paddingTop: 64 }}>
+      <BreadcrumbJsonLd doc={doc} />
+      {doc.faq && doc.faq.length > 0 && <FaqJsonLd doc={doc} faq={doc.faq} />}
       <div className="p-docs-layout" style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px 80px" }}>
         {/* Left nav (desktop) */}
         <nav className="p-docs-nav" aria-label="Documentation sections" style={{ position: "sticky", top: 24, maxHeight: "calc(100vh - 48px)", overflowY: "auto" }}>
@@ -120,6 +183,16 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
             {doc.content.map((b, i) => (
               <Block key={i} b={b} />
             ))}
+            {doc.faq && doc.faq.length > 0 && (
+              <section aria-label="Frequently asked questions">
+                {doc.faq.map((item) => (
+                  <div key={item.q}>
+                    <h3 style={{ fontSize: 17, margin: "26px 0 6px" }}>{item.q}</h3>
+                    <p style={{ marginBottom: 10, lineHeight: 1.7 }}>{item.a}</p>
+                  </div>
+                ))}
+              </section>
+            )}
           </div>
 
           {related.length > 0 && (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ensureSession, getToken } from "../lib/auth";
 import { Nav } from "./ui";
 import { LegalFooter } from "./LegalLayout";
+import { PRICING_FAQ } from "../lib/pricing-faq";
 
 const PLANS = [
   {
@@ -128,6 +129,7 @@ export default function PricingPage() {
           </p>
         </div>
 
+        <h2 className="sr-only">Plans and pricing</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
           {PLANS.map((plan) => (
             <PlanCard key={plan.id} plan={plan} loading={loadingPlan === plan.id} onCheckout={handleCheckout} />
@@ -135,28 +137,11 @@ export default function PricingPage() {
         </div>
 
         <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #eee", textAlign: "center" }}>
-          <h3 style={{ marginBottom: 16 }}>Frequently asked questions</h3>
+          <h2 style={{ marginBottom: 16, fontSize: 24 }}>Frequently asked questions</h2>
           <div style={{ display: "grid", gap: 12, maxWidth: 700, margin: "0 auto", textAlign: "left" }}>
-            <FAQItem
-              q="What counts as a 'monitored API'?"
-              a="Each unique third-party API (Stripe, Shopify, Twilio, SendGrid, GitHub) detected in your connected repositories counts toward your limit. Multiple repositories using the same API only count once per API."
-            />
-            <FAQItem
-              q="Can I change plans later?"
-              a="Yes, you can upgrade or downgrade at any time from your billing dashboard. Changes take effect immediately, and we'll prorate the difference."
-            />
-            <FAQItem
-              q="What happens after my free trial ends?"
-              a="After 14 days, you'll be prompted to select a paid plan. Your data and monitoring continue uninterrupted if you upgrade. If you don't upgrade, monitoring will pause until you subscribe."
-            />
-            <FAQItem
-              q="Do you offer annual billing discounts?"
-              a="Annual billing is not currently available. Contact us and we'll update you if that changes."
-            />
-            <FAQItem
-              q="What payment methods do you accept?"
-              a="We accept major credit cards via Stripe. For enterprise billing arrangements, contact us through the contact page."
-            />
+            {PRICING_FAQ.map((item) => (
+              <FAQItem key={item.q} q={item.q} a={item.a} />
+            ))}
           </div>
         </div>
       </main>

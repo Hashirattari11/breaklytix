@@ -26,7 +26,7 @@ export function LegalFooter() {
           </div>
           <div className="footer-links">
             <div className="footer-column">
-              <h4>Legal</h4>
+              <h2>Legal</h2>
               <ul>
                 {LEGAL_LINKS.map((l) => (
                   <li key={l.href}>
@@ -36,7 +36,7 @@ export function LegalFooter() {
               </ul>
             </div>
             <div className="footer-column">
-              <h4>Product</h4>
+              <h2>Product</h2>
               <ul>
                 <li><Link href="/">Home</Link></li>
                 <li><Link href="/pricing">Pricing</Link></li>

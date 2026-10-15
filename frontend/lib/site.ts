@@ -11,6 +11,21 @@ export const SITE_DESCRIPTION =
 export const SUPPORT_EMAIL =
   process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "hashirattari73@gmail.com";
 
+/**
+ * Build the per-page `openGraph` block for a public marketing/docs page.
+ *
+ * Next.js does NOT derive og:url from `alternates.canonical`, and the root
+ * layout deliberately leaves openGraph.url unset. Without an explicit url here
+ * every page falls back to the URL that was fetched, which works — but the
+ * helper makes the canonical OG url explicit and keeps every page consistent.
+ * Title/description are intentionally omitted so Next inherits the page's own
+ * `title` / `description` instead of a site-wide boilerplate string.
+ */
+export function pageOpenGraph(path = "/") {
+  const url = path === "/" ? `${SITE_URL}/` : `${SITE_URL}${path}`;
+  return { url, type: "website" as const, siteName: SITE_NAME };
+}
+
 // Legal operator placeholder — replace with the registered company name/address
 // before a commercial launch (see NEXT_PUBLIC_LEGAL_ENTITY / _ADDRESS).
 export const LEGAL_ENTITY =

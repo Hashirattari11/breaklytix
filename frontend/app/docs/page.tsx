@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import { DOC_SECTIONS, docsBySection, DOCS } from "@/lib/docs";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, pageOpenGraph } from "@/lib/site";
 import { LogoMark } from "@/components/Logo";
 import { DocsSearch } from "@/components/DocsSearch";
 
 export const metadata: Metadata = {
   // No "| Breaklytix" suffix here — the root layout title template already
   // appends "· Breaklytix" (a full suffix produced a duplicated brand).
-  title: "Documentation",
+  title: "Documentation & Guides",
   description: "Guides for monitoring provider APIs, detecting code breaks, and using the Impact Engine.",
   robots: { index: true, follow: true },
+  openGraph: pageOpenGraph("/docs"),
   alternates: { canonical: `${SITE_URL}/docs` },
 };
 

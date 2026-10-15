@@ -17,6 +17,12 @@ export type DocArticle = {
   summary: string;
   content: DocBlock[];
   related?: string[];
+  /**
+   * Optional question/answer pairs. Rendered as <h3>/<p> pairs and emitted as
+   * schema.org FAQPage JSON-LD, so search engines and AI answer engines can
+   * lift the answers out of the page. Ground every answer in a real feature.
+   */
+  faq?: { q: string; a: string }[];
 };
 
 export const DOC_SECTIONS: { name: string; blurb: string }[] = [
@@ -547,16 +553,41 @@ export const DOCS: DocArticle[] = [
     title: "FAQ",
     section: "Provider Monitoring",
     order: 28,
-    summary: "Common questions about Breaklytix.",
+    summary:
+      "Answers to common Breaklytix questions: secrets and code access, auto-merged pull requests, private repositories, alert timing, and disconnecting GitHub.",
     related: ["troubleshooting"],
     content: [
-      { t: "ul", x: [
-        "Does Breaklytix read my secrets? No — only public code access (public_repo) and metadata; it scans code structure, not credentials.",
-        "Does Breaklytix auto-merge PRs? No. Auto-fix PRs are opt-in, human-reviewed, and never merged automatically.",
-        "Can I monitor private repositories? Repository access follows the scopes you approved; the default is read-only public_repo access.",
-        "How fast are alerts? Provider changelogs are fetched daily at 08:00 UTC and processed at 08:15 UTC; on-demand scans run immediately.",
-        "What happens if I disconnect GitHub? Background scans pause until you reconnect; your data and history remain.",
-      ] },
+      { t: "p", x: "Everything below reflects how Breaklytix actually behaves today — there is no planned behaviour listed as if it shipped." },
+    ],
+    faq: [
+      {
+        q: "Does Breaklytix read my secrets?",
+        a: "No. Breaklytix requests public code access (public_repo) plus your profile metadata. It scans code structure — imports, SDK calls, API hostnames — and never reads, stores or logs credential values. Any secret-shaped string found during a scan is redacted before it is stored or displayed.",
+      },
+      {
+        q: "Does Breaklytix auto-merge pull requests?",
+        a: "No. Auto-fix pull requests are opt-in and human-reviewed. Breaklytix opens a pull request with the proposed change and waits — nothing is ever merged automatically, and every change is a reviewable diff you can reject.",
+      },
+      {
+        q: "Can I monitor private repositories?",
+        a: "Repository access follows exactly the OAuth scopes you approved when you connected GitHub. The default is read-only public repository access. Private repository support requires a GitHub App install with Contents:read, which grants read-only visibility without write access to your code.",
+      },
+      {
+        q: "How fast will I get an alert?",
+        a: "Provider changelogs are fetched daily at 08:00 UTC and processed at 08:15 UTC, so a change shipped during the day reaches you the next morning. You do not have to wait for the cron — an on-demand scan runs immediately and reports what it finds.",
+      },
+      {
+        q: "What happens if I disconnect GitHub?",
+        a: "Background scanning pauses until you reconnect. Your connected repositories, scan history, alerts and findings are all retained, so reconnecting resumes where you left off. Nothing is deleted on disconnect.",
+      },
+      {
+        q: "What does Breaklytix actually monitor?",
+        a: "Public changelogs and release notes for 44 provider APIs, spanning payments, communication, AI/ML, cloud and developer infrastructure. Detection is deterministic — regex and structured scraping, no language model in the monitoring path — so the same published change always produces the same result.",
+      },
+      {
+        q: "How is Breaklytix different from Dependabot?",
+        a: "Dependabot watches package versions inside your dependency file. Breaklytix watches the changelogs of third-party APIs you call, and then maps a published change onto the exact files, lines and symbols in your repository that could break. A provider can change behaviour without shipping a new package version, and Dependabot stays silent on that.",
+      },
     ],
   },
 ];

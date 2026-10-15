@@ -25,17 +25,18 @@ export const metadata: Metadata = {
   // Private-by-default: dashboard/admin/auth pages must NOT be indexed.
   // Public marketing pages override this per-page (see /, /pricing, /terms, /privacy).
   robots: { index: false, follow: false },
+  // NOTE: openGraph/twitter deliberately set NO url, title or description here.
+  // A static `url: SITE_URL` in the root layout was inherited by every page, so
+  // og:url pointed at the homepage for /pricing, /docs, /contact, /privacy and
+  // every docs article — every social share landed on the homepage with the
+  // homepage's copy. Omitting them lets Next fall back to each page's own
+  // `title`/`description`/`alternates.canonical`.
   openGraph: {
     type: "website",
-    url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Never let a broken API catch you off guard`,
-    description: SITE_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Never let a broken API catch you off guard`,
-    description: SITE_DESCRIPTION,
   },
 };
 

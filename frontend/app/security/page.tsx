@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle } from "@/components/LegalLayout";
-import { SITE_URL, SITE_NAME, SUPPORT_EMAIL } from "@/lib/site";
+import { SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Security",
+  title: "Security & Data Protection",
   description:
     `How ${SITE_NAME} protects your data: encrypted credentials, OAuth authentication, scoped GitHub access, access control, and secure logging.`,
   alternates: { canonical: SITE_URL + "/security" },
   robots: { index: true, follow: true },
+  openGraph: pageOpenGraph("/security"),
 };
 
 const TOC = [

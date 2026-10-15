@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle } from "@/components/LegalLayout";
-import { SITE_URL, SITE_NAME, SUPPORT_EMAIL, LEGAL_ENTITY, LEGAL_ADDRESS } from "@/lib/site";
+import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     `How ${SITE_NAME} collects, uses, stores, and protects your data — GitHub OAuth sign-in, repository scanning, provider connections, email, and billing.`,
   alternates: { canonical: SITE_URL + "/privacy" },
   robots: { index: true, follow: true },
+  openGraph: pageOpenGraph("/privacy"),
 };
 
 const TOC = [
