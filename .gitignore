@@ -37,6 +37,10 @@ Thumbs.db
 # Vercel's own .vercel/README.txt says the folder must not be shared.
 .vercel*
 !.vercel/.gitignore
+# Root .vercelignore IS shared config: the project Root Directory is
+# "frontend", so root deploys upload the whole tree — this file keeps
+# secrets/logs/unrelated dirs out of the deployment bundle.
+!.vercelignore
 
 # ---- Local deploy / tooling scratch ----
 # Ad-hoc patch, sweep and repair scripts and their output logs.
@@ -68,3 +72,4 @@ frontend/build_log*.txt
 frontend/tc_report.txt
 frontend/wrap_out.txt
 frontend/clean_out.txt
+.vercel

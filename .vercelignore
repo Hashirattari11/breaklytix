@@ -1,0 +1,37 @@
+# Repo root is uploaded because the Vercel project's Root Directory is
+# "frontend" (Vercel uploads the repo root, then builds only frontend/).
+# Keep secrets, logs, local state, and unrelated trees out of the bundle.
+# NOTE: Vercel always excludes .git and .env* regardless of this file.
+
+# secrets + local env (belt-and-suspenders on top of Vercel's .env* rule)
+.env.local
+.env*.local
+
+# local logs
+*.log
+.devserver*.log
+.prodserver*.log
+
+# local tool / editor state
+.agents/
+.pytest_cache/
+.vercel.bak
+.vercel.bak2
+
+# Vercel project state (must not be bundled)
+.vercel/
+
+# unrelated backend / CLI / data trees (only frontend/ is built)
+backend/
+cli/
+db/
+examples/
+bx/
+
+# generated reports / scratch scripts at repo root
+*_REPORT.md
+*_REPORT.txt
+*_STATUS.md
+_audit*.py
+_apply_*.py
+_extract_*.py
