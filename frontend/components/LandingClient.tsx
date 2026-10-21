@@ -10,6 +10,7 @@ import type { ProviderCategory } from "../lib/providers/types";
 import { LEGAL_LINKS } from "./LegalLayout";
 import { LogoMark } from "./Logo";
 import { SUPPORT_EMAIL } from "../lib/site";
+import { LANDING_FAQ } from "../lib/landing-faq";
 
 /* â”€â”€â”€ Intersection Observer hook â”€â”€â”€ */
 function useReveal(threshold = 0.15) {
@@ -385,6 +386,7 @@ export default function LandingPage() {
   const apisRef = useReveal(0.1);
   const preview = useReveal(0.2);
   const pricing = [useReveal(), useReveal(), useReveal()];
+  const faq = useReveal(0.1);
   const cta = useReveal();
 
   return (
@@ -442,6 +444,27 @@ export default function LandingPage() {
         .lp-pricing-card.popular { border-color: var(--accent); box-shadow: 0 8px 32px rgba(99,91,255,0.15); }
         .lp-check { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; font-size: 14px; }
         .lp-check svg { width: 20px; height: 20px; color: var(--green); flex-shrink: 0; margin-top: 2px; }
+        .lp-faq-list { max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
+        .lp-faq-item {
+          background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+          overflow: hidden; transition: border-color 0.25s ease;
+        }
+        .lp-faq-item[open] { border-color: var(--accent); }
+        .lp-faq-item summary {
+          list-style: none; cursor: pointer; padding: 18px 48px 18px 20px; position: relative;
+          font-size: 16px; font-weight: 700; color: var(--text, inherit); line-height: 1.4;
+        }
+        .lp-faq-item summary::-webkit-details-marker { display: none; }
+        .lp-faq-item summary::after {
+          content: ""; position: absolute; right: 20px; top: 50%; width: 10px; height: 10px;
+          border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+          transform: translateY(-70%) rotate(45deg); transition: transform 0.25s ease;
+        }
+        .lp-faq-item[open] summary::after { transform: translateY(-30%) rotate(225deg); }
+        .lp-faq-item summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .lp-faq-a {
+          margin: 0; padding: 0 20px 18px; font-size: 15px; line-height: 1.65; color: var(--muted);
+        }
         .lp-cta-section {
           position: relative; overflow: hidden; padding: 80px 24px; text-align: center;
           background: linear-gradient(135deg, #0f0a2e, #1a1145, #0d1b3e);
@@ -663,6 +686,8 @@ export default function LandingPage() {
         @media (max-width: 400px) {
           .lp-api-card { padding: 14px; }
           .lp-apis-grid { gap: 10px; }
+          .lp-faq-item summary { padding: 16px 44px 16px 16px; font-size: 15px; }
+          .lp-faq-a { padding: 0 16px 16px; font-size: 14px; }
         }
         @media (max-width: 350px) {
           .lp-apis-grid { grid-template-columns: 1fr !important; }
@@ -984,7 +1009,29 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• FINAL CTA â•â•â•â•â•â•â• */}
+        {/* ───── FAQ ───── */}
+        <section id="faq" className="section" style={{ background: "var(--surface)" }} aria-labelledby="faq-title">
+          <div className="container">
+            <div className="section-header">
+              <h2 id="faq-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, lineHeight: 1.2, margin: "0 0 12px" }}>Frequently asked questions</h2>
+              <p className="section-subheadline">Everything you need to know about how Breaklytix keeps your integrations from breaking.</p>
+            </div>
+            <div
+              className="lp-faq-list"
+              ref={faq.ref}
+              style={{ opacity: faq.visible ? 1 : 0, transform: faq.visible ? "translateY(0)" : "translateY(24px)", transition: "all 0.6s ease" }}
+            >
+              {LANDING_FAQ.map((item) => (
+                <details key={item.q} className="lp-faq-item">
+                  <summary className="lp-faq-q">{item.q}</summary>
+                  <p className="lp-faq-a">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ───── FINAL CTA ───── */}
         <section style={{ padding: "80px 24px" }} ref={cta.ref}>
           <div className="lp-cta-section" style={{ opacity: cta.visible ? 1 : 0, transform: cta.visible ? "translateY(0)" : "translateY(24px)", transition: "all 0.6s ease" }}>
             <div className="lp-cta-glow" />

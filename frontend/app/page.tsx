@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LandingClient from "../components/LandingClient";
 import { SITE_URL, SITE_DESCRIPTION, pageOpenGraph } from "../lib/site";
+import { LANDING_FAQ } from "../lib/landing-faq";
 
 export const metadata: Metadata = {
   title: "Breaklytix — Know What API Changes Will Break Your Code",
@@ -45,6 +46,14 @@ const jsonLd = {
       name: "Breaklytix",
       url: SITE_URL + "/",
       publisher: { "@type": "Organization", name: "Breaklytix" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: LANDING_FAQ.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
     },
   ],
 };
