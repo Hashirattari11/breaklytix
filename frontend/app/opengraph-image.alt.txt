@@ -1,0 +1,1 @@
+Breaklytix: know what API changes will break your code. 44+ provider changelogs monitored around the clock, breaking changes mapped to the exact files in your GitHub repositories.

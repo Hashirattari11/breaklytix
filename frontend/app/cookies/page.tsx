@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle } from "@/components/LegalLayout";
+import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Cookie Policy & Browser Storage",
   description:
-    `How ${SITE_NAME} uses cookies and browser storage — authentication via local/session storage, no tracking cookies.`,
+    `How ${SITE_NAME} uses cookies and browser storage: local and session storage for authentication, no tracking or advertising cookies, and how to clear them.`,
   alternates: { canonical: SITE_URL + "/cookies" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/cookies"),
@@ -25,6 +26,7 @@ const TOC = [
 export default function CookiesPage() {
   return (
     <LegalLayout>
+      <BreadcrumbJsonLd name="Cookie Policy" path="/cookies" />
       <LegalTitle
         title="Cookie Policy"
         updated="September 8, 2026"

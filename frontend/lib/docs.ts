@@ -79,6 +79,58 @@ export const DOCS: DocArticle[] = [
       { t: "p", x: "That's it — Breaklytix's background cron jobs fetch provider changelogs every morning (08:00 UTC), process them, and run the daily repository scan." },
     ],
   },
+  {
+    slug: "breaking-api-changes",
+    title: "What counts as a breaking API change?",
+    section: "Getting Started",
+    order: 3,
+    summary: "The six categories of change that break integrations, real examples from common providers, and how to catch them before production.",
+    related: ["changelog", "code-breaks", "deprecated-apis"],
+    content: [
+      { t: "p", x: "A breaking API change is any change to a provider's interface that can make code that worked yesterday fail, misbehave, or return different data today — without the calling code changing at all. The dangerous property is the asymmetry: nothing in your repository changes, so nothing in your build, tests, or code review catches it." },
+      { t: "h", x: "The six categories that break real integrations" },
+      { t: "ul", x: [
+        "Removed or renamed endpoints: a path stops existing, or moves from /v1/charges to /v2/payments. Calls return 404 immediately.",
+        "Removed response fields: a property your code reads is no longer returned. A strict parser throws; a loose one silently writes null into your database.",
+        "New required parameters or headers: the call starts returning 400 because an argument you never sent is now mandatory.",
+        "Authentication changes: an API key scheme is replaced by OAuth, a signing algorithm changes, or a header is renamed.",
+        "API version retirement: a dated version keeps working until a shutdown date, then returns errors for everyone still on it.",
+        "Semantic changes: the field still exists and the type is unchanged, but the meaning or unit changed — cents to dollars, a timestamp becoming a string, pagination defaulting differently.",
+      ] },
+      { t: "p", x: "The first five produce loud failures. The sixth produces silent corruption, which is why it is worth tracking alongside the obvious ones." },
+      { t: "h", x: "How providers actually ship these changes" },
+      { t: "p", x: "Most large API providers publish changes continuously rather than on a release cadence, and each has its own mechanism for signalling risk:" },
+      { t: "ul", x: [
+        "Stripe publishes a dated changelog and keeps old API versions alive per account, so the break arrives when an account upgrades its version or when an old version is retired.",
+        "GitHub versions its REST API by date through the X-GitHub-Api-Version header and announces sunset dates in its changelog.",
+        "OpenAI retires model snapshots on a published schedule, so a pinned model name can stop resolving even though your request shape never changed.",
+        "Slack and Twilio change response payloads and auth requirements through their developer changelogs, often with a deprecation window rather than a hard cutover.",
+        "AWS ships service-level release notes per product, which means one repository can depend on several independent change streams at once.",
+      ] },
+      { t: "p", x: "The common thread: the announcement is public, but it is published by the provider, in the provider's format, on the provider's schedule. Nobody on your team is subscribed to forty of them." },
+      { t: "h", x: "Why dependency updates do not cover it" },
+      { t: "p", x: "Lockfile updates and Dependabot-style alerts track the SDK package you install. They do not track the remote service that package talks to. A pinned SDK version is entirely compatible with a server that has already removed the endpoint that SDK calls — which is why an integration can break with no dependency change, no commit, and no failing build." },
+      { t: "h", x: "How to catch breaking changes before production" },
+      { t: "ul", x: [
+        "Pin the provider API version explicitly and record the retirement date somewhere a human will see it.",
+        "Subscribe to every provider changelog your code touches — and route it to a place the on-call engineer actually reads.",
+        "Add contract tests that assert the response fields you depend on, so a removed field fails a test instead of a customer request.",
+        "Keep an inventory of which repositories call which endpoints, so an announcement can be turned into a list of files to change.",
+        "Automate the matching step: static analysis of your code against the changelog feed, which is exactly what Breaklytix does.",
+      ] },
+      { t: "h", x: "How Breaklytix classifies a change" },
+      { t: "p", x: "Breaklytix normalises each provider entry into a change type — breaking change, deprecation, API version change, endpoint change, request or response schema change, authentication change, SDK change, rate limit change or behaviour change — and assigns a severity. It then matches the entry against the providers, SDKs, environment variable names and endpoint strings detected in your repositories. An entry that matches produces an alert with the affected files and lines; an entry that does not match is still recorded, but it does not page anyone." },
+      { t: "tip", x: "An unmatched alert is not a guarantee of safety. It means Breaklytix found no detected usage of the changed surface in the repositories you connected — a dynamic call built from a string at runtime can hide from static analysis." },
+      { t: "p", x: "See the list of monitored providers and their official changelog sources, or read how the changelog pipeline classifies and deduplicates entries." },
+    ],
+    faq: [
+      { q: "Is a deprecation the same as a breaking change?", a: "No. A deprecation announces that something will stop working later; a breaking change is the point where it stops. Deprecations matter because they are the last warning before the break, so Breaklytix tracks both and treats a deprecation with a shutdown date as high priority." },
+      { q: "Can a breaking change break code that does not use the changed endpoint?", a: "Yes, indirectly. Shared SDKs, shared auth middleware and shared response parsers mean a change to one endpoint can affect call sites that never touched it. That is why impact is scored against the repository as a whole rather than a single file." },
+      { q: "Do I need to upgrade my API version to be affected?", a: "Not always. Versioned APIs only protect you while your pinned version is supported. When a provider retires that version, every account still on it is affected at the same time, regardless of what your code does." },
+      { q: "How quickly does Breaklytix notice a change?", a: "Provider sources are polled on a schedule throughout the day and deduplicated by a stable fingerprint. The delay between a provider publishing an entry and an alert being created is bounded by that polling cadence, not by a human reading changelogs." },
+      { q: "What is the difference between a code break and an API error?", a: "A code break is a static mismatch between your source and a changed interface, found before or after the change ships. An API error is a runtime signal that calls are currently failing. Breaklytix reports both, in Code Break Detection and Runtime Intelligence respectively." },
+    ],
+  },
 
   // ─────────────────────── Authentication & GitHub ───────────────────────
   {
@@ -175,8 +227,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "runtime-intelligence",
     title: "Runtime Intelligence overview",
-    section: "Provider Monitoring",
-    order: 3,
+    section: "Runtime Intelligence",
+    order: 1,
     summary: "Live health signals for each provider you connect: errors, failures, incidents, and rate limits.",
     related: ["api-errors", "provider-incidents", "rate-limit-events"],
     content: [
@@ -194,8 +246,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "api-errors",
     title: "API errors & failures",
-    section: "Provider Monitoring",
-    order: 4,
+    section: "Runtime Intelligence",
+    order: 2,
     summary: "Elevated error rates and failed calls on your integrations.",
     related: ["runtime-intelligence"],
     content: [
@@ -205,8 +257,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "provider-incidents",
     title: "Provider incidents",
-    section: "Provider Monitoring",
-    order: 5,
+    section: "Runtime Intelligence",
+    order: 3,
     summary: "Official incident status for monitored providers.",
     related: ["runtime-intelligence", "alerts"],
     content: [
@@ -216,8 +268,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "rate-limit-events",
     title: "Rate limit events",
-    section: "Provider Monitoring",
-    order: 6,
+    section: "Runtime Intelligence",
+    order: 4,
     summary: "See when your usage approaches or exceeds API rate limits.",
     related: ["runtime-intelligence"],
     content: [
@@ -229,8 +281,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "code-breaks",
     title: "Code break detection",
-    section: "Provider Monitoring",
-    order: 7,
+    section: "Code Break Detection",
+    order: 1,
     summary: "Static analysis results that locate the code a provider change affects.",
     related: ["repository-scanner", "impact-overview"],
     content: [
@@ -241,8 +293,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "deprecated-apis",
     title: "Deprecated APIs",
-    section: "Provider Monitoring",
-    order: 8,
+    section: "Code Break Detection",
+    order: 2,
     summary: "Usage of API versions or endpoints providers have deprecated.",
     related: ["code-breaks"],
     content: [
@@ -252,8 +304,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "auto-fix-prs",
     title: "Auto-fix PRs",
-    section: "Provider Monitoring",
-    order: 9,
+    section: "Code Break Detection",
+    order: 3,
     summary: "Mechanical fixes Breaklytix proposes when a change is unambiguous.",
     related: ["code-breaks", "impact-overview"],
     content: [
@@ -270,8 +322,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "impact-overview",
     title: "Impact Engine",
-    section: "Provider Monitoring",
-    order: 10,
+    section: "Impact Engine",
+    order: 1,
     summary: "Quantify what a breaking change means for your repositories before it ships.",
     related: ["fire-drill", "auto-fix-prs", "deploy-day"],
     content: [
@@ -286,8 +338,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "fire-drill",
     title: "API Fire Drill",
-    section: "Provider Monitoring",
-    order: 11,
+    section: "Impact Engine",
+    order: 2,
     summary: "Simulate a breaking change to see how your team would respond — without waiting for a real one.",
     related: ["impact-overview"],
     content: [
@@ -297,8 +349,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "deploy-day",
     title: "Deploy day checklist",
-    section: "Provider Monitoring",
-    order: 12,
+    section: "Impact Engine",
+    order: 3,
     summary: "A practical playbook for the day a breaking provider change lands.",
     related: ["impact-overview", "alerts"],
     content: [
@@ -316,8 +368,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "alerts",
     title: "Alerts",
-    section: "Provider Monitoring",
-    order: 13,
+    section: "Alerts & Notifications",
+    order: 1,
     summary: "The alert lifecycle: created, matched, resolved, ignored.",
     related: ["notifications", "email-alerts"],
     content: [
@@ -332,8 +384,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "notifications",
     title: "Notification preferences",
-    section: "Provider Monitoring",
-    order: 14,
+    section: "Alerts & Notifications",
+    order: 2,
     summary: "Which triggers email you: breaking changes, code breaks, errors, incidents, digests.",
     related: ["email-alerts", "alerts"],
     content: [
@@ -348,8 +400,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "email-alerts",
     title: "Email alerts & delivery status",
-    section: "Provider Monitoring",
-    order: 15,
+    section: "Alerts & Notifications",
+    order: 3,
     summary: "How alert emails are sent, and what 'accepted by provider' means.",
     related: ["notifications"],
     content: [
@@ -367,8 +419,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "agency-mode",
     title: "Agency Mode",
-    section: "Provider Monitoring",
-    order: 16,
+    section: "Agency Mode",
+    order: 1,
     summary: "Run Breaklytix for external clients through your own GitHub App installation.",
     related: ["agency-invites", "github-connection"],
     content: [
@@ -383,8 +435,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "agency-invites",
     title: "Client invites & email status",
-    section: "Provider Monitoring",
-    order: 17,
+    section: "Agency Mode",
+    order: 2,
     summary: "Inviting clients, resending, and reading honest email status.",
     related: ["agency-mode", "email-alerts"],
     content: [
@@ -401,8 +453,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "cli",
     title: "Developer CLI",
-    section: "Provider Monitoring",
-    order: 18,
+    section: "CLI & Integrations",
+    order: 1,
     summary: "Scan a repository and get Breaklytix findings without leaving the terminal.",
     related: ["repository-scanner", "api-keys"],
     content: [
@@ -414,8 +466,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "slack-integration",
     title: "Slack integration",
-    section: "Provider Monitoring",
-    order: 19,
+    section: "CLI & Integrations",
+    order: 2,
     summary: "Mirror alerts to a Slack channel.",
     related: ["alerts", "notifications"],
     content: [
@@ -428,8 +480,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "settings",
     title: "Settings overview",
-    section: "Provider Monitoring",
-    order: 20,
+    section: "Settings & Security",
+    order: 1,
     summary: "Profile, GitHub connection, theme, notifications, email, billing, and danger zone.",
     related: ["notifications", "theme", "billing"],
     content: [
@@ -445,8 +497,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "theme",
     title: "Theme (light / dark / system)",
-    section: "Provider Monitoring",
-    order: 21,
+    section: "Settings & Security",
+    order: 2,
     summary: "Appearance preference stored on your device, applied without flash.",
     related: ["settings"],
     content: [
@@ -461,8 +513,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "api-keys",
     title: "API keys",
-    section: "Provider Monitoring",
-    order: 22,
+    section: "Settings & Security",
+    order: 3,
     summary: "Programmatic access to your Breaklytix data for scripts and the CLI.",
     related: ["cli"],
     content: [
@@ -473,10 +525,10 @@ export const DOCS: DocArticle[] = [
   {
     slug: "security-model",
     title: "Security model & privacy",
-    section: "Provider Monitoring",
-    order: 23,
+    section: "Settings & Security",
+    order: 4,
     summary: "Encryption, scoping, and why Breaklytix never sees your keys.",
-    related: ["privacy-policy", "terms-of-service"],
+    related: ["api-keys", "settings"],
     content: [
       { t: "ul", x: [
         "Authentication: GitHub OAuth only; no passwords stored.",
@@ -489,35 +541,13 @@ export const DOCS: DocArticle[] = [
       { t: "p", x: "Full details live in the Security page and Privacy Policy linked in the footer." },
     ],
   },
-  {
-    slug: "privacy-policy",
-    title: "Privacy Policy",
-    section: "Provider Monitoring",
-    order: 24,
-    summary: "What we collect, store, and share.",
-    related: ["terms-of-service", "security-model"],
-    content: [
-      { t: "p", x: "Breaklytix collects your GitHub profile, email, and repository metadata to provide monitoring and scanning. See /privacy for the complete policy, including retention and data-deletion instructions." },
-    ],
-  },
-  {
-    slug: "terms-of-service",
-    title: "Terms of Service",
-    section: "Provider Monitoring",
-    order: 25,
-    summary: "Your rights and obligations when using Breaklytix.",
-    related: ["privacy-policy", "acceptable-use"],
-    content: [
-      { t: "p", x: "Your use of Breaklytix is governed by the Terms of Service at /terms and the Acceptable Use Policy at /acceptable-use. By using the product you agree to the current versions." },
-    ],
-  },
 
   // ───────────────────────── Billing & Plans ─────────────────────────
   {
     slug: "billing",
     title: "Plans & billing",
-    section: "Provider Monitoring",
-    order: 26,
+    section: "Billing & Plans",
+    order: 1,
     summary: "Trials, monitored-API limits, and renewal.",
     related: ["settings"],
     content: [
@@ -534,8 +564,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "troubleshooting",
     title: "Troubleshooting",
-    section: "Provider Monitoring",
-    order: 27,
+    section: "Troubleshooting & FAQ",
+    order: 1,
     summary: "Common issues and their fixes.",
     related: ["faq"],
     content: [
@@ -551,8 +581,8 @@ export const DOCS: DocArticle[] = [
   {
     slug: "faq",
     title: "FAQ",
-    section: "Provider Monitoring",
-    order: 28,
+    section: "Troubleshooting & FAQ",
+    order: 2,
     summary:
       "Answers to common Breaklytix questions: secrets and code access, auto-merged pull requests, private repositories, alert timing, and disconnecting GitHub.",
     related: ["troubleshooting"],
@@ -612,7 +642,10 @@ export function relatedDocs(slug: string): DocArticle[] {
 }
 
 export function prevNext(slug: string): { prev?: DocArticle; next?: DocArticle } {
-  const flat = [...DOCS].sort((a, b) => a.order - b.order);
+  // `order` is per-section (1..n inside each DOC_SECTIONS group), so the reading
+  // order is the flattened sidebar order — not a global sort on `order`, which
+  // would interleave unrelated sections.
+  const flat = docsBySection().flatMap((group) => group.articles);
   const idx = flat.findIndex((d) => d.slug === slug);
   if (idx === -1) return {};
   return { prev: flat[idx - 1], next: flat[idx + 1] };

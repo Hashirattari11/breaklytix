@@ -9,6 +9,7 @@ import { PROVIDER_REGISTRY } from "../lib/providers/registry";
 import type { ProviderCategory } from "../lib/providers/types";
 import { LEGAL_LINKS } from "./LegalLayout";
 import { LogoMark } from "./Logo";
+import { SUPPORT_EMAIL } from "../lib/site";
 
 /* â”€â”€â”€ Intersection Observer hook â”€â”€â”€ */
 function useReveal(threshold = 0.15) {
@@ -666,6 +667,7 @@ export default function LandingPage() {
             <Link href="#how-it-works" onClick={() => track("see_how_click")}>How It Works</Link>
             <Link href="/security">Security</Link>
             <Link href="/docs">Docs</Link>
+            <Link href="/providers">Providers</Link>
             <Link href="#pricing">Pricing</Link>
             <Link href="/login" className="landing-nav-link">Sign In</Link>
             <GithubCta className="btn btn-primary lp-glow-btn" event="nav_get_started_click">Get Started Free</GithubCta>
@@ -992,8 +994,10 @@ export default function LandingPage() {
                   <li><Link href="#product">What you get</Link></li>
                   <li><Link href="#how-it-works">How it works</Link></li>
                   <li><Link href="#apis">Supported APIs</Link></li>
+                  <li><Link href="/providers">All monitored providers</Link></li>
                   <li><Link href="#pricing">Pricing</Link></li>
                   <li><Link href="/security">Security</Link></li>
+                  <li><Link href="/about">About</Link></li>
                 </ul>
               </div>
               <div className="footer-column">
@@ -1007,7 +1011,7 @@ export default function LandingPage() {
               <div className="footer-column">
                 <h2>Contact</h2>
                 <ul>
-                  <li><a href="mailto:hashirattari73@gmail.com">hashirattari73@gmail.com</a></li>
+                  <li><a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a></li>
                 </ul>
               </div>
             </div>

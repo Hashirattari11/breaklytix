@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDoc, docsBySection, relatedDocs, prevNext, type DocBlock } from "@/lib/docs";
+import { DOC_SEO } from "@/lib/docs-seo";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 import { LogoMark } from "@/components/Logo";
 
@@ -11,19 +12,51 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const doc = getDoc(params.slug);
   if (!doc) return {};
+  const seo = DOC_SEO[doc.slug];
   const url = `${SITE_URL}/docs/${doc.slug}`;
   return {
-    // Only the article title here — the root layout's `%s · Breaklytix`
-    // template appends the brand once. The old
-    // `${doc.title} | Breaklytix Documentation` produced
-    // "What is Breaklytix? | Breaklytix Documentation · Breaklytix",
-    // repeating the brand up to three times in one <title>.
-    title: doc.title,
-    description: doc.summary,
+    // `seo.title` is a keyword-bearing fragment tuned for search; the root
+    // layout's `%s · Breaklytix` template appends the brand exactly once.
+    // `doc.title` remains the on-page H1 (short, human, navigation-friendly).
+    title: seo?.title ?? doc.title,
+    description: seo?.description ?? doc.summary,
     robots: { index: true, follow: true },
     alternates: { canonical: url },
-    openGraph: { url, type: "website", siteName: SITE_NAME },
+    openGraph: { url, type: "article", siteName: SITE_NAME },
   };
+}
+
+/**
+ * TechArticle JSON-LD. Breadcrumbs + FAQ alone don't tell an answer engine
+ * *what kind* of page this is or when it changed, which is what makes a doc
+ * citation-eligible. `dateModified` comes from the same DOC_SEO table the
+ * sitemap uses, so the two can never disagree.
+ */
+function ArticleJsonLd({ doc }: { doc: { title: string; slug: string; summary: string } }) {
+  const seo = DOC_SEO[doc.slug];
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: seo?.title ?? doc.title,
+    description: seo?.description ?? doc.summary,
+    url: `${SITE_URL}/docs/${doc.slug}`,
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/docs/${doc.slug}` },
+    dateModified: seo?.updated,
+    inLanguage: "en",
+    author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
+    },
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
 }
 
 /** Docs › Section › Article breadcrumb, emitted on every article page. */
@@ -121,6 +154,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
   return (
     <div className="p-docs" style={{ paddingTop: 64 }}>
       <BreadcrumbJsonLd doc={doc} />
+      <ArticleJsonLd doc={doc} />
       {doc.faq && doc.faq.length > 0 && <FaqJsonLd doc={doc} faq={doc.faq} />}
       <div className="p-docs-layout" style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px 80px" }}>
         {/* Left nav (desktop) */}
@@ -153,6 +187,23 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
               ))}
             </div>
           ))}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 6 }}>Policies</div>
+            {[
+              { href: "/privacy", label: "Privacy Policy" },
+              { href: "/terms", label: "Terms of Service" },
+              { href: "/acceptable-use", label: "Acceptable Use" },
+              { href: "/cookies", label: "Cookies" },
+            ].map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                style={{ display: "block", padding: "3px 0 3px 10px", fontSize: 13, textDecoration: "none", borderLeft: "2px solid transparent", color: "inherit", opacity: 0.7 }}
+              >
+                {l.label}
+              </a>
+            ))}
+          </div>
         </nav>
 
         {/* Article */}

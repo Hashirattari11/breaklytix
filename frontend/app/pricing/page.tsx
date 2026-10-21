@@ -4,7 +4,7 @@ import { PRICING_FAQ } from "../../lib/pricing-faq";
 import { SITE_URL, SITE_NAME, pageOpenGraph } from "../../lib/site";
 
 export const metadata: Metadata = {
-  title: "Pricing & Plans",
+  title: "API Monitoring Pricing & Plans",
   description:
     "Transparent API monitoring pricing: Starter $500/mo for 10 APIs, Growth $2,000/mo for 50, Enterprise custom. Every plan includes a 14-day free trial.",
   alternates: { canonical: SITE_URL + "/pricing" },
@@ -25,7 +25,7 @@ const PRICING_JSON_LD = {
       "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
       url: `${SITE_URL}/`,
-      logo: `${SITE_URL}/opengraph-image.png`,
+      logo: `${SITE_URL}/logo.png`,
     },
     {
       "@type": "Product",

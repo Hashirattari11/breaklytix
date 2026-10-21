@@ -34,6 +34,8 @@ export function LogoMark({ size = 32, withWordmark = false, className }: LogoPro
         <img
           src="/logo.png"
           alt=""
+          width={Math.round(size * zoom)}
+          height={Math.round(size * zoom)}
           style={{
             position: "absolute",
             width: size * zoom,

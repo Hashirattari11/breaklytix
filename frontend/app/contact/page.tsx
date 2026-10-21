@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle, LEGAL_LINKS } from "@/components/LegalLayout";
+import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import Link from "next/link";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Contact & Support",
+  title: "Contact Breaklytix Support and Sales",
   description:
-    `Get help with ${SITE_NAME}: support email, GitHub issues, and how to configure your support contact.`,
+    `Get help with ${SITE_NAME}: support email, GitHub issues, sales and legal contacts, and how to configure your own support contact.`,
   alternates: { canonical: SITE_URL + "/contact" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/contact"),
@@ -22,6 +23,7 @@ const TOC = [
 export default function ContactPage() {
   return (
     <LegalLayout>
+      <BreadcrumbJsonLd name="Contact & Support" path="/contact" />
       <LegalTitle
         title="Contact & Support"
         updated="September 8, 2026"

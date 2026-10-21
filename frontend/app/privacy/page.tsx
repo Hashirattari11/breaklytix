@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle } from "@/components/LegalLayout";
+import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ const TOC = [
 export default function PrivacyPage() {
   return (
     <LegalLayout>
+      <BreadcrumbJsonLd name="Privacy Policy" path="/privacy" />
       <LegalTitle
         title="Privacy Policy"
         updated="September 8, 2026"

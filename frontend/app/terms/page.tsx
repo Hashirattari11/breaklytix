@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle } from "@/components/LegalLayout";
+import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ const TOC = [
 export default function TermsPage() {
   return (
     <LegalLayout>
+      <BreadcrumbJsonLd name="Terms of Service" path="/terms" />
       <LegalTitle
         title="Terms of Service"
         updated="September 8, 2026"

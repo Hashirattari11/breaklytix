@@ -39,7 +39,9 @@ export function LegalFooter() {
               <h2>Product</h2>
               <ul>
                 <li><Link href="/">Home</Link></li>
+                <li><Link href="/providers">Providers</Link></li>
                 <li><Link href="/pricing">Pricing</Link></li>
+                <li><Link href="/about">About</Link></li>
                 <li><Link href="/dashboard">Dashboard</Link></li>
               </ul>
             </div>

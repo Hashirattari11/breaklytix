@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle } from "@/components/LegalLayout";
+import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ const TOC = [
 export default function AcceptableUsePage() {
   return (
     <LegalLayout>
+      <BreadcrumbJsonLd name="Acceptable Use Policy" path="/acceptable-use" />
       <LegalTitle
         title="Acceptable Use Policy"
         updated="September 8, 2026"

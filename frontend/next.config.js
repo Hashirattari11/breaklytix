@@ -6,6 +6,15 @@
 const localApiSrc = process.env.ALLOW_LOCAL_API === "1" ? " http://localhost:8000" : "";
 const nextConfig = {
   reactStrictMode: true,
+  // The two legal stubs under /docs duplicated /privacy and /terms (thin pages,
+  // identical titles, two URLs for one policy). They were removed from the docs
+  // registry and consolidated onto the canonical legal routes.
+  async redirects() {
+    return [
+      { source: "/docs/privacy-policy", destination: "/privacy", permanent: true },
+      { source: "/docs/terms-of-service", destination: "/terms", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

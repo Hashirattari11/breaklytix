@@ -35,7 +35,7 @@ const jsonLd = {
       "@type": "Organization",
       name: "Breaklytix",
       url: SITE_URL + "/",
-      logo: SITE_URL + "/opengraph-image.png",
+      logo: SITE_URL + "/logo.png",
     },
     {
       "@type": "WebSite",

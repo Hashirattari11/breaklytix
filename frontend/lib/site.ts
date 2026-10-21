@@ -31,3 +31,34 @@ export function pageOpenGraph(path = "/") {
 export const LEGAL_ENTITY =
   process.env.NEXT_PUBLIC_LEGAL_ENTITY || "Breaklytix";
 export const LEGAL_ADDRESS = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || "";
+
+/** Absolute URL builder — all canonical / og / schema URLs go through this. */
+export function absoluteUrl(path = "/"): string {
+  if (!path || path === "/") return `${SITE_URL}/`;
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+/**
+ * Real "content last changed" dates for the static marketing routes.
+ *
+ * The sitemap used to stamp `new Date()` at build time, so all 42 URLs claimed
+ * to have changed on every single deploy. Search engines learn to ignore a
+ * lastmod that always equals the crawl date, which throws away the one signal
+ * that gets a changed page recrawled quickly.
+ *
+ * Bump the entry for a route when you actually change its copy. The docs
+ * articles read their own dates from `lib/docs-seo.ts`.
+ */
+export const CONTENT_UPDATED: Record<string, string> = {
+  "/": "2026-10-21",
+  "/about": "2026-10-21",
+  "/providers": "2026-10-21",
+  "/pricing": "2026-10-21",
+  "/docs": "2026-10-21",
+  "/contact": "2026-10-21",
+  "/privacy": "2026-10-21",
+  "/terms": "2026-10-21",
+  "/security": "2026-10-21",
+  "/acceptable-use": "2026-10-21",
+  "/cookies": "2026-10-21",
+};

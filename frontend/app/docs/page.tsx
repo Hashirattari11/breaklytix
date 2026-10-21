@@ -3,12 +3,14 @@ import { DOC_SECTIONS, docsBySection, DOCS } from "@/lib/docs";
 import { SITE_URL, pageOpenGraph } from "@/lib/site";
 import { LogoMark } from "@/components/Logo";
 import { DocsSearch } from "@/components/DocsSearch";
+import { BreadcrumbJsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
   // No "| Breaklytix" suffix here — the root layout title template already
   // appends "· Breaklytix" (a full suffix produced a duplicated brand).
-  title: "Documentation & Guides",
-  description: "Guides for monitoring provider APIs, detecting code breaks, and using the Impact Engine.",
+  title: "API Monitoring Documentation and Guides",
+  description:
+    "Guides for monitoring provider API changelogs, detecting code breaks in your repositories, running fire drills, and using the Breaklytix Impact Engine.",
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/docs"),
   alternates: { canonical: `${SITE_URL}/docs` },
@@ -18,6 +20,7 @@ export default function DocsPage() {
   const groups = docsBySection();
   return (
     <div className="p-docs">
+      <BreadcrumbJsonLd name="Documentation" path="/docs" />
       <header className="p-docs-hero" style={{ padding: "72px 24px 48px" }}>
         <div style={{ maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
@@ -54,6 +57,13 @@ export default function DocsPage() {
         <p className="p" style={{ textAlign: "center", opacity: 0.5, fontSize: 13, marginTop: 40 }}>
           {DOCS.length} articles covering every feature of Breaklytix.
         </p>
+
+        <nav aria-label="Policies" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 18, marginTop: 18, fontSize: 13 }}>
+          <a href="/privacy" style={{ opacity: 0.6 }}>Privacy Policy</a>
+          <a href="/terms" style={{ opacity: 0.6 }}>Terms of Service</a>
+          <a href="/acceptable-use" style={{ opacity: 0.6 }}>Acceptable Use</a>
+          <a href="/cookies" style={{ opacity: 0.6 }}>Cookies</a>
+        </nav>
       </main>
     </div>
   );
