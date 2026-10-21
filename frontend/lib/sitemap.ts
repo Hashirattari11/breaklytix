@@ -1,26 +1,21 @@
+import type { MetadataRoute } from "next";
 import { CONTENT_UPDATED, SITE_URL } from "@/lib/site";
 import { DOCS } from "@/lib/docs";
 import { DOC_SEO } from "@/lib/docs-seo";
 
 /**
- * Sitemap data, split by section.
+ * Single source of truth for `/sitemap.xml`.
  *
- * A single 43-URL sitemap works, but a sitemap index with one child per section
- * gives Search Console separate coverage numbers for marketing pages, docs and
- * legal pages. That is what makes an indexing problem visible: if 30 of 32 docs
- * are "Discovered – currently not indexed" while the marketing pages are fine,
- * the cause is the docs, not the whole site.
+ * 43 URLs is small enough for one flat urlset, so that is what we ship: one
+ * file a person can open and read top to bottom. A sitemap index would add a
+ * second hop for the crawler and nothing else at this size.
  *
  * `lastModified` is a real per-route date (see CONTENT_UPDATED and
  * DOC_SEO[slug].updated), never `new Date()`. A build timestamp makes every URL
- * look modified on every deploy, and crawlers discount that to noise.
+ * look modified on every deploy, and crawlers discount that to noise — which
+ * throws away the one signal that gets a genuinely changed page recrawled.
  */
-export type SitemapEntry = {
-  url: string;
-  lastModified?: string;
-  changeFrequency?: "daily" | "weekly" | "monthly" | "yearly";
-  priority?: number;
-};
+type SitemapEntry = MetadataRoute.Sitemap[number];
 
 const absolute = (path: string) => (path === "/" ? SITE_URL : `${SITE_URL}${path}`);
 
@@ -35,8 +30,8 @@ const CORE_PAGES: { path: string; priority: number; changeFrequency: SitemapEntr
   { path: "/contact", priority: 0.3, changeFrequency: "monthly" },
 ];
 
-// Policy pages: they must be crawlable and indexable, but they are not
-// acquisition pages, so they are separated from the marketing set.
+// Policy pages must be crawlable and indexable, but they are not acquisition
+// pages, so they sit at the bottom of the priority range.
 const LEGAL_PAGES: { path: string; priority: number }[] = [
   { path: "/privacy", priority: 0.3 },
   { path: "/terms", priority: 0.3 },
@@ -44,12 +39,14 @@ const LEGAL_PAGES: { path: string; priority: number }[] = [
   { path: "/cookies", priority: 0.2 },
 ];
 
-// The one guide written to rank for informational queries. Everything else in
-// /docs is reference material and stays at the default priority.
+// The one guide written to rank for informational queries. Every other article
+// in /docs is reference material and stays at the default priority.
 const FLAGSHIP_DOC = "breaking-api-changes";
 
-export function coreEntries(): SitemapEntry[] {
+function coreEntries(): SitemapEntry[] {
   return CORE_PAGES.map(({ path, priority, changeFrequency }) => ({
+    // Next normalises the home canonical to `https://breaklytix.site` (no
+    // trailing slash), so the sitemap entry matches it exactly.
     url: absolute(path),
     lastModified: CONTENT_UPDATED[path],
     changeFrequency,
@@ -57,16 +54,7 @@ export function coreEntries(): SitemapEntry[] {
   }));
 }
 
-export function legalEntries(): SitemapEntry[] {
-  return LEGAL_PAGES.map(({ path, priority }) => ({
-    url: absolute(path),
-    lastModified: CONTENT_UPDATED[path],
-    changeFrequency: "monthly",
-    priority,
-  }));
-}
-
-export function docEntries(): SitemapEntry[] {
+function docEntries(): SitemapEntry[] {
   return DOCS.map((doc) => ({
     url: `${SITE_URL}/docs/${doc.slug}`,
     lastModified: DOC_SEO[doc.slug]?.updated,
@@ -75,63 +63,15 @@ export function docEntries(): SitemapEntry[] {
   }));
 }
 
-/** Newest lastModified in a set — used as the child sitemap's own lastmod. */
-export function latest(entries: SitemapEntry[]): string | undefined {
-  const dates = entries
-    .map((entry) => entry.lastModified)
-    .filter((value): value is string => Boolean(value))
-    .sort();
-  return dates.length ? dates[dates.length - 1] : undefined;
+function legalEntries(): SitemapEntry[] {
+  return LEGAL_PAGES.map(({ path, priority }) => ({
+    url: absolute(path),
+    lastModified: CONTENT_UPDATED[path],
+    changeFrequency: "monthly",
+    priority,
+  }));
 }
 
-const escapeXml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-
-export function urlsetXml(entries: SitemapEntry[]): string {
-  const urls = entries
-    .map((entry) => {
-      const parts = [`    <loc>${escapeXml(entry.url)}</loc>`];
-      if (entry.lastModified) parts.push(`    <lastmod>${entry.lastModified}</lastmod>`);
-      if (entry.changeFrequency) parts.push(`    <changefreq>${entry.changeFrequency}</changefreq>`);
-      if (entry.priority !== undefined) parts.push(`    <priority>${entry.priority.toFixed(1)}</priority>`);
-      return `  <url>\n${parts.join("\n")}\n  </url>`;
-    })
-    .join("\n");
-
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+export function allEntries(): MetadataRoute.Sitemap {
+  return [...coreEntries(), ...docEntries(), ...legalEntries()];
 }
-
-export function sitemapIndexXml(children: { loc: string; lastmod?: string }[]): string {
-  const items = children
-    .map(({ loc, lastmod }) => {
-      const parts = [`    <loc>${escapeXml(loc)}</loc>`];
-      if (lastmod) parts.push(`    <lastmod>${lastmod}</lastmod>`);
-      return `  <sitemap>\n${parts.join("\n")}\n  </sitemap>`;
-    })
-    .join("\n");
-
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${items}\n</sitemapindex>\n`;
-}
-
-/** Section registry — the single place that decides what a child sitemap holds. */
-export const SITEMAP_SECTIONS = [
-  { id: "pages", build: coreEntries },
-  { id: "docs", build: docEntries },
-  { id: "legal", build: legalEntries },
-] as const;
-
-export function sectionEntries(id: (typeof SITEMAP_SECTIONS)[number]["id"]): SitemapEntry[] {
-  const section = SITEMAP_SECTIONS.find((candidate) => candidate.id === id);
-  if (!section) throw new Error(`Unknown sitemap section: ${id}`);
-  return section.build();
-}
-
-export const SITEMAP_HEADERS = {
-  "Content-Type": "application/xml; charset=utf-8",
-  "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
-} as const;
