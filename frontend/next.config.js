@@ -4,6 +4,23 @@
 // for offline UI width audits. Production/Vercel builds never set it, so the
 // CSP there stays exactly as before.
 const localApiSrc = process.env.ALLOW_LOCAL_API === "1" ? " http://localhost:8000" : "";
+
+// Marketing / documentation routes that render the same HTML for everyone.
+// Login, auth, dashboard and admin are deliberately absent — they are private.
+const PUBLIC_CACHE_PATHS = [
+  "/",
+  "/about",
+  "/providers",
+  "/pricing",
+  "/docs",
+  "/docs/:slug*",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/security",
+  "/acceptable-use",
+  "/cookies",
+];
 const nextConfig = {
   reactStrictMode: true,
   // The two legal stubs under /docs duplicated /privacy and /terms (thin pages,
@@ -50,6 +67,21 @@ const nextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
+      // Public, non-personalised pages. The root layout sets
+      // `dynamic = "force-dynamic"` (required so dashboard routes never
+      // prerender a tree that reads useSearchParams), which makes Next emit
+      // `Cache-Control: private, no-store` for every route — including these.
+      // A crawler then costs a full server render on every hit. These pages are
+      // identical for every visitor, so they are safe to share at the edge.
+      ...PUBLIC_CACHE_PATHS.map((source) => ({
+        source,
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      })),
     ];
   },
 };

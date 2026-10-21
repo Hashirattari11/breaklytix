@@ -7,6 +7,13 @@ import "./premium.css";
 // Dashboard pages use authenticated URL state (repository_id and filters). Render
 // those routes dynamically so Next never attempts to prerender a request-bound
 // client tree that reads useSearchParams().
+//
+// NOTE: this is route-segment config for the whole app, so it also makes the
+// public marketing pages uncacheable (`Cache-Control: private, no-store`). The
+// dashboard layout cannot opt in instead — it is a Client Component, where
+// `export const dynamic` is ignored, and removing this export fails the build
+// with "useSearchParams() should be wrapped in a suspense boundary". Public
+// pages therefore get an explicit edge-cache header in next.config.js.
 export const dynamic = "force-dynamic";
 
 const inter = Inter({

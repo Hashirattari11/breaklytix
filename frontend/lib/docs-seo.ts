@@ -71,9 +71,12 @@ export const DOC_SEO: Record<string, DocSeo> = {
 
   // ── Provider Monitoring ──────────────────────────────────────────────────
   providers: {
-    title: "Monitored API Providers and Changelogs",
+    // Distinct from /providers (the public directory) so the two URLs do not
+    // share a <title>. This article explains how coverage is decided; the
+    // directory lists every provider with its official changelog link.
+    title: "How Provider Coverage and Detection Work",
     description:
-      "The 44 API providers Breaklytix tracks, including Stripe, OpenAI, Slack, Twilio, AWS and Supabase, plus how monitoring coverage is decided.",
+      "How Breaklytix decides which API providers to track, what detection covers, and what to do when a provider your repository depends on is missing.",
     updated: UPDATED,
   },
   changelog: {

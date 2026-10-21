@@ -28,6 +28,8 @@ export const metadata: Metadata = {
   openGraph: pageOpenGraph("/providers"),
 };
 
+
+
 const CATEGORY_LABELS: Record<ProviderCategory, string> = {
   payment: "Payments",
   communication: "Communication & messaging",
