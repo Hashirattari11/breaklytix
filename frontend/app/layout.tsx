@@ -4,17 +4,13 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 import "./premium.css";
 
-// Dashboard pages use authenticated URL state (repository_id and filters). Render
-// those routes dynamically so Next never attempts to prerender a request-bound
-// client tree that reads useSearchParams().
-//
-// NOTE: this is route-segment config for the whole app, so it also makes the
-// public marketing pages uncacheable (`Cache-Control: private, no-store`). The
-// dashboard layout cannot opt in instead — it is a Client Component, where
-// `export const dynamic` is ignored, and removing this export fails the build
-// with "useSearchParams() should be wrapped in a suspense boundary". Public
-// pages therefore get an explicit edge-cache header in next.config.js.
-export const dynamic = "force-dynamic";
+// NOTE: no `dynamic = "force-dynamic"` here on purpose. Authenticated trees
+// (dashboard, admin) opt into dynamic rendering in their own server layouts,
+// because they read request-bound URL state. Setting it at the root made every
+// public marketing page uncacheable (`Cache-Control: private, no-store`), so
+// each crawler hit cost a full server render with no edge cache. With this
+// removed, the marketing/docs pages prerender at build time and are served
+// from the CDN with `s-maxage` (see PUBLIC_CACHE_PATHS in next.config.js).
 
 const inter = Inter({
   subsets: ["latin"],
