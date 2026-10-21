@@ -1,14 +1,37 @@
 {
-  "name": "autofix-cli",
-  "version": "1.0.0",
-  "description": "AutoFix API CLI — monitor third-party API changes from your terminal",
+  "name": "breaklytix",
+  "version": "0.1.0",
+  "description": "Monitor third-party API breaking changes from your terminal: scan a repository, list matched alerts, and check provider status.",
+  "homepage": "https://breaklytix.site",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hashirattari11/test.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://breaklytix.site/contact"
+  },
   "bin": {
+    "breaklytix": "./bin/autofix.js",
     "autofix": "./bin/autofix.js"
   },
+  "files": [
+    "bin"
+  ],
   "scripts": {
     "test": "echo \"No tests yet\""
   },
-  "keywords": ["api", "monitoring", "breaking-changes", "cli"],
-  "author": "AutoFix",
-  "license": "MIT"
+  "keywords": [
+    "api",
+    "api-monitoring",
+    "breaking-changes",
+    "api-changelog",
+    "deprecation",
+    "cli"
+  ],
+  "author": "Breaklytix <hashirattari73@gmail.com> (https://breaklytix.site)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
 }
