@@ -4,7 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  title: "Privacy Policy: What Data Breaklytix Stores",
   description:
     `How ${SITE_NAME} collects, uses, stores, and protects your data — GitHub OAuth sign-in, repository scanning, provider connections, email, and billing.`,
   alternates: { canonical: SITE_URL + "/privacy" },

@@ -26,7 +26,9 @@ const PAGES: { path: string; priority: number; changeFrequency: "daily" | "weekl
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = PAGES.map(({ path, priority, changeFrequency }) => ({
-    url: path === "/" ? `${SITE_URL}/` : `${SITE_URL}${path}`,
+    // Next normalises the home canonical to `https://breaklytix.site` (no
+    // trailing slash), so the sitemap entry matches it exactly.
+    url: path === "/" ? SITE_URL : `${SITE_URL}${path}`,
     lastModified: CONTENT_UPDATED[path] ?? undefined,
     changeFrequency,
     priority,

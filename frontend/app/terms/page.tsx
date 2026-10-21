@@ -4,7 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Terms of Service",
+  title: "Terms of Service for Breaklytix Accounts",
   description:
     `The terms that govern your use of ${SITE_NAME}: accounts, acceptable use, repository scanning, auto-fix pull requests, billing, and liability.`,
   alternates: { canonical: SITE_URL + "/terms" },
