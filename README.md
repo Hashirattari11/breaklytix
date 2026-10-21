@@ -1,48 +1,73 @@
-# AutoFix API — Phase 3
+# Breaklytix
 
-Detect which third-party APIs your GitHub repos use, get **email alerts when
-any monitored API ships a breaking change**, review and approve auto-generated
-fixes via PR, and manage your subscription — all with a **14-day free trial**.
+**Breaklytix watches the third-party API changelogs your code depends on, detects
+breaking changes, and shows exactly which repositories, files and lines are
+affected — before the change reaches production.**
 
-Phase 3 is **100% deterministic** (regex pattern matching + changelog scrapers).
-No AI, no auto-deploy — every fix requires manual PR merge, and it runs on
-**free tiers**.
+[Website](https://breaklytix.site) · [Monitored providers](https://breaklytix.site/providers) · [Documentation](https://breaklytix.site/docs) · [What counts as a breaking API change](https://breaklytix.site/docs/breaking-api-changes) · [Security](https://breaklytix.site/security) · [Pricing](https://breaklytix.site/pricing)
 
-```
-Next.js (Vercel)  ──►  FastAPI (Render)  ──►  Supabase (Postgres)
-                          ▲   │
-            GitHub OAuth ────┘   ├──► GitHub REST API (read repos)
-                                  ├──► Stripe changelog (scrape)
-                                  ├──► Shopify changelog (scrape)
-                                  ├──► Twilio changelog (scrape)
-                                  ├──► SendGrid changelog (scrape)
-                                  ├──► GitHub Blog changelog (scrape)
-                                  └──► Resend (email)
-                              ▲
-   GitHub Actions cron ──────┘ (daily: scrape all + process alerts)
-                              ▲
-   GitHub Actions cron ──────┘ (weekly: send digest emails)
-```
+Dependency scanners track the SDK you install. They do not track the remote
+service that SDK talks to. A pinned client version is perfectly compatible with
+a server that has already removed the endpoint it calls — so an integration can
+break with no dependency change, no commit, and no failing build.
 
 ## What it does
 
-1. You sign in with GitHub (read-only) and connect a repo.
-2. The backend scans the repo's source files and records every detected API:
-   **Stripe, Shopify, Twilio, SendGrid, GitHub** (the signature list is
-   extensible).
-3. A daily GitHub Actions cron scrapes **all 5 APIs' changelogs** and stores
-   any new breaking-change entries.
-4. When a new change matches a pattern in your scanned code, you get an email
-   naming the change and the affected file/line.
-5. **Phase 2:** For Stripe breaking changes with high-confidence curated rules,
-   AutoFix generates a fix diff and opens a GitHub PR (manual merge required).
-   Medium/low-confidence fixes appear in the **Fixes Review** dashboard for
-   manual approval.
-6. **Phase 3:** The dashboard shows connected repos, the full detected API
-   footprint (all 5 = *Monitored*), Stripe alert history, and a **Fixes Review**
-   page. **Billing** page manages your Stripe subscription with three plans:
-   Starter ($500/mo, 10 APIs), Growth ($2,000/mo, 50 APIs), Enterprise
-   ($10,000/mo, unlimited). Weekly digest emails summarize activity.
+1. **Connect a repository.** Sign in with GitHub and install the app with
+   read-only permissions. No passwords are stored and no provider secret values
+   are ever requested.
+2. **Map the API surface.** Static analysis records the providers, SDKs, package
+   names, endpoint strings and environment variable *names* your code uses.
+3. **Collect changes at the source.** Each provider's own changelog, release
+   notes or release feed is polled on a schedule, normalised and deduplicated by
+   a stable fingerprint. No aggregators, no guessed release dates.
+4. **Classify.** Entries are typed as breaking change, deprecation, API version
+   change, endpoint change, schema change, auth change, SDK change, rate-limit
+   change or behaviour change, with a severity.
+5. **Match against your code.** An alert fires only when a change touches
+   something you actually call, and it links to the affected file and line. An
+   entry that matches nothing is still recorded — labelled unmatched, not
+   silently dropped.
+6. **Fix the mechanical ones.** For unambiguous changes, Breaklytix opens a
+   GitHub pull request with the fix applied. Nothing is merged without a human
+   review.
+7. **Watch health, not just changelogs.** Runtime Intelligence adds provider
+   error rates, status-page incidents and rate-limit events, and says so
+   honestly when a provider has no telemetry yet.
+
+## Coverage
+
+**44 API providers** across payments, communication, AI, cloud, databases,
+analytics, media and developer tools — Stripe, OpenAI, Anthropic, AWS, Slack,
+Twilio, GitHub, Supabase, Vercel, Sentry, Plaid and more. Every provider is
+tracked from its own official source; the full list with changelog links lives
+at <https://breaklytix.site/providers>.
+
+Adding a provider means appending one entry to the registry
+(`backend/app/changelog/sources.py`); the scanner and matcher pick it up with no
+other code changes.
+
+## Stack
+
+```
+Next.js 14 (App Router, Vercel) ──► FastAPI (Vercel) ──► Postgres (Supabase)
+                                        │
+              GitHub OAuth ─────────────┼──► GitHub REST API (read-only repo scan)
+                                        ├──► 44 provider changelogs / release feeds
+                                        └──► Resend (alert + digest email)
+```
+
+- `frontend/` — Next.js App Router, 32 documentation articles, pricing and legal pages
+- `backend/` — FastAPI service, provider registry, classifier, matcher, runtime intelligence
+- `cli/` — command-line client for running scans from a terminal
+- `db/` — SQL schema and migrations
+- `.github/workflows/` — scheduled changelog collection and weekly digest
+
+## Local development
+
+The setup below still works end to end: Supabase for Postgres, a GitHub OAuth
+app, Resend for email, then the FastAPI backend and the Next.js frontend. See
+[Setup](#setup) after the repository layout.
 
 ---
 
@@ -58,11 +83,11 @@ autofix/
 │   │   ├── crypto.py            Fernet token encryption
 │   │   ├── deps.py              session JWT + internal-secret guard
 │   │   ├── schemas.py           Pydantic models
-│   │   ├── signatures.py        API_SIGNATURES + all 5 providers' object lists
+│   │   ├── signatures.py        provider detection patterns (env vars, packages, endpoints)
 │   │   ├── detection.py         pure scanner (unit-tested)
 │   │   ├── github_client.py     OAuth + trees/blobs reading
-│   │   ├── scraper.py           5 changelog scrapers (BeautifulSoup)
-│   │   ├── alerts.py            cross-reference + email rendering (all APIs)
+│   │   ├── changelog/           44 provider sources, classifier, matcher, scheduler
+│   │   ├── alerts.py            cross-reference + email rendering (all providers)
 │   │   ├── email_client.py      Resend REST transport
 │   │   ├── billing.py           Stripe Billing (checkout, portal, webhooks)
 │   │   ├── digest.py            Weekly digest email generator
