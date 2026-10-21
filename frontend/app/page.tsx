@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LandingClient from "../components/LandingClient";
-import { SITE_URL, SITE_DESCRIPTION } from "../lib/site";
+import { SITE_URL, SITE_DESCRIPTION, pageOpenGraph } from "../lib/site";
 
 export const metadata: Metadata = {
   title: "Breaklytix — Know What API Changes Will Break Your Code",
@@ -8,11 +8,14 @@ export const metadata: Metadata = {
     "Breaklytix monitors API changes and maps their potential impact to your GitHub repositories, files, and code usage before they become production incidents.",
   alternates: { canonical: SITE_URL + "/" },
   robots: { index: true, follow: true },
+  // pageOpenGraph("/") supplies url + type + siteName, matching every other
+  // public page. This block previously hand-rolled `openGraph`, which is why
+  // og:site_name was the ONLY public page missing it — social scrapers saw no
+  // site name attached to the homepage share card.
   openGraph: {
+    ...pageOpenGraph("/"),
     title: "Breaklytix — Know What API Changes Will Break Your Code",
     description: SITE_DESCRIPTION,
-    url: SITE_URL + "/",
-    type: "website",
   },
 };
 

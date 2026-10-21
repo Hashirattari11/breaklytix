@@ -161,7 +161,20 @@ export default function ProvidersPage() {
           <Link href="/" className="brand" style={{ color: "var(--text)", fontSize: 17 }}>
             <LogoMark size={26} withWordmark />
           </Link>
-          <nav style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 13 }}>
+          <nav
+            style={{
+              display: "flex",
+              alignItems: "center",
+              // Was `flexWrap: nowrap` (implicit): at <=375px the brand (~104px)
+              // plus these four items need ~358px inside a 272px content box, so
+              // `Sign in` ran past the right edge and got clipped by the page's
+              // overflow-x:hidden. Wrapping lets the nav shrink and stack instead.
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              gap: "10px 18px",
+              fontSize: 13,
+            }}
+          >
             <Link href="/docs" style={{ color: "var(--muted)", textDecoration: "none" }}>Docs</Link>
             <Link href="/providers" style={{ color: "var(--text)", fontWeight: 600, textDecoration: "none" }}>Providers</Link>
             <Link href="/pricing" style={{ color: "var(--muted)", textDecoration: "none" }}>Pricing</Link>

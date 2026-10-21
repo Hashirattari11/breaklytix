@@ -5,6 +5,18 @@
 // CSP there stays exactly as before.
 const localApiSrc = process.env.ALLOW_LOCAL_API === "1" ? " http://localhost:8000" : "";
 
+// `next dev` ships Next's React Refresh runtime, which evaluates strings as
+// code. The production bundle never includes that runtime, so 'unsafe-eval' is
+// ONLY ever added to the local dev server's CSP. Without it the strict CSP
+// aborts the client bundle mid-hydration (EvalError in react-refresh-utils),
+// leaving every IntersectionObserver reveal stuck at opacity:0 — the landing
+// page renders with whole sections invisible in dev. Vercel builds keep the
+// strict CSP exactly as before, mirroring the ALLOW_LOCAL_API convention above.
+const scriptSrc =
+  process.env.NODE_ENV === "development"
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+
 // Marketing / documentation routes that render the same HTML for everyone.
 // Login, auth, dashboard and admin are deliberately absent — they are private.
 const PUBLIC_CACHE_PATHS = [
@@ -41,9 +53,14 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              scriptSrc,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https:",
+              // No external images exist anywhere in the app (only /logo.png,
+              // verified: no <img> with a dynamic src, no next/image, no url()
+              // to a remote host). The `https:` wildcard only widened the
+              // surface for an attacker-controlled image URL, so it is gone —
+              // this resolves ZAP's "CSP: Wildcard Directive" (Medium).
+              "img-src 'self' data: blob:",
               "font-src 'self' data:",
               "connect-src 'self' https://backend-virid-ten-43.vercel.app https://api.github.com https://github.com" + localApiSrc,
               "frame-src 'self'",

@@ -644,12 +644,37 @@ export default function LandingPage() {
           .lp-hero-cta { align-items: flex-start; }
           .lp-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .lp-steps-grid { grid-template-columns: 1fr !important; }
-          .lp-apis-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .lp-pricing-grid { grid-template-columns: 1fr !important; max-width: 400px; margin: 0 auto; }
+          .lp-pricing-grid { grid-template-columns: minmax(0, 1fr) !important; max-width: 400px; margin: 0 auto; }
           .lp-cta-section { margin: 0 !important; border-radius: 16px !important; padding: 56px 20px !important; }
           .aha-wrap { max-width: 100%; }
           .aha-connector { display: none; }
           .wyg-grid { grid-template-columns: 1fr !important; }
+          /* minmax(0, 1fr) instead of 1fr: the auto minimum sized these tracks
+             to the cards' min-content (measured 165.8px + 147.5px + 20px gap =
+             333px) which is wider than the 256px content box at 320px, so the
+             right column ran out to x=365 — 45px past the viewport, clipped by
+             the page's overflow-x:hidden. minmax(0,...) lets tracks shrink. */
+          .lp-apis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        /* The pair only truly fits down to ~397px at the default 28px card
+           padding (333px + 64px of section/container padding). Trim padding and
+           gap so 2 columns stay correct at 360px/375px, then drop to a single
+           column below 350px where even the trimmed pair cannot fit. */
+        @media (max-width: 400px) {
+          .lp-api-card { padding: 14px; }
+          .lp-apis-grid { gap: 10px; }
+        }
+        @media (max-width: 350px) {
+          .lp-apis-grid { grid-template-columns: 1fr !important; }
+        }
+        /* 3 pricing columns need ~876px of box (828px of card min-content +
+           48px of gaps). Between 769px and 1023px the box is only 681-911px,
+           so repeat(3, 1fr) grew the grid to x=920 — a 151px page overflow at
+           769px and 20px at 900px. Two columns fit: at 769px the track is
+           328px, and the widest card content (233px row + 74px padding =
+           307px) still fits inside it, so the 48px price survives unchanged. */
+        @media (min-width: 769px) and (max-width: 1023px) {
+          .lp-pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         }
         /* â”€â”€â”€ Reduced motion â”€â”€â”€ */
         @media (prefers-reduced-motion: reduce) {
@@ -938,7 +963,7 @@ export default function LandingPage() {
                     <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>{plan.name}</h3>
                     <p style={{ fontSize: 14, color: "var(--muted)", margin: "0 0 16px" }}>{plan.desc}</p>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
-                      <span style={{ fontSize: 48, fontWeight: 800, lineHeight: 1 }}>{plan.price}</span>
+                      <span style={{ fontSize: "clamp(34px, calc(23vw - 40px), 48px)", fontWeight: 800, lineHeight: 1 }}>{plan.price}</span>
                       <span style={{ fontSize: 16, color: "var(--muted)" }}>{plan.period}</span>
                     </div>
                   </div>
