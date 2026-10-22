@@ -59,10 +59,10 @@ export default function DocsPage() {
         </p>
 
         <nav aria-label="Policies" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 18, marginTop: 18, fontSize: 13 }}>
-          <a href="/privacy" style={{ opacity: 0.6 }}>Privacy Policy</a>
-          <a href="/terms" style={{ opacity: 0.6 }}>Terms of Service</a>
-          <a href="/acceptable-use" style={{ opacity: 0.6 }}>Acceptable Use</a>
-          <a href="/cookies" style={{ opacity: 0.6 }}>Cookies</a>
+          <a href="/privacy" style={{ color: "var(--accent-text, #4f46e5)" }}>Privacy Policy</a>
+          <a href="/terms" style={{ color: "var(--accent-text, #4f46e5)" }}>Terms of Service</a>
+          <a href="/acceptable-use" style={{ color: "var(--accent-text, #4f46e5)" }}>Acceptable Use</a>
+          <a href="/cookies" style={{ color: "var(--accent-text, #4f46e5)" }}>Cookies</a>
         </nav>
       </main>
     </div>

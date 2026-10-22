@@ -227,7 +227,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
           </details>
 
           <header style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8, opacity: 0.5, marginBottom: 6 }}>{doc.section}</div>
+            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8, color: "var(--muted-strong, #55555f)", marginBottom: 6 }}>{doc.section}</div>
             <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>{doc.title}</h1>
             <p className="p" style={{ opacity: 0.7, maxWidth: 640 }}>{doc.summary}</p>
           </header>
@@ -252,7 +252,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
               aria-label="Further reading"
               style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--border, rgba(128,128,128,0.2))" }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted-strong, #55555f)", marginBottom: 10 }}>
                 Further reading
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 6 }}>
@@ -274,7 +274,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
 
           {related.length > 0 && (
             <div style={{ marginTop: 36, paddingTop: 20, borderTop: "1px solid var(--border, rgba(128,128,128,0.2))" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 10 }}>Related articles</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted-strong, #55555f)", marginBottom: 10 }}>Related articles</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {related.map((r) => (
                   <a key={r.slug} href={`/docs/${r.slug}`} className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>{r.title}</a>
@@ -286,14 +286,14 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
           {(prev || next) && (
             <nav aria-label="Article pagination" style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 32 }}>
               {prev ? (
-                <a href={`/docs/${prev.slug}`} style={{ textDecoration: "none", display: "block", maxWidth: "48%" }}>
-                  <span style={{ fontSize: 12, opacity: 0.5 }}>← Previous</span>
+                <a href={`/docs/${prev.slug}`} style={{ textDecoration: "none", display: "block", maxWidth: "48%", color: "var(--accent-text, #4f46e5)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted-strong, #55555f)" }}>← Previous</span>
                   <strong style={{ display: "block" }}>{prev.title}</strong>
                 </a>
               ) : <span />}
               {next ? (
-                <a href={`/docs/${next.slug}`} style={{ textDecoration: "none", display: "block", textAlign: "right", maxWidth: "48%" }}>
-                  <span style={{ fontSize: 12, opacity: 0.5 }}>Next →</span>
+                <a href={`/docs/${next.slug}`} style={{ textDecoration: "none", display: "block", textAlign: "right", maxWidth: "48%", color: "var(--accent-text, #4f46e5)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted-strong, #55555f)" }}>Next →</span>
                   <strong style={{ display: "block" }}>{next.title}</strong>
                 </a>
               ) : <span />}
