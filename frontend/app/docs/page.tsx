@@ -27,7 +27,7 @@ export default function DocsPage() {
             <LogoMark size={44} />
           </div>
           <h1 className="h1" style={{ marginBottom: 12 }}>Breaklytix Documentation</h1>
-          <p className="p" style={{ maxWidth: 620, margin: "0 auto", opacity: 0.75 }}>
+          <p className="p" style={{ maxWidth: 620, margin: "0 auto" }}>
             Everything about monitoring the APIs you depend on, detecting code breaks, and
             acting before provider changes break your product.
           </p>
@@ -40,21 +40,21 @@ export default function DocsPage() {
         {groups.map((group) => (
           <section key={group.section} className="p-docs-section" style={{ marginBottom: 40 }}>
             <h2 className="h2" style={{ marginBottom: 4 }}>{group.section}</h2>
-            <p className="p" style={{ opacity: 0.6, marginBottom: 16, fontSize: 15 }}>
+            <p className="p" style={{ color: "var(--muted-strong, #55555f)", marginBottom: 16, fontSize: 15 }}>
               {DOC_SECTIONS.find((s) => s.name === group.section)?.blurb}
             </p>
             <div className="p-docs-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
               {group.articles.map((a) => (
                 <a key={a.slug} href={`/docs/${a.slug}`} className="p-docs-card">
                   <strong style={{ display: "block", marginBottom: 6 }}>{a.title}</strong>
-                  <span style={{ fontSize: 13, opacity: 0.65, lineHeight: 1.5 }}>{a.summary}</span>
+                  <span style={{ fontSize: 13, color: "var(--muted-strong, #55555f)", lineHeight: 1.5 }}>{a.summary}</span>
                 </a>
               ))}
             </div>
           </section>
         ))}
 
-        <p className="p" style={{ textAlign: "center", opacity: 0.5, fontSize: 13, marginTop: 40 }}>
+        <p className="p" style={{ textAlign: "center", color: "var(--muted-strong, #55555f)", fontSize: 13, marginTop: 40 }}>
           {DOCS.length} articles covering every feature of Breaklytix.
         </p>
 

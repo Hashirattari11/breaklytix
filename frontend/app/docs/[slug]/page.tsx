@@ -165,7 +165,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
           </div>
           {groups.map((g) => (
             <div key={g.section} style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 6 }}>{g.section}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted-strong, #55555f)", marginBottom: 6 }}>{g.section}</div>
               {g.articles.map((a) => (
                 <a
                   key={a.slug}
@@ -178,7 +178,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
                     fontSize: 13,
                     textDecoration: "none",
                     borderLeft: a.slug === doc.slug ? "2px solid var(--accent, #635bff)" : "2px solid transparent",
-                    color: a.slug === doc.slug ? "var(--accent, #635bff)" : "inherit",
+                    color: a.slug === doc.slug ? "var(--accent-text, #4f46e5)" : "inherit",
                     opacity: a.slug === doc.slug ? 1 : 0.7,
                   }}
                 >
@@ -188,7 +188,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
             </div>
           ))}
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 6 }}>Policies</div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--muted-strong, #55555f)", marginBottom: 6 }}>Policies</div>
             {[
               { href: "/privacy", label: "Privacy Policy" },
               { href: "/terms", label: "Terms of Service" },
@@ -207,6 +207,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
         </nav>
 
         {/* Article */}
+        <main style={{ minWidth: 0 }}>
         <article style={{ minWidth: 0 }}>
           {/* Mobile collapsible nav */}
           <details className="p-docs-mobilenav" style={{ marginBottom: 20 }}>
@@ -216,7 +217,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
             <div style={{ padding: "8px 4px" }}>
               {groups.map((g) => (
                 <div key={g.section} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", opacity: 0.5, margin: "6px 0" }}>{g.section}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted-strong, #55555f)", margin: "6px 0" }}>{g.section}</div>
                   {g.articles.map((a) => (
                     <a key={a.slug} href={`/docs/${a.slug}`} style={{ display: "block", padding: "3px 8px", fontSize: 13.5, textDecoration: "none", color: "inherit", fontWeight: a.slug === doc.slug ? 700 : 400 }}>{a.title}</a>
                   ))}
@@ -261,7 +262,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
                       href={source.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: "var(--accent, #635bff)" }}
+                      style={{ color: "var(--accent-text, #4f46e5)" }}
                     >
                       {source.label}
                     </a>
@@ -299,6 +300,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
             </nav>
           )}
         </article>
+        </main>
       </div>
     </div>
   );

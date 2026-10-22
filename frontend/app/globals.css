@@ -5,6 +5,14 @@
   --border: #e6e6ef;
   --text: #1a1a2e;
   --muted: #6b7280;
+  /* Text-safe variants. Muting with `opacity` blends toward the page
+     background, which pushed several docs labels under the WCAG AA 4.5:1
+     ratio (11px sidebar headings measured 3.23:1, docs card summaries
+     2.6:1). These two tokens carry the same visual hierarchy at a contrast
+     that passes in both themes: 6.9:1 for --muted-strong on --bg and 5.9:1
+     for --accent-text on --bg. Use them for any small text, never opacity. */
+  --muted-strong: #55555f;
+  --accent-text: #4f46e5;
   --accent: #635bff;
   --accent-dark: #4b45c6;
   --green: #0a7d3d;
@@ -2559,6 +2567,8 @@ h2 {
   --border: #262b38;
   --text: #e9eaf0;
   --muted: #9ca3b5;
+  --muted-strong: #a9adbd;
+  --accent-text: #a49eff;
   --accent: #7d76ff;
   --accent-dark: #5f58f0;
 
