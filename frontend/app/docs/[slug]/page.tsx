@@ -246,6 +246,31 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
             )}
           </div>
 
+          {doc.sources && doc.sources.length > 0 && (
+            <section
+              aria-label="Further reading"
+              style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--border, rgba(128,128,128,0.2))" }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 10 }}>
+                Further reading
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 6 }}>
+                {doc.sources.map((source) => (
+                  <li key={source.href} style={{ lineHeight: 1.6 }}>
+                    <a
+                      href={source.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "var(--accent, #635bff)" }}
+                    >
+                      {source.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {related.length > 0 && (
             <div style={{ marginTop: 36, paddingTop: 20, borderTop: "1px solid var(--border, rgba(128,128,128,0.2))" }}>
               <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.5, marginBottom: 10 }}>Related articles</div>

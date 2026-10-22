@@ -1,11 +1,16 @@
 /**
- * Breaklytix Provider Registry — Phase A (Detection Only)
+ * Breaklytix Provider Registry
  *
  * Security rules:
  * - No secret VALUES stored, only environment variable NAMES as string labels
  * - Evidence text always reads like "Environment variable reference: STRIPE_SECRET_KEY"
  * - Never constructs strings like "STRIPE_SECRET_KEY = sk_live_..."
- * - All monitoringStatus = "planned" (Phase A is detection-only)
+ * - monitoringStatus mirrors the backend registry: every provider listed in
+ *   backend/app/changelog/sources.py has an official changelog source and is
+ *   polled on a schedule, so all 44 are "supported". Marking 32 of them
+ *   "planned" made the homepage badge ("Monitored" vs "Detected") contradict
+ *   /providers and the 44-provider claim. Runtime health is a separate signal,
+ *   reported per provider by the API and shown on /dashboard/providers.
  *
  * Adding a new provider: append to PROVIDER_REGISTRY array.
  * The scanner picks up new entries automatically — no other code changes needed.
@@ -299,7 +304,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developer.paypal.com/docs/release-notes/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -476,7 +481,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://docs.aws.amazon.com/awsreleasehistory/latest/release-history/RELEASE_HISTORY.html",
       pollingFrequency: "daily",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -541,7 +546,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://cloudinary.com/documentation",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -563,7 +568,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://ai.google.dev/gemini-api/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -585,7 +590,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://huggingface.co/docs/api-inference/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -607,7 +612,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://elevenlabs.io/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -629,7 +634,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://postmarkapp.com/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -651,7 +656,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://www.mailgun.com/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -673,7 +678,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://docs.digitalocean.com/release-notes/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -695,7 +700,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://develop.sentry.dev/changelog/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -717,7 +722,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://auth0.com/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -739,7 +744,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://clerk.com/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -761,7 +766,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://docs.mapbox.com/api/release-notes/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -783,7 +788,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://www.algolia.com/doc/rest-api/release-notes/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -805,7 +810,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://posthog.com/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -827,7 +832,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developer.mixpanel.com/docs/release-notes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -849,7 +854,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://segment.com/docs/release-notes/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -871,7 +876,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developers.intercom.com/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -893,7 +898,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://discord.com/developers/docs/change-log",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -915,7 +920,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://core.telegram.org/bots/api#recent-changes",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -937,7 +942,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api/changelog",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -959,7 +964,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developer.x.com/en/docs/x-api/changelog",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -981,7 +986,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developers.zoom.us/docs/changelog/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1003,7 +1008,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://pusher.com/docs/changelog/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1025,7 +1030,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developers.google.com/youtube/v3/revision_history",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1047,7 +1052,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://developers.notion.com/changelog",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1069,7 +1074,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://airtable.com/developers/web/api/changelog",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1091,7 +1096,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://www.mongodb.com/docs/upcoming/release-notes/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1113,7 +1118,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://raw.githubusercontent.com/redis/redis-doc/master/docs/releases/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1135,7 +1140,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://plaid.com/changelog/",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1157,7 +1162,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://openweathermap.org/changelog",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 
@@ -1179,7 +1184,7 @@ export const PROVIDER_REGISTRY: readonly ProviderEntry[] = [
       releaseNotesUrl: "https://serpapi.com/changelog",
       pollingFrequency: "weekly",
     },
-    monitoringStatus: "planned",
+    monitoringStatus: "supported",
     detectionEnabled: true,
   },
 ] as const;

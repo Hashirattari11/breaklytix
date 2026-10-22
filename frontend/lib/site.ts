@@ -50,11 +50,11 @@ export function absoluteUrl(path = "/"): string {
  * articles read their own dates from `lib/docs-seo.ts`.
  */
 export const CONTENT_UPDATED: Record<string, string> = {
-  "/": "2026-10-21",
+  "/": "2026-10-22",
   "/about": "2026-10-21",
   "/providers": "2026-10-21",
-  "/pricing": "2026-10-21",
-  "/docs": "2026-10-21",
+  "/pricing": "2026-10-22",
+  "/docs": "2026-10-22",
   "/contact": "2026-10-21",
   "/privacy": "2026-10-21",
   "/terms": "2026-10-21",

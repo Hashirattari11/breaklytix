@@ -18,6 +18,13 @@ export type DocArticle = {
   content: DocBlock[];
   related?: string[];
   /**
+   * Authoritative out-of-site documentation for the concepts in the article
+   * (provider changelogs, API versioning docs, specifications). Rendered as a
+   * "Further reading" list with real <a href> elements, so readers and answer
+   * engines can follow the primary source instead of trusting a summary.
+   */
+  sources?: { label: string; href: string }[];
+  /**
    * Optional question/answer pairs. Rendered as <h3>/<p> pairs and emitted as
    * schema.org FAQPage JSON-LD, so search engines and AI answer engines can
    * lift the answers out of the page. Ground every answer in a real feature.
@@ -27,6 +34,7 @@ export type DocArticle = {
 
 export const DOC_SECTIONS: { name: string; blurb: string }[] = [
   { name: "Getting Started", blurb: "What Breaklytix watches, how alerts work, and your first scan." },
+  { name: "Guides", blurb: "Concept guides to API change monitoring, written to be useful on their own." },
   { name: "Authentication & GitHub", blurb: "Sign in securely with GitHub and connect your repositories." },
   { name: "Provider Monitoring", blurb: "Which APIs we monitor for breaking changes." },
   { name: "Runtime Intelligence", blurb: "Live health signals — errors, failures, incidents, anomalies, rate limits." },
@@ -617,6 +625,317 @@ export const DOCS: DocArticle[] = [
       {
         q: "How is Breaklytix different from Dependabot?",
         a: "Dependabot watches package versions inside your dependency file. Breaklytix watches the changelogs of third-party APIs you call, and then maps a published change onto the exact files, lines and symbols in your repository that could break. A provider can change behaviour without shipping a new package version, and Dependabot stays silent on that.",
+      },
+    ],
+  },
+
+  // ── Guides ───────────────────────────────────────────────────────────────
+  {
+    slug: "api-change-monitoring",
+    title: "What is API change monitoring?",
+    section: "Guides",
+    order: 1,
+    summary:
+      "API change monitoring watches the changelogs of the services you call and turns a published change into a decision for your team — before it reaches production.",
+    related: ["breaking-api-changes", "changelog", "providers"],
+    sources: [
+      { label: "Stripe — API changelog", href: "https://docs.stripe.com/changelog" },
+      {
+        label: "GitHub — REST API versioning",
+        href: "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      },
+      {
+        label: "Keep a Changelog — a convention for human-readable changelogs",
+        href: "https://keepachangelog.com/en/1.1.0/",
+      },
+      { label: "Semantic Versioning 2.0.0", href: "https://semver.org/" },
+    ],
+    content: [
+      {
+        t: "p",
+        x: "API change monitoring is the practice of watching the public change feeds of the third-party services your software calls — changelogs, release notes and version announcements — and turning those entries into something your team can act on. The unit being monitored is not your server. It is another company's interface.",
+      },
+      {
+        t: "p",
+        x: "That distinction matters because most teams already run monitoring, and it answers a different question.",
+      },
+      { t: "h", x: "Three different things people call API monitoring" },
+      {
+        t: "ul",
+        x: [
+          "Uptime monitoring asks: is the service reachable right now? It sends requests on a schedule and alerts on elevated latency or error rates. It is blind to a change that has been announced but not yet deployed.",
+          "Runtime monitoring asks: what is failing in production? It reads your own error rates and traces. It is the most accurate signal available and the most expensive one, because the incident has already reached a customer.",
+          "Change monitoring asks: what did the provider say it is going to do? It reads the provider's own publication, which typically arrives before the behaviour changes.",
+        ],
+      },
+      {
+        t: "p",
+        x: "The three are complementary. Change monitoring is the only one that gives you lead time.",
+      },
+      { t: "h", x: "Dependency monitoring tracks the package, not the service" },
+      {
+        t: "p",
+        x: "Dependency tooling — Dependabot, Renovate, npm audit — watches the packages in your manifest. That is a real risk surface, and it is not this one. A pinned SDK version can be perfectly compatible with a server that has already removed the endpoint that SDK calls. Nothing in the manifest changes, so nothing in the dependency tooling fires.",
+      },
+      {
+        t: "p",
+        x: "Semantic versioning does not close the gap either. SemVer governs how a package author signals change inside a package. A hosted API is not a package: it has no installed version in your repository unless the provider versions it explicitly, and many providers version by date rather than by major number.",
+      },
+      { t: "h", x: "What change monitoring actually reads" },
+      {
+        t: "ul",
+        x: [
+          "A dated changelog page, where entries are appended continuously and old entries stay online (Stripe is the clearest example).",
+          "Release notes grouped by product or service, which is how large cloud providers publish (AWS splits them per service).",
+          "A blog-style changelog with tags and categories, often the only structured feed a developer-tools company offers.",
+          "A release feed — RSS, Atom, or GitHub Releases — when the provider ships an SDK rather than a hosted service.",
+          "A versioned API reference that documents which versions still exist and when older ones stop being accepted.",
+        ],
+      },
+      {
+        t: "p",
+        x: "The formats differ, but every one of them contains the same four things a team needs: what changed, which surface it affects, when it takes effect, and where the primary source is.",
+      },
+      { t: "h", x: "What the output should contain" },
+      {
+        t: "ul",
+        x: [
+          "Provider and source URL, so a reader can verify the claim without trusting a summary.",
+          "Change type — breaking change, deprecation, additive change, version retirement, auth change, schema change — because the response differs by type.",
+          "Affected surface: an endpoint, a response field, a header, an SDK major version, or a whole API version.",
+          "Effective date, or the explicit statement that none was published.",
+          "A stable identifier for the entry, so the same change is not alerted twice and is not silently reworded into a new alert.",
+        ],
+      },
+      { t: "h", x: "Where change monitoring stops" },
+      {
+        t: "p",
+        x: "It cannot prevent an outage. It reports what a provider published, and providers sometimes ship without publishing, publish late, or describe a change in prose that no parser can classify with certainty. A monitoring system that hides those limits is harder to trust than one that states them.",
+      },
+      {
+        t: "p",
+        x: "It also does not tell you whether a change matters to you until it is matched against your own usage. A removed field in a service you call once, from a background job, is a different problem from the same field in a payment path.",
+      },
+      { t: "h", x: "How Breaklytix implements it" },
+      {
+        t: "p",
+        x: "Breaklytix polls the official changelog or release feed of 44 providers, normalises each entry into a stable record with a fingerprint, and classifies it deterministically — pattern matching and structured scraping, no language model in the monitoring path. When a change matches API usage detected in a connected repository, the alert names the file and line that calls the affected surface. When nothing matches, the entry is still stored and labelled unmatched rather than discarded.",
+      },
+      {
+        t: "tip",
+        x: "If you only do one thing after reading this: list the five providers your revenue path depends on, subscribe to their changelogs, and route them to a channel a human reads during working hours.",
+      },
+    ],
+    faq: [
+      {
+        q: "Is API change monitoring the same as uptime monitoring?",
+        a: "No. Uptime monitoring tests whether a service responds correctly right now. API change monitoring reads the provider's published changelog to find changes that are announced but may not be live yet. Uptime monitoring detects an incident after it starts; change monitoring gives you lead time before it starts.",
+      },
+      {
+        q: "Do I still need to read changelogs if I use a monitoring tool?",
+        a: "For anything that could affect revenue, yes — at least the linked source entry. A tool can classify and route a change, but the provider's own text is the primary source. Breaklytix stores the source URL next to every entry so the original wording is one click away.",
+      },
+      {
+        q: "Does API change monitoring prevent production incidents?",
+        a: "No. It reduces the chance that a published change reaches production unnoticed. Providers can ship without announcing, publish after deploying, or describe a change ambiguously. Monitoring is a warning system, not a guarantee.",
+      },
+    ],
+  },
+  {
+    slug: "github-api-change-impact",
+    title: "How API changes affect GitHub repositories",
+    section: "Guides",
+    order: 2,
+    summary:
+      "A provider change becomes concrete only when you can name the repositories, files and call sites it touches. Here is how to build that map.",
+    related: ["repository-scanner", "code-breaks", "impact-overview"],
+    sources: [
+      {
+        label: "GitHub — REST API versioning",
+        href: "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      },
+      { label: "GitHub — changelog", href: "https://github.blog/changelog/" },
+      { label: "Stripe — API versioning and upgrades", href: "https://docs.stripe.com/upgrades" },
+    ],
+    content: [
+      {
+        t: "p",
+        x: "A changelog entry is not an incident. It becomes one only when it maps onto code you run. The repository is where that mapping happens, and the hard part is that API usage is rarely declared in one obvious place.",
+      },
+      { t: "h", x: "Where API usage actually hides" },
+      {
+        t: "ul",
+        x: [
+          "Environment variable names: STRIPE_SECRET_KEY, OPENAI_API_KEY, TWILIO_AUTH_TOKEN. The name identifies the provider even when no import mentions it.",
+          "SDK imports and constructors: import stripe, from openai import OpenAI, new Twilio(...). These survive refactors better than raw HTTP calls.",
+          "Package names in manifests: stripe, @slack/web-api, openai. Useful, but they only cover the client library, not the endpoint being called.",
+          "Raw endpoint strings: https://api.stripe.com/v1/charges, https://slack.com/api/chat.postMessage. These are the most precise signal and the easiest to miss, because they can live in config, tests and fixtures.",
+          "Webhook routes: hooks.stripe.com, /webhooks/github. A provider change to signature verification or payload shape breaks these without touching a client call.",
+        ],
+      },
+      {
+        t: "p",
+        x: "A repository-wide scan that only reads dependency manifests will find the fourth of those and miss the rest. That is the usual reason a team believes it has an inventory when it has a list of packages.",
+      },
+      { t: "h", x: "Version pinning is where most surprises start" },
+      {
+        t: "p",
+        x: "GitHub versions its REST API by date and asks clients to send that date explicitly: X-GitHub-Api-Version: 2022-11-28. A request without the header does not fail — it falls back to a default version, and that default can move. The same request can start returning a different response shape without a line of your code changing.",
+      },
+      {
+        t: "code",
+        x: "curl -H 'Accept: application/vnd.github+json' \\\n  -H 'X-GitHub-Api-Version: 2022-11-28' \\\n  https://api.github.com/repos/OWNER/REPO/issues",
+      },
+      {
+        t: "p",
+        x: "Stripe uses a related but different model: each account has a default API version, a request can override it with a version header, and the changelog describes what changes between dated versions. The practical consequence is the same — the version you are effectively using is a property of configuration and request code, not of the package version in your manifest.",
+      },
+      { t: "h", x: "From changelog entry to file list" },
+      {
+        t: "p",
+        x: "A useful impact map answers four questions for a single entry, in this order:",
+      },
+      {
+        t: "ul",
+        x: [
+          "Which surface does the entry change? An endpoint path, a response field, a header, an auth scheme, or an entire version.",
+          "Which repositories in the organisation reference that surface? Grep is the right first tool: endpoint hostnames and path prefixes are highly specific strings.",
+          "Which call sites inside those repositories depend on the specific behaviour that changed? A removed field only matters where that field is read.",
+          "Is the call on a critical path? Payment capture and a nightly analytics sync deserve different response times.",
+        ],
+      },
+      {
+        t: "p",
+        x: "Skipping the third question is what turns a monitoring system into an alarm that everyone mutes. A repository that imports the Stripe SDK but never touches the changed endpoint is not affected, and saying so explicitly is more valuable than listing it as a risk.",
+      },
+      { t: "h", x: "Monorepos and multi-repo organisations" },
+      {
+        t: "p",
+        x: "In a monorepo the scan is one pass but the ownership question is harder: a shared client package can be called by a dozen services, and the changelog impact lands on whichever squad owns the caller. In a multi-repo organisation the opposite is true — ownership is obvious per repository, but nothing guarantees that every repository is connected to the same view of provider changes.",
+      },
+      {
+        t: "p",
+        x: "Either way, the unit of decision is the call site, not the repository. Repository-level labels are only useful because they route the work to a team.",
+      },
+      { t: "h", x: "What to do with the map" },
+      {
+        t: "ul",
+        x: [
+          "Pin the API version explicitly in code and record the retirement date next to it.",
+          "Add a contract test that asserts the fields you read, so a removal fails a test rather than a customer request.",
+          "Keep the endpoint inventory current — regenerate it on every default-branch push rather than in a quarterly audit.",
+          "When a change is classified as additive, record it and move on. Not every entry deserves a ticket.",
+        ],
+      },
+      {
+        t: "tip",
+        x: "Breaklytix produces this map by scanning repository trees, then matching classified provider changes to detected usage. The output is a file and line reference, plus a confidence level — not a claim that every match will break.",
+      },
+    ],
+    faq: [
+      {
+        q: "Does a provider change always require a code change?",
+        a: "No. Many entries are additive — a new optional field, a new endpoint, a new webhook event. The useful question is whether the change touches a surface your code reads or writes. A change that adds a field your parser ignores is safe to record and close.",
+      },
+      {
+        q: "Why is the API version header more important than the SDK version?",
+        a: "The SDK version describes the client library you installed. The API version describes the server behaviour you are asking for. A new SDK talking to an old API version, or an old SDK talking to a new default version, are both possible. The server contract is what actually changes response shapes.",
+      },
+      {
+        q: "How often should repository usage be rescanned?",
+        a: "At least on every push to the default branch. API usage moves between releases, and an inventory that is a quarter old will miss new call sites — which are exactly the ones nobody has tested against a provider change yet.",
+      },
+    ],
+  },
+  {
+    slug: "stripe-changelog-example",
+    title: "Worked example: reading Stripe's changelog",
+    section: "Guides",
+    order: 3,
+    summary:
+      "A practical walkthrough of one provider's changelog: what a Stripe entry contains, which fields decide impact, and how to turn it into a code change.",
+    related: ["breaking-api-changes", "deprecated-apis", "providers"],
+    sources: [
+      { label: "Stripe — API changelog", href: "https://docs.stripe.com/changelog" },
+      { label: "Stripe — API versioning and upgrades", href: "https://docs.stripe.com/upgrades" },
+      { label: "Stripe — API reference", href: "https://docs.stripe.com/api" },
+    ],
+    content: [
+      {
+        t: "p",
+        x: "Stripe is a useful worked example because its change process is unusually explicit: dated API versions, a public changelog, and an upgrade guide that describes what moves between versions. The same reading method applies to providers with less structure — you just have to infer more.",
+      },
+      { t: "h", x: "How Stripe versions its API" },
+      {
+        t: "p",
+        x: "Stripe versions the API by date. An account has a default version, and a request can pin a different one for that call alone. That means the version in effect is a combination of account configuration and request code — two places, neither of which is your package manifest.",
+      },
+      {
+        t: "p",
+        x: "This is why an integration can keep working for months and then break when someone upgrades the account default, or when Stripe retires an old version. The changelog entry that described the behavioural difference may be years old by the time it reaches you.",
+      },
+      { t: "h", x: "Anatomy of a changelog entry" },
+      {
+        t: "p",
+        x: "A typical Stripe changelog entry carries a release date, the API version it belongs to, a short heading, and prose describing the change. Reading it as an engineer means extracting five things:",
+      },
+      {
+        t: "ul",
+        x: [
+          "The affected surface. Which endpoint, object or field does the entry name? If it names an object, which operations on that object change?",
+          "The direction of the change. Is something added, removed, renamed, or is the meaning of an existing field different?",
+          "Whether it is breaking under your usage. A removed field is breaking only where it is read; an added field is usually safe.",
+          "The version boundary. Which dated version introduced it, and which versions still behave the old way?",
+          "The migration action. Some entries name a replacement field or endpoint; some only describe new behaviour and leave the migration to you.",
+        ],
+      },
+      { t: "h", x: "Applying one entry to a repository" },
+      {
+        t: "p",
+        x: "Take an entry that changes how a response field is populated. The workflow is the same every time:",
+      },
+      {
+        t: "code",
+        x: "# 1. Find the call sites, not just the SDK import\nrg -n 'api\\.stripe\\.com|stripe\\.(charges|customers|subscriptions)'\n\n# 2. Find reads of the specific field\nrg -n 'invoice\\.settings|payment_intent\\.charges'\n\n# 3. Check whether the API version is pinned in requests\nrg -n 'Stripe-Version|stripe_version|apiVersion'",
+      },
+      {
+        t: "p",
+        x: "Step one answers which repositories are exposed. Step two answers which call sites actually depend on the changed behaviour. Step three answers the question most teams skip: is this request even using the version the entry describes? A request pinned to an older version is not affected yet — but it will be when that version is retired, so the retirement date belongs in the ticket.",
+      },
+      { t: "h", x: "The two dates that matter" },
+      {
+        t: "ul",
+        x: [
+          "The release date of the version that introduced the change, which tells you how long the old behaviour has been the old behaviour.",
+          "The retirement date of the version you are on, if the provider publishes one. This is the date that turns a latent risk into a deadline.",
+        ],
+      },
+      {
+        t: "p",
+        x: "Teams that track only the first date accumulate a backlog of changes they have not evaluated. Teams that track the second date get a work queue with an expiry, which is far easier to schedule.",
+      },
+      { t: "h", x: "What this example generalises to" },
+      {
+        t: "p",
+        x: "Replace Stripe with GitHub, Twilio, Slack or AWS and the method holds: find the version boundary, find the surface, find the call sites, then decide. What changes is the amount of help the provider gives you. Stripe publishes dated versions and an upgrade guide. GitHub publishes dated REST versions and a changelog. Some providers publish prose in a blog post with no version boundary at all — in which case the only reliable date is the publication date, and the safe assumption is that the change may already be live.",
+      },
+      {
+        t: "tip",
+        x: "Breaklytix keeps the Stripe changelog entry, its classification and its source URL together, then matches it against detected Stripe usage in your repositories. If you want to do this manually, the three ripgrep commands above are the minimum useful version.",
+      },
+    ],
+    faq: [
+      {
+        q: "Do Stripe changelog entries apply to my account immediately?",
+        a: "Not necessarily. Stripe versions the API by date, and an account keeps its existing default version until it is changed or retired. An entry describes behaviour that is available at a given version. Whether it affects you depends on the version your account and your requests actually use.",
+      },
+      {
+        q: "Where can I find Stripe's changelog and upgrade guide?",
+        a: "The changelog is at docs.stripe.com/changelog and the upgrade guide at docs.stripe.com/upgrades. Both are linked in the Further reading section of this page.",
+      },
+      {
+        q: "Is the SDK version enough to know which API version I use?",
+        a: "No. The SDK is a client library; the API version is a server-side contract, set per account and overridable per request. You need to check both the account setting and any version header in your request code.",
       },
     ],
   },

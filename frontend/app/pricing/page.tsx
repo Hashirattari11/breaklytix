@@ -6,7 +6,7 @@ import { SITE_URL, SITE_NAME, pageOpenGraph } from "../../lib/site";
 export const metadata: Metadata = {
   title: "API Monitoring Pricing & Plans",
   description:
-    "Transparent API monitoring pricing: Starter $500/mo for 10 APIs, Growth $2,000/mo for 50, Enterprise custom. Every plan includes a 14-day free trial.",
+    "Transparent API monitoring pricing: Starter $500/mo for 10 APIs, Growth $2,000/mo for 50, Enterprise $10,000/mo. Every plan includes a 14-day free trial.",
   alternates: { canonical: SITE_URL + "/pricing" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/pricing"),
@@ -57,11 +57,9 @@ const PRICING_JSON_LD = {
         {
           "@type": "Offer",
           name: "Enterprise",
-          priceSpecification: {
-            "@type": "PriceSpecification",
-            priceCurrency: "USD",
-            description: "Custom pricing — contact sales.",
-          },
+          price: "10000",
+          priceCurrency: "USD",
+          description: "Unlimited monitored APIs per repository.",
           availability: "https://schema.org/InStock",
           url: `${SITE_URL}/contact`,
         },

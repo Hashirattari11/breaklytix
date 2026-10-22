@@ -31,8 +31,16 @@ const jsonLd = {
       url: SITE_URL + "/",
       description: SITE_DESCRIPTION,
       offers: {
-        "@type": "Offer",
+        // Aggregate of the three plans on /pricing: Starter $500, Growth
+        // $2,000, Enterprise $10,000. A bare Offer with only a url told search
+        // engines nothing about price, which is the one thing a pricing entity
+        // is supposed to carry.
+        "@type": "AggregateOffer",
         url: SITE_URL + "/pricing",
+        lowPrice: "500",
+        highPrice: "10000",
+        priceCurrency: "USD",
+        offerCount: 3,
       },
     },
     {

@@ -247,4 +247,24 @@ export const DOC_SEO: Record<string, DocSeo> = {
       "Answers about code access, secret handling, auto-merged pull requests, private repositories, alert timing, and disconnecting GitHub at any time.",
     updated: UPDATED,
   },
+
+  // ── Guides ───────────────────────────────────────────────────────────────
+  "api-change-monitoring": {
+    title: "What Is API Change Monitoring? A Guide",
+    description:
+      "API change monitoring watches provider changelogs instead of your uptime. What it reads, what a useful alert contains, and where the method honestly stops.",
+    updated: "2026-10-22",
+  },
+  "github-api-change-impact": {
+    title: "How API Changes Affect Your GitHub Repositories",
+    description:
+      "Where third-party API changes actually land: which repositories, files and call sites are exposed, and why your SDK version does not protect you.",
+    updated: "2026-10-22",
+  },
+  "stripe-changelog-example": {
+    title: "Reading Stripe's API Changelog: Worked Example",
+    description:
+      "A worked example using Stripe's official changelog: how dated API versions work, which fields decide impact, and how to turn an entry into a code change.",
+    updated: "2026-10-22",
+  },
 };
