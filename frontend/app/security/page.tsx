@@ -130,8 +130,8 @@ export default function SecurityPage() {
       <LegalSection id="reporting" title="12. Reporting a Vulnerability">
         <p>
           Found a security issue? Please tell us privately before disclosing it publicly:{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "#635bff" }}>{SUPPORT_EMAIL}</a>
-          {" "}or open a private issue via our <a href="/contact" style={{ color: "#635bff" }}>Contact page</a>.
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>
+          {" "}or open a private issue via our <a href="/contact" style={{ color: "var(--accent-text, #4f46e5)" }}>Contact page</a>.
           We investigate reports and keep reporters informed.
         </p>
       </LegalSection>

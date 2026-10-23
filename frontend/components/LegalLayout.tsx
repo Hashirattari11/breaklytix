@@ -151,7 +151,16 @@ export function LegalTitle({
           <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
             {toc.map((s) => (
               <li key={s.id} style={{ marginBottom: 4 }}>
-                <a href={`#${s.id}`} style={{ color: "#635bff", textDecoration: "none" }}>
+                <a
+                  href={`#${s.id}`}
+                  style={{
+                    color: "var(--accent-text, #4f46e5)",
+                    textDecoration: "none",
+                    display: "inline-block",
+                    padding: "4px 0",
+                    minHeight: 24,
+                  }}
+                >
                   {s.label}
                 </a>
               </li>

@@ -87,8 +87,8 @@ export default function CookiesPage() {
       <LegalSection id="contact" title="8. Contact">
         <p>
           Questions about this policy:{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "#635bff" }}>{SUPPORT_EMAIL}</a>
-          {" "}or visit our <a href="/contact" style={{ color: "#635bff" }}>Contact page</a>.
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>
+          {" "}or visit our <a href="/contact" style={{ color: "var(--accent-text, #4f46e5)" }}>Contact page</a>.
         </p>
       </LegalSection>
     </LegalLayout>

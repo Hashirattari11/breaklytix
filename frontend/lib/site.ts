@@ -6,10 +6,11 @@ export const SITE_NAME = "Breaklytix";
 export const SITE_DESCRIPTION =
   "Breaklytix detects the third-party APIs your repos use, monitors 44+ provider changelogs around the clock, and alerts you the moment a breaking change ships.";
 
-// Support contact. Configure via NEXT_PUBLIC_SUPPORT_EMAIL; falls back to the
-// project's actual support address (also shown on the login page).
+// Support contact. Configure via NEXT_PUBLIC_SUPPORT_EMAIL. The default is the
+// brand-domain address; the mailbox/forwarding for it must be provisioned by an
+// operator (see PRODUCTION_READINESS_REPORT.md) before claiming it is monitored.
 export const SUPPORT_EMAIL =
-  process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "hashirattari73@gmail.com";
+  (process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "").trim() || "support@breaklytix.site";
 
 /**
  * Build the per-page `openGraph` block for a public marketing/docs page.
@@ -26,11 +27,13 @@ export function pageOpenGraph(path = "/") {
   return { url, type: "website" as const, siteName: SITE_NAME };
 }
 
-// Legal operator placeholder — replace with the registered company name/address
-// before a commercial launch (see NEXT_PUBLIC_LEGAL_ENTITY / _ADDRESS).
+// Legal operator configuration. Set NEXT_PUBLIC_LEGAL_ENTITY and
+// NEXT_PUBLIC_LEGAL_ADDRESS in the hosting environment when a registered
+// address is legally required; public pages only render the address when it is
+// non-empty (never "undefined"/"null" or a placeholder).
 export const LEGAL_ENTITY =
-  process.env.NEXT_PUBLIC_LEGAL_ENTITY || "Breaklytix";
-export const LEGAL_ADDRESS = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || "";
+  (process.env.NEXT_PUBLIC_LEGAL_ENTITY || "").trim() || "Breaklytix";
+export const LEGAL_ADDRESS = (process.env.NEXT_PUBLIC_LEGAL_ADDRESS || "").trim();
 
 /** Absolute URL builder — all canonical / og / schema URLs go through this. */
 export function absoluteUrl(path = "/"): string {

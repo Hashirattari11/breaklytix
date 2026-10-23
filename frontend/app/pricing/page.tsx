@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PricingClient from "../../components/PricingClient";
 import { PRICING_FAQ } from "../../lib/pricing-faq";
 import { SITE_URL, SITE_NAME, pageOpenGraph } from "../../lib/site";
+import { jsonLdHtml } from "../../lib/jsonld";
 
 export const metadata: Metadata = {
   title: "API Monitoring Pricing & Plans",
@@ -85,7 +86,7 @@ export default function Page() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(PRICING_JSON_LD) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(PRICING_JSON_LD) }}
       />
       <PricingClient />
     </>

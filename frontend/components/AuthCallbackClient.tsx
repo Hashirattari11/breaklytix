@@ -7,6 +7,25 @@ import { githubCallback } from "../lib/api";
 import { storeSession } from "../lib/auth";
 import { SITE_URL } from "../lib/site";
 
+const ALLOWED_NEXT = ["/admin", "/dashboard"];
+
+/** Read and clear the post-login destination captured on /login?next=... */
+function takePostLoginPath(): string {
+  try {
+    const raw = sessionStorage.getItem("autofix_post_login");
+    sessionStorage.removeItem("autofix_post_login");
+    if (raw && raw.startsWith("/") && !raw.startsWith("//")) {
+      const allowed = ALLOWED_NEXT.some(
+        (path) => raw === path || raw.startsWith(`${path}/`) || raw.startsWith(`${path}?`),
+      );
+      if (allowed) return raw;
+    }
+  } catch {
+    /* sessionStorage unavailable */
+  }
+  return "/dashboard";
+}
+
 /**
  * /auth/callback — Final leg of GitHub OAuth.
  * Validates the one-time CSRF `state` pinned on /auth/github, exchanges the code
@@ -53,10 +72,22 @@ export default function AuthCallbackClient() {
         const redirectUri = (isLocal ? window.location.origin : SITE_URL) + "/auth/callback";
         const { token, user } = await githubCallback(code, redirectUri);
         storeSession(token, user);
+        // Establish the httpOnly cookie used by the server-side /admin gate.
+        // The backend just validated this token; the route re-checks it before
+        // setting the cookie. Non-fatal: the dashboard uses the Bearer token.
+        try {
+          await fetch("/api/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          });
+        } catch {
+          /* gate will re-validate on the next /login visit */
+        }
         if (user.consent_required) {
           router.replace("/legal-acceptance");
         } else {
-          router.replace("/dashboard");
+          router.replace(takePostLoginPath());
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
@@ -65,7 +96,7 @@ export default function AuthCallbackClient() {
   }, [params, router]);
 
   return (
-    <div className="lp-login-wrap">
+    <main className="lp-login-wrap">
       <div className="lp-card" style={{ textAlign: "center", padding: "44px 28px" }}>
         {!error ? (
           <>
@@ -80,6 +111,6 @@ export default function AuthCallbackClient() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

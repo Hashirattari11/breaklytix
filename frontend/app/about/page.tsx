@@ -3,6 +3,7 @@ import { LegalFooter } from "@/components/LegalLayout";
 import { LogoMark } from "@/components/Logo";
 import Link from "next/link";
 import { LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
+import { jsonLdHtml } from "@/lib/jsonld";
 
 /**
  * /about — the entity page.
@@ -80,7 +81,7 @@ export default function AboutPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <header
         style={{
@@ -117,7 +118,7 @@ export default function AboutPage() {
         <h1 className="h1" style={{ fontSize: 38, lineHeight: 1.15, marginBottom: 14 }}>
           About {SITE_NAME}
         </h1>
-        <p className="p" style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.8, marginBottom: 32 }}>
+        <p className="p" style={{ fontSize: 17, lineHeight: 1.7, marginBottom: 32 }}>
           {SITE_NAME} is an API change monitoring service. It watches the changelogs of the third-party
           APIs a codebase depends on, detects changes that can break an integration, and maps each one to
           the repositories, files and lines that use the affected endpoint.
@@ -125,13 +126,13 @@ export default function AboutPage() {
 
         <section style={{ marginBottom: 40 }}>
           <h2 className="h2" style={{ fontSize: 22, marginBottom: 10 }}>The problem it solves</h2>
-          <p style={{ lineHeight: 1.7, fontSize: 15.5, opacity: 0.85 }}>
+          <p style={{ lineHeight: 1.7, fontSize: 15.5 }}>
             Every application sits on a stack of external APIs — payments, messaging, AI models, storage,
             auth. Those providers publish breaking changes continuously, but the announcement lands in a
             changelog nobody on the team reads. The change reaches production later as a failed request in
             a place that is hard to trace back to a provider release note.
           </p>
-          <p style={{ lineHeight: 1.7, fontSize: 15.5, opacity: 0.85 }}>
+          <p style={{ lineHeight: 1.7, fontSize: 15.5 }}>
             {SITE_NAME} closes that gap in both directions: it reads the provider side so you do not have
             to, and it reads your code so an alert only fires when the change actually touches something
             you call.
@@ -147,7 +148,7 @@ export default function AboutPage() {
             <li>Each entry is matched against your detected usage; matches become alerts with file and line references.</li>
             <li>Mechanical fixes can be proposed as reviewable pull requests.</li>
           </ol>
-          <p style={{ fontSize: 14, opacity: 0.65, marginTop: 14 }}>
+          <p style={{ fontSize: 14, color: "var(--muted-strong, #55555f)", marginTop: 14 }}>
             Read the full documentation at <Link href="/docs">/docs</Link>, or browse the{" "}
             <Link href="/providers">list of monitored providers</Link>.
           </p>
@@ -167,7 +168,7 @@ export default function AboutPage() {
                 }}
               >
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>{p.title}</h3>
-                <p style={{ margin: 0, lineHeight: 1.65, fontSize: 14.5, opacity: 0.8 }}>{p.body}</p>
+                <p style={{ margin: 0, lineHeight: 1.65, fontSize: 14.5 }}>{p.body}</p>
               </div>
             ))}
           </div>
@@ -175,9 +176,9 @@ export default function AboutPage() {
 
         <section style={{ marginBottom: 8 }}>
           <h2 className="h2" style={{ fontSize: 22, marginBottom: 10 }}>Contact</h2>
-          <p style={{ lineHeight: 1.7, fontSize: 15.5, opacity: 0.85 }}>
+          <p style={{ lineHeight: 1.7, fontSize: 15.5 }}>
             Questions about the product, security, or data handling:{" "}
-            <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent, #635bff)" }}>{SUPPORT_EMAIL}</a>.
+            <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>.
             The service is operated by {LEGAL_ENTITY}. See the{" "}
             <Link href="/security">security overview</Link>, <Link href="/privacy">privacy policy</Link> and{" "}
             <Link href="/terms">terms of service</Link> for the formal details.

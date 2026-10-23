@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from ..config import settings
 from ..db import db
+from ..deps import user_is_admin
 
 
 def _now_iso() -> str:
@@ -84,15 +85,13 @@ def disable_alert(event_id: str, admin_user_id: str, reason: str | None = None) 
 def is_admin(user_id: str) -> bool:
     """Check if a user is an admin.
 
-    Reads ``users.is_admin`` from the database. The owner UUID is kept as an
-    OR fallback so the owner retains access even before the migration applies.
+    Reads ``users.is_admin`` from the database and falls back to the explicit
+    ``ADMIN_USER_IDS`` environment allowlist. There is no hard-coded owner UUID:
+    a privileged identity must come from the database or from operator config.
     """
-    if user_id == "3d206f17-7abc-4857-be29-00c8406ce16f":
-        return True
     try:
-        res = db().table("users").select("is_admin").eq("id", user_id).execute()
-        if res.data:
-            return bool(res.data[0].get("is_admin", False))
+        res = db().table("users").select("id,is_admin").eq("id", user_id).execute()
+        row = (res.data or [{}])[0]
     except Exception:
-        pass
-    return False
+        return user_id in settings.admin_user_id_set
+    return user_is_admin({"id": user_id, **(row or {})})

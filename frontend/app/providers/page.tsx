@@ -5,6 +5,7 @@ import type { ProviderCategory } from "@/lib/providers/types";
 import { LegalFooter } from "@/components/LegalLayout";
 import { LogoMark } from "@/components/Logo";
 import { SITE_NAME, SITE_URL, pageOpenGraph } from "@/lib/site";
+import { jsonLdHtml } from "@/lib/jsonld";
 
 /**
  * Public provider directory.
@@ -136,7 +137,7 @@ export default function ProvidersPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <header
         style={{
@@ -185,13 +186,13 @@ export default function ProvidersPage() {
 
       <main style={{ maxWidth: 1120, margin: "0 auto", padding: "56px 24px 80px" }}>
         <header style={{ maxWidth: 760, marginBottom: 40 }}>
-          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8, opacity: 0.5, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8, color: "var(--muted-strong, #55555f)", marginBottom: 10 }}>
             Coverage
           </div>
           <h1 className="h1" style={{ fontSize: 40, lineHeight: 1.15, marginBottom: 14 }}>
             {PROVIDER_REGISTRY.length} API providers, monitored at the source
           </h1>
-          <p className="p" style={{ fontSize: 17, opacity: 0.75, lineHeight: 1.65 }}>
+          <p className="p" style={{ fontSize: 17, lineHeight: 1.65 }}>
             Every provider below is tracked from its own official changelog, release notes or release
             feed. When one of them ships a change that can break an integration, Breaklytix matches it
             against the API calls in your repositories and tells you which files are affected.
@@ -230,7 +231,7 @@ export default function ProvidersPage() {
                 background: "var(--surface, #fff)",
               }}
             >
-              <dt style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>{s.k}</dt>
+              <dt style={{ fontSize: 12, color: "var(--muted-strong, #55555f)", marginBottom: 4 }}>{s.k}</dt>
               <dd style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{s.v}</dd>
             </div>
           ))}
@@ -249,7 +250,6 @@ export default function ProvidersPage() {
                 border: "1px solid var(--border, #e5e7eb)",
                 textDecoration: "none",
                 color: "inherit",
-                opacity: 0.8,
               }}
             >
               {g.label} · {g.providers.length}
@@ -261,7 +261,7 @@ export default function ProvidersPage() {
           {grouped.map((g) => (
             <section key={g.category} id={g.category} style={{ scrollMarginTop: 80 }}>
               <h2 className="h2" style={{ fontSize: 22, marginBottom: 4 }}>{g.label}</h2>
-              <p style={{ fontSize: 13.5, opacity: 0.6, margin: "0 0 16px" }}>
+              <p style={{ fontSize: 13.5, color: "var(--muted-strong, #55555f)", margin: "0 0 16px" }}>
                 {g.providers.length} monitored {g.providers.length === 1 ? "provider" : "providers"}
               </p>
               <div
@@ -289,7 +289,7 @@ export default function ProvidersPage() {
                           href={p.changelogConfig.changelogUrl}
                           target="_blank"
                           rel="noopener noreferrer nofollow"
-                          style={{ color: "var(--accent, #635bff)" }}
+                          style={{ color: "var(--accent-text, #4f46e5)" }}
                         >
                           Official changelog ↗
                         </a>
@@ -299,14 +299,14 @@ export default function ProvidersPage() {
                               href={p.changelogConfig.releaseNotesUrl}
                               target="_blank"
                               rel="noopener noreferrer nofollow"
-                              style={{ color: "var(--muted, #6b7280)" }}
+                              style={{ color: "var(--muted-strong, #55555f)" }}
                             >
                               Release notes ↗
                             </a>
                           )}
                       </div>
                       {packages.length > 0 && (
-                        <p style={{ fontSize: 12, opacity: 0.55, margin: "8px 0 0" }}>
+                        <p style={{ fontSize: 12, color: "var(--muted-strong, #55555f)", margin: "8px 0 0" }}>
                           Detected via {packages.join(", ")}
                         </p>
                       )}
@@ -338,7 +338,7 @@ export default function ProvidersPage() {
               files and lines that call the changed API.
             </li>
           </ol>
-          <p style={{ fontSize: 14, opacity: 0.65, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 14, color: "var(--muted-strong, #55555f)", lineHeight: 1.7 }}>
             Read the details in <a href="/docs/changelog">provider changes &amp; changelog</a>, or see how{" "}
             <a href="/docs/providers">coverage is decided</a>.
           </p>
@@ -349,7 +349,7 @@ export default function ProvidersPage() {
           {FAQ.map((f) => (
             <div key={f.q}>
               <h3 style={{ fontSize: 17, margin: "24px 0 6px" }}>{f.q}</h3>
-              <p style={{ margin: 0, lineHeight: 1.7, fontSize: 15, opacity: 0.8 }}>{f.a}</p>
+              <p style={{ margin: 0, lineHeight: 1.7, fontSize: 15 }}>{f.a}</p>
             </div>
           ))}
         </section>

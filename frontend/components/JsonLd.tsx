@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/site";
+import { jsonLdHtml } from "@/lib/jsonld";
 
 /**
  * BreadcrumbList for a two-level public page (Home › Page).
@@ -20,7 +21,7 @@ export function BreadcrumbJsonLd({ name, path }: { name: string; path: string })
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(data) }}
     />
   );
 }

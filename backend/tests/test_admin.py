@@ -2,8 +2,8 @@
 
 These are pure unit tests (no live DB): the Supabase client and session lookup
 are monkeypatched so the tests run offline, matching the project's existing
-test style. Full 403/access behaviour is verified end-to-end against the
-deployed environment instead.
+test style. HTTP-level 401/403/200 behaviour is covered separately in
+``test_admin_http.py``.
 """
 import pytest
 from fastapi import HTTPException
@@ -57,16 +57,39 @@ def test_require_admin_rejects_missing_user(monkeypatch):
     assert exc.value.status_code == 403
 
 
-def test_require_admin_owner_fallback(monkeypatch):
-    """Owner UUID is granted access even if is_admin is False in the DB (OR fallback)."""
+def test_require_admin_env_allowlist(monkeypatch):
+    """ADMIN_USER_IDS grants admin without a database flag (bootstrap path)."""
+    monkeypatch.setattr(deps.settings, "admin_user_ids", "u-owner")
     monkeypatch.setattr(
         deps, "fetch_one",
-        _fake_fetch_user({"id": "3d206f17-7abc-4857-be29-00c8406ce16f", "is_admin": False}),
+        _fake_fetch_user({"id": "u-owner", "email": "owner@b.com", "is_admin": False}),
     )
-    result = deps.require_admin(user_id="3d206f17-7abc-4857-be29-00c8406ce16f")
-    # Owner is allowed even though is_admin is False (owner OR fallback).
+    result = deps.require_admin(user_id="u-owner")
+    assert result["id"] == "u-owner"
     assert result["is_admin"] is False
-    assert result["id"] == "3d206f17-7abc-4857-be29-00c8406ce16f"
+
+
+def test_require_admin_env_allowlist_revoked(monkeypatch):
+    """Removing the env value revokes the bootstrap grant."""
+    monkeypatch.setattr(deps.settings, "admin_user_ids", "")
+    monkeypatch.setattr(
+        deps, "fetch_one",
+        _fake_fetch_user({"id": "u-owner", "email": "owner@b.com", "is_admin": False}),
+    )
+    with pytest.raises(HTTPException) as exc:
+        deps.require_admin(user_id="u-owner")
+    assert exc.value.status_code == 403
+
+
+def test_require_admin_allowlist_does_not_grant_others(monkeypatch):
+    monkeypatch.setattr(deps.settings, "admin_user_ids", "u-owner")
+    monkeypatch.setattr(
+        deps, "fetch_one",
+        _fake_fetch_user({"id": "u1", "email": "a@b.com", "is_admin": False}),
+    )
+    with pytest.raises(HTTPException) as exc:
+        deps.require_admin(user_id="u1")
+    assert exc.value.status_code == 403
 
 
 # ---------------------------------------------------------------------------
@@ -88,13 +111,24 @@ def test_changelog_is_admin_false(monkeypatch):
     assert changelog_admin.is_admin("u1") is False
 
 
-def test_changelog_is_admin_owner(monkeypatch):
-    # Owner short-circuits to True without a DB query dependency.
+def test_changelog_is_admin_env_allowlist(monkeypatch):
+    # Allowlisted id is admin even when the DB flag is false.
+    monkeypatch.setattr(changelog_admin.settings, "admin_user_ids", "u-owner")
     monkeypatch.setattr(
         changelog_admin, "db",
-        lambda: _raise_if_called(),
+        lambda: _FakeTable(FakeAdminUser([{"id": "u-owner", "is_admin": False}])),
     )
-    assert changelog_admin.is_admin("3d206f17-7abc-4857-be29-00c8406ce16f") is True
+    assert changelog_admin.is_admin("u-owner") is True
+
+
+def test_changelog_is_admin_hardcoded_uuid_removed(monkeypatch):
+    # The former hard-coded owner UUID must no longer grant access by itself.
+    monkeypatch.setattr(changelog_admin.settings, "admin_user_ids", "")
+    monkeypatch.setattr(
+        changelog_admin, "db",
+        lambda: _FakeTable(FakeAdminUser([{"id": "3d206f17-7abc-4857-be29-00c8406ce16f", "is_admin": False}])),
+    )
+    assert changelog_admin.is_admin("3d206f17-7abc-4857-be29-00c8406ce16f") is False
 
 
 class _FakeTable:
@@ -113,10 +147,6 @@ class _FakeTable:
 
     def execute(self):
         return self._response
-
-
-def _raise_if_called():
-    raise AssertionError("DB should not be called for owner shortcut")
 
 
 # ---------------------------------------------------------------------------

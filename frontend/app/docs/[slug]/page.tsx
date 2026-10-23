@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDoc, docsBySection, relatedDocs, prevNext, type DocBlock } from "@/lib/docs";
 import { DOC_SEO } from "@/lib/docs-seo";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { jsonLdHtml } from "@/lib/jsonld";
 import { LogoMark } from "@/components/Logo";
 
 export function generateStaticParams() {
@@ -54,7 +55,7 @@ function ArticleJsonLd({ doc }: { doc: { title: string; slug: string; summary: s
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(data) }}
     />
   );
 }
@@ -79,7 +80,7 @@ function BreadcrumbJsonLd({ doc }: { doc: { title: string; slug: string; section
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(data) }}
     />
   );
 }
@@ -108,7 +109,7 @@ function FaqJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(data) }}
     />
   );
 }
@@ -229,7 +230,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
           <header style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8, color: "var(--muted-strong, #55555f)", marginBottom: 6 }}>{doc.section}</div>
             <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>{doc.title}</h1>
-            <p className="p" style={{ opacity: 0.7, maxWidth: 640 }}>{doc.summary}</p>
+            <p className="p" style={{ color: "var(--muted-strong, #55555f)", maxWidth: 640 }}>{doc.summary}</p>
           </header>
           <div className="p-docs-body" style={{ maxWidth: 680 }}>
             {doc.content.map((b, i) => (

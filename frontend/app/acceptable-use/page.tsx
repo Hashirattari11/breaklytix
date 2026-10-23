@@ -81,8 +81,8 @@ export default function AcceptableUsePage() {
       <LegalSection id="violations" title="6. Reporting Violations">
         <p>
           If you believe someone is misusing the service, tell us:{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "#635bff" }}>{SUPPORT_EMAIL}</a>
-          {" "}or our <a href="/contact" style={{ color: "#635bff" }}>Contact page</a>.
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>
+          {" "}or our <a href="/contact" style={{ color: "var(--accent-text, #4f46e5)" }}>Contact page</a>.
         </p>
       </LegalSection>
 

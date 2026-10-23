@@ -7,7 +7,7 @@ import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOp
 export const metadata: Metadata = {
   title: "Contact Breaklytix Support and Sales",
   description:
-    `Get help with ${SITE_NAME}: support email, GitHub issues, sales and legal contacts, and how to configure your own support contact.`,
+    `Get help with ${SITE_NAME}: support email, GitHub issues, and legal, privacy, or data-deletion contacts.`,
   alternates: { canonical: SITE_URL + "/contact" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/contact"),
@@ -16,8 +16,7 @@ export const metadata: Metadata = {
 const TOC = [
   { id: "email", label: "1. Email Support" },
   { id: "issues", label: "2. GitHub Issues" },
-  { id: "configure", label: "3. How This Page Is Configured" },
-  { id: "legal", label: "4. Legal & Other Inquiries" },
+  { id: "legal", label: "3. Legal & Other Inquiries" },
 ];
 
 export default function ContactPage() {
@@ -34,7 +33,7 @@ export default function ContactPage() {
       <LegalSection id="email" title="1. Email Support">
         <p>
           The fastest way to reach us is by email:{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "#635bff" }}>{SUPPORT_EMAIL}</a>
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>
         </p>
       </LegalSection>
 
@@ -42,27 +41,18 @@ export default function ContactPage() {
         <p>
           For bug reports and feature requests, you can also open an issue on our public repository:{" "}
           <a
-            href="https://github.com/Hashirattari11/autofix/issues"
+            href="https://github.com/Hashirattari11/test/issues"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#635bff" }}
+            style={{ color: "var(--accent-text, #4f46e5)" }}
           >
-            github.com/Hashirattari11/autofix/issues
+            github.com/Hashirattari11/test/issues
           </a>
           . Please do not include API keys, tokens, or other secrets in issues, emails, or screenshots.
         </p>
       </LegalSection>
 
-      <LegalSection id="configure" title="3. How This Page Is Configured">
-        <p>
-          The support email above is configured with the{" "}
-          <code style={{ background: "#f3f4f6", padding: "2px 6px", borderRadius: 6, fontSize: 13 }}>NEXT_PUBLIC_SUPPORT_EMAIL</code>{" "}
-          environment variable. Until it is set, the page falls back to the project&apos;s current support address.
-          Operators can update it in the hosting environment without code changes.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="legal" title="4. Legal & Other Inquiries">
+      <LegalSection id="legal" title="3. Legal & Other Inquiries">
         <p>
           For legal, privacy, or data-deletion requests, contact us at the email above or use any of the
           legal pages below. We are {LEGAL_ENTITY}
@@ -73,7 +63,7 @@ export default function ContactPage() {
             <Link
               key={l.href}
               href={l.href}
-              style={{ fontSize: 14, color: "#635bff", textDecoration: "none" }}
+              style={{ fontSize: 14, color: "var(--accent-text, #4f46e5)", textDecoration: "none" }}
             >
               {l.label}
             </Link>

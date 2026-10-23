@@ -93,7 +93,7 @@ export default function PrivacyPage() {
         <p>
           We do not run third-party visitor analytics and we do not use advertising or tracking cookies.
           Authentication state is kept in your browser&apos;s local/session storage (not cookies). See our{" "}
-          <a href="/cookies" style={{ color: "#635bff" }}>Cookie Policy</a> for details.
+          <a href="/cookies" style={{ color: "var(--accent-text, #4f46e5)" }}>Cookie Policy</a> for details.
         </p>
       </LegalSection>
 
@@ -125,8 +125,8 @@ export default function PrivacyPage() {
         </p>
         <p>
           Questions or privacy requests:{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "#635bff" }}>{SUPPORT_EMAIL}</a>
-          {" "}or visit our <a href="/contact" style={{ color: "#635bff" }}>Contact page</a>.
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>
+          {" "}or visit our <a href="/contact" style={{ color: "var(--accent-text, #4f46e5)" }}>Contact page</a>.
         </p>
       </LegalSection>
     </LegalLayout>

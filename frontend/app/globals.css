@@ -52,6 +52,15 @@ a:hover {
   text-decoration: underline;
 }
 
+/* Body-copy links: WCAG 1.4.1 (do not rely on color alone) and 1.4.3
+   (4.5:1 against the page background). The brand accent (#635bff) measures
+   4.39:1 on --bg, so in-text links use the text-safe token and an underline. */
+main p a:not(.btn) {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 code {
   font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
   font-size: 0.86em;

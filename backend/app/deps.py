@@ -64,15 +64,29 @@ def get_current_user_id(
 # Admin-only guard: verifies users.is_admin = true in the database.
 # Must be used server-side on every /admin/* route (never rely on UI hiding).
 # ---------------------------------------------------------------------------
+def user_is_admin(user: dict | None) -> bool:
+    """True when the user row grants admin rights.
+
+    Two independent sources, both server-side:
+      1. `users.is_admin` — the authoritative database flag, set by an operator.
+      2. `ADMIN_USER_IDS` — an explicit environment allowlist used for
+         bootstrap/recovery (comma-separated UUIDs). It exists so the service
+         has a provisioning path that is not a hard-coded account: nothing is
+         promoted implicitly, and removing the env value revokes the grant.
+    """
+    if not user:
+        return False
+    if bool(user.get("is_admin")):
+        return True
+    user_id = str(user.get("id") or "")
+    return bool(user_id) and user_id in settings.admin_user_id_set
+
+
 def require_admin(
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
     user = fetch_one("users", {"id": user_id})
-    if not user:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    # Authoritative check from the DB; keep the pre-schema owner as an OR
-    # fallback so the owner keeps access even before the migration applies.
-    if not user.get("is_admin") and user_id != "3d206f17-7abc-4857-be29-00c8406ce16f":
+    if not user or not user_is_admin(user):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 

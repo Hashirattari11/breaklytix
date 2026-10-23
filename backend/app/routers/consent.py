@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..db import db, fetch_one
-from ..deps import get_current_user_id
+from ..deps import get_current_user_id, user_is_admin
 from ..schemas import ConsentIn, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -31,7 +31,7 @@ def _user_out(user: dict) -> UserOut:
         email=user["email"],
         github_login=user.get("github_login"),
         plan=user.get("plan", "free"),
-        is_admin=bool(user.get("is_admin", False)),
+        is_admin=user_is_admin(user),
         is_agency=bool(user.get("is_agency", False)),
         notify_daily_status=bool(user.get("notify_daily_status", False)),
         privacy_policy_version=user.get("privacy_policy_version"),

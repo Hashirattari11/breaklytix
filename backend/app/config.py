@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(default="", alias="JWT_SECRET")
     jwt_ttl_hours: int = Field(default=720, alias="JWT_TTL_HOURS")  # 30 days
 
+    # ---- Admin authorization ----------------------------------------------
+    # Comma-separated user UUIDs that always receive admin rights, checked in
+    # addition to `users.is_admin`. This is the ONLY privileged bootstrap:
+    # no default account, no hard-coded UUID in the source, and no silent
+    # promotion of ordinary users. Leave empty to rely solely on the database
+    # flag (set it with: UPDATE users SET is_admin = true WHERE email = '...').
+    admin_user_ids: str = Field(default="", alias="ADMIN_USER_IDS")
+
     # ---- GitHub OAuth App --------------------------------------------------
     github_client_id: str = Field(default="", alias="GITHUB_CLIENT_ID")
     github_client_secret: str = Field(default="", alias="GITHUB_CLIENT_SECRET")
@@ -164,6 +172,11 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.frontend_origins.split(",") if o.strip()]
+
+    @property
+    def admin_user_id_set(self) -> set[str]:
+        """Explicit admin allowlist from ADMIN_USER_IDS (empty by default)."""
+        return {v.strip() for v in self.admin_user_ids.split(",") if v.strip()}
 
     @property
     def changelog_sources(self) -> dict[str, str]:

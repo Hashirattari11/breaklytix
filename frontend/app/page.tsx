@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LandingClient from "../components/LandingClient";
 import { SITE_URL, SITE_DESCRIPTION, pageOpenGraph } from "../lib/site";
+import { jsonLdHtml } from "../lib/jsonld";
 import { LANDING_FAQ } from "../lib/landing-faq";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ const jsonLd = {
     },
     {
       "@type": "Organization",
+      "@id": SITE_URL + "/#organization",
       name: "Breaklytix",
       url: SITE_URL + "/",
       logo: SITE_URL + "/logo.png",
@@ -53,7 +55,7 @@ const jsonLd = {
       "@type": "WebSite",
       name: "Breaklytix",
       url: SITE_URL + "/",
-      publisher: { "@type": "Organization", name: "Breaklytix" },
+      publisher: { "@id": SITE_URL + "/#organization" },
     },
     {
       "@type": "FAQPage",
@@ -71,7 +73,7 @@ export default function Page() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <LandingClient />
     </>

@@ -3,8 +3,29 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthed } from "../lib/auth";
+import { clearSession, getToken, isAuthed } from "../lib/auth";
 import { LogoMark } from "./Logo";
+
+const ALLOWED_NEXT = ["/admin", "/dashboard"];
+
+/**
+ * Read `?next=` and keep it for the OAuth callback. Only same-origin app paths
+ * we issue ourselves are accepted (no open redirects).
+ */
+function captureNextParam(): string | null {
+  try {
+    const raw = new URLSearchParams(window.location.search).get("next");
+    if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+    const allowed = ALLOWED_NEXT.some(
+      (path) => raw === path || raw.startsWith(`${path}/`) || raw.startsWith(`${path}?`),
+    );
+    if (!allowed) return null;
+    sessionStorage.setItem("autofix_post_login", raw);
+    return raw;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * /login — Public sign-in page.
@@ -14,11 +35,43 @@ import { LogoMark } from "./Logo";
 export default function LoginClient() {
   const router = useRouter();
 
-  // Already signed in? Skip the page and open the dashboard.
+  // Already signed in? Re-validate the stored token with the backend, refresh
+  // the httpOnly gate cookie, then continue to the requested page. This is what
+  // makes existing sessions work after the server-side /admin gate ships.
   useEffect(() => {
-    if (isAuthed()) {
-      router.replace("/dashboard");
-    }
+    const next = captureNextParam();
+    if (!isAuthed()) return;
+
+    let cancelled = false;
+    (async () => {
+      const token = getToken();
+      if (!token) {
+        router.replace(next || "/dashboard");
+        return;
+      }
+      try {
+        const res = await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          router.replace(next || "/dashboard");
+          return;
+        }
+        if (res.status === 401) {
+          // Expired or revoked token: require a fresh GitHub sign-in.
+          clearSession();
+        }
+      } catch {
+        /* backend unreachable — stay on login instead of redirect looping */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   function startGithubAuth() {
@@ -35,7 +88,7 @@ export default function LoginClient() {
   }
 
   return (
-    <div className="lp-login-wrap">
+    <main className="lp-login-wrap">
       <div className="lp-card">
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <Link href="/" style={{ display: "inline-flex" }}>
@@ -62,6 +115,6 @@ export default function LoginClient() {
           third-party APIs your code uses.
         </p>
       </div>
-    </div>
+    </main>
   );
 }

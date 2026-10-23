@@ -29,7 +29,7 @@
     "deprecation",
     "cli"
   ],
-  "author": "Breaklytix <hashirattari73@gmail.com> (https://breaklytix.site)",
+  "author": "Breaklytix <support@breaklytix.site> (https://breaklytix.site)",
   "license": "MIT",
   "engines": {
     "node": ">=18"

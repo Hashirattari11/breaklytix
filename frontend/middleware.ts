@@ -1,49 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+/**
+ * Server-side gate for the admin area.
+ *
+ * `bx_session` is an httpOnly cookie set by POST /api/session only after the
+ * backend has validated the Bearer token (GET /auth/me). The admin server
+ * layout then re-verifies the cookie against the backend on every request and
+ * checks `is_admin`, so this middleware is only the cheap first pass: anonymous
+ * visitors never get as far as rendering an admin shell.
+ *
+ * Public marketing routes are intentionally not matched.
+ */
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Public paths that don't require authentication
-  const publicPaths = [
-    "/", "/dashboard", "/pricing", "/admin",
-    "/terms", "/privacy", "/cookies", "/security", "/acceptable-use", "/contact",
-  ];
-
-  // Check if the path is public
-  const isPublicPath = publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/"));
-
-  // Check if it's a static asset or API route
-  const isStaticAsset = pathname.startsWith("/_next/") || pathname.startsWith("/static/") || pathname.includes(".");
-
-  if (isPublicPath || isStaticAsset) {
-    return NextResponse.next();
+  if (!request.cookies.get("bx_session")?.value) {
+    const next = request.nextUrl.pathname + request.nextUrl.search;
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(next)}`;
+    return NextResponse.redirect(url);
   }
-
-  // For dashboard routes, check for auth token
-  // Since we use localStorage on the client, we need to check for a cookie
-  // that mirrors the localStorage token, or we'll do the check client-side
-  // The middleware will just ensure the route is accessible, and the client-side
-  // auth check in the page components will handle the redirect
-
-  // We can set a cookie when the user logs in to make this work server-side
-  // For now, we'll let the client-side auth handle it and just add a header
-  // to indicate this is a protected route
-
-  const response = NextResponse.next();
-  response.headers.set("x-protected-route", "true");
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
-  ],
+  // Match only the admin area. Do not gate /dashboard here: it keeps its
+  // existing client-side auth flow, and a hard redirect would sign out users
+  // whose token predates the cookie.
+  matcher: ["/admin/:path*"],
 };

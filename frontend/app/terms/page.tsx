@@ -61,7 +61,7 @@ export default function TermsPage() {
 
       <LegalSection id="acceptable-use" title="3. Acceptable Use">
         <p>You agree not to misuse the service. See our{" "}
-          <a href="/acceptable-use" style={{ color: "#635bff" }}>Acceptable Use Policy</a> for the full list of prohibited conduct.</p>
+          <a href="/acceptable-use" style={{ color: "var(--accent-text, #4f46e5)" }}>Acceptable Use Policy</a> for the full list of prohibited conduct.</p>
       </LegalSection>
 
       <LegalSection id="api-usage" title="4. API Usage">
@@ -163,8 +163,8 @@ export default function TermsPage() {
         </p>
         <p>
           Questions about these Terms:{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "#635bff" }}>{SUPPORT_EMAIL}</a>
-          {" "}or visit our <a href="/contact" style={{ color: "#635bff" }}>Contact page</a>.
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: "var(--accent-text, #4f46e5)" }}>{SUPPORT_EMAIL}</a>
+          {" "}or visit our <a href="/contact" style={{ color: "var(--accent-text, #4f46e5)" }}>Contact page</a>.
         </p>
       </LegalSection>
     </LegalLayout>

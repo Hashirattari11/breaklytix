@@ -21,6 +21,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -28,6 +29,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       .then((res) => setPendingCount(res?.alerts?.length ?? null))
       .catch(() => {});
   }, []);
+
+  // Close the off-canvas mobile sidebar after navigating.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  // Escape closes the mobile sidebar, matching the dashboard shell.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setSidebarOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sidebarOpen]);
 
   if (!mounted) {
     return (
@@ -46,11 +62,34 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="dashboard-shell">
-      <aside className="sidebar p-sidebar" role="navigation" aria-label="Admin navigation">
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        id="admin-sidebar"
+        className={`sidebar p-sidebar${sidebarOpen ? " open" : ""}`}
+        role="navigation"
+        aria-label="Admin navigation"
+      >
         <div className="sidebar-header">
           <Link href="/admin" className="brand">
             <LogoMark size={26} withWordmark /> Breaklytix Admin
           </Link>
+          <button
+            className="sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
         <nav className="sidebar-nav" aria-label="Admin navigation">
           <ul role="list">
@@ -91,9 +130,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <button
             className="btn btn-secondary btn-block"
             style={{ marginTop: 8 }}
-            onClick={() => {
+            onClick={async () => {
+              try {
+                await fetch("/api/session", { method: "DELETE" });
+              } catch {
+                /* clear local state regardless */
+              }
               clearSession();
-              window.location.href = "/dashboard";
+              window.location.href = "/login";
             }}
           >
             Sign out
@@ -104,6 +148,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="dashboard-main">
         <header className="dashboard-header">
           <div className="dashboard-header-inner">
+            <button
+              className="sidebar-toggle"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
+              aria-expanded={sidebarOpen}
+              aria-controls="admin-sidebar"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <Link href="/admin" className="brand">
               <LogoMark size={26} withWordmark /> Breaklytix Admin
             </Link>
