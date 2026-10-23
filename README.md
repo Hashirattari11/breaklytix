@@ -50,7 +50,7 @@ other code changes.
 ## Stack
 
 ```
-Next.js 14 (App Router, Vercel) ──► FastAPI (Vercel) ──► Postgres (Supabase)
+Next.js 15.5.28 (App Router, Vercel) ──► FastAPI (Vercel) ──► Postgres (Supabase)
                                         │
               GitHub OAuth ─────────────┼──► GitHub REST API (read-only repo scan)
                                         ├──► 44 provider changelogs / release feeds

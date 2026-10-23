@@ -19,14 +19,25 @@ export default function AuthorizePage() {
   const [info, setInfo] = useState<AuthorizeInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [installUrl, setInstallUrl] = useState<string | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
+    // GitHub redirects here after installation with ?installed=1; the invite
+    // token has already been consumed, so validating it would show "invalid".
+    if (new URLSearchParams(window.location.search).get("installed") === "1") {
+      setInstalled(true);
+      setLoading(false);
+      return;
+    }
     async function validate() {
       try {
         const res = await fetch(`${API_BASE}/agency/authorize/${token}`);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data.detail || "This authorization link is invalid or has expired.");
+          return;
+        }
         setInfo(data);
       } catch {
         setError("Failed to connect to server. Please try again.");
@@ -38,16 +49,19 @@ export default function AuthorizePage() {
   }, [token]);
 
   async function handleInstall() {
-    if (!info?.client_id) return;
     setInstalling(true);
+    setError(null);
     try {
-      const res = await fetch(`${API_BASE}/agency/public-install-url?client_id=${info.client_id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setInstallUrl(data.url);
+      // The raw invite token (not a guessable client_id) authorizes the public
+      // install-url endpoint; the backend returns a signed OAuth state.
+      const res = await fetch(
+        `${API_BASE}/agency/public-install-url?token=${encodeURIComponent(token)}`
+      );
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
         window.location.href = data.url;
       } else {
-        setError("Failed to generate installation link. Please try again.");
+        setError(data.detail || "Failed to generate the installation link. Please try again.");
       }
     } catch {
       setError("Failed to connect to server. Please try again.");
@@ -98,7 +112,29 @@ export default function AuthorizePage() {
           </div>
 
           <div className="auth-body">
-            {loading && (
+            {installed && (
+              <div className="auth-success">
+                <div className="icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#635bff" strokeWidth="2">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </div>
+                <h2>GitHub App installed</h2>
+                <p>
+                  Your selected repositories were shared with your agency. They can
+                  now scan those repositories for breaking API changes.
+                </p>
+                <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 16 }}>
+                  You can review or revoke this access at any time from your GitHub
+                  settings under Installed GitHub Apps.
+                </p>
+                <Link href="/" style={{ color: "#635bff", textDecoration: "none", fontWeight: 600 }}>
+                  ← Back to Breaklytix
+                </Link>
+              </div>
+            )}
+
+            {!installed && loading && (
               <div className="auth-loading">
                 <div className="spinner-sm" style={{ width: 24, height: 24, borderWidth: 3, marginBottom: 16 }} />
                 <p>Validating authorization link...</p>

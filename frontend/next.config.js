@@ -5,6 +5,19 @@
 // CSP there stays exactly as before.
 const localApiSrc = process.env.ALLOW_LOCAL_API === "1" ? " http://localhost:8000" : "";
 
+// Keep connect-src aligned with the API origin the client actually calls. The
+// old hardcoded Vercel host silently broke every API request as soon as
+// NEXT_PUBLIC_API_BASE_URL pointed at the canonical backend.
+const configuredApiBase =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend-virid-ten-43.vercel.app";
+let apiOrigin = "https://backend-virid-ten-43.vercel.app";
+try {
+  apiOrigin = new URL(configuredApiBase).origin;
+} catch {
+  // Keep the production fallback for an invalid build-time value.
+}
+const apiSrc = ` ${apiOrigin}`;
+
 // `next dev` ships Next's React Refresh runtime, which evaluates strings as
 // code. The production bundle never includes that runtime, so 'unsafe-eval' is
 // ONLY ever added to the local dev server's CSP. Without it the strict CSP
@@ -62,7 +75,7 @@ const nextConfig = {
               // this resolves ZAP's "CSP: Wildcard Directive" (Medium).
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' https://backend-virid-ten-43.vercel.app https://api.github.com https://github.com" + localApiSrc,
+              "connect-src 'self'" + apiSrc + " https://api.github.com https://github.com" + localApiSrc,
               "frame-src 'self'",
               "base-uri 'self'",
               "form-action 'self'",

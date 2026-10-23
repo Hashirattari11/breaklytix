@@ -5,8 +5,11 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from urllib.parse import quote
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
 
 from ..deps import get_current_user_id
@@ -96,6 +99,76 @@ def _hash_token(token: str) -> str:
 def _generate_invite_token() -> str:
     """Generate a cryptographically secure random token."""
     return secrets.token_urlsafe(32)
+
+
+def _invite_expired(raw: str | None) -> bool:
+    """Return True when a stored invite expiry is missing, malformed, or past."""
+    if not raw:
+        return True
+    try:
+        expires_at = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return True
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) >= expires_at
+
+
+def _sign_install_state(
+    *,
+    client_id: str,
+    agency_owner_id: str | None = None,
+    invite_hash: str | None = None,
+    invite_token: str | None = None,
+) -> str:
+    """Sign a short-lived GitHub App install state.
+
+    GitHub echoes the state back verbatim, so it must be unguessable and
+    tamper-proof. A raw client_id (the previous implementation) let anyone bind
+    an arbitrary installation to a pending client.
+    """
+    if not settings.jwt_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Agency installation signing is not configured on the server.",
+        )
+    now = int(datetime.now(timezone.utc).timestamp())
+    payload = {
+        "scope": "agency_install",
+        "client_id": client_id,
+        "agency_owner_id": agency_owner_id or "",
+        "invite_hash": invite_hash or "",
+        "invite_token": invite_token or "",
+        "iat": now,
+        "exp": now + 30 * 60,
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
+def _verify_install_state(state: str) -> dict:
+    """Validate a signed install state and return its payload."""
+    if not settings.jwt_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Agency installation signing is not configured on the server.",
+        )
+    try:
+        payload = jwt.decode(state, settings.jwt_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired installation state")
+    if payload.get("scope") != "agency_install" or not payload.get("client_id"):
+        raise HTTPException(status_code=400, detail="Invalid installation state")
+    return payload
+
+
+def _install_url(state: str) -> str:
+    try:
+        return build_install_url(state)
+    except ValueError:
+        raise HTTPException(
+            status_code=503,
+            detail="GitHub App integration is not configured on the server.",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -409,11 +482,24 @@ def revoke_client(client_id: str, user_id: str = Depends(get_current_user_id)):
     if not result.data:
         raise HTTPException(status_code=404, detail="Client not found")
 
-    # Update status to revoked (don't delete — preserve history)
+    # Update status to revoked (don't delete — preserve history), invalidate any
+    # outstanding invite, and remove repo token snapshots so revoked access
+    # cannot keep scanning through a stale token.
     (
         db().table("agency_clients")
-        .update({"status": "revoked"})
+        .update({
+            "status": "revoked",
+            "invite_token_hash": None,
+            "invite_token_expires_at": None,
+        })
         .eq("id", client_id)
+        .eq("agency_owner_id", user_id)
+        .execute()
+    )
+    (
+        db().table("repos")
+        .update({"access_token": ""})
+        .eq("agency_client_id", client_id)
         .execute()
     )
 
@@ -430,7 +516,7 @@ def validate_auth_token(token: str):
 
     result = (
         db().table("agency_clients")
-        .select("id, client_email, client_display_name, status, invite_token_expires_at")
+        .select("id, agency_owner_id, client_email, client_display_name, status, invite_token_expires_at")
         .eq("invite_token_hash", token_hash)
         .limit(1)
         .execute()
@@ -464,9 +550,8 @@ def validate_auth_token(token: str):
             message="This access has been revoked. Please contact your agency.",
         )
 
-    # Check expiry
-    expires_at = datetime.fromisoformat(client["invite_token_expires_at"].replace("Z", "+00:00"))
-    if datetime.now(timezone.utc) > expires_at:
+    # Check expiry (missing/malformed values fail closed, never 500)
+    if _invite_expired(client.get("invite_token_expires_at")):
         return AuthorizeTokenOut(
             valid=False,
             agency_name="",
@@ -525,9 +610,9 @@ def get_install_url(client_id: str = Query(...), user_id: str = Depends(get_curr
     if result.data[0]["status"] != "pending":
         raise HTTPException(status_code=400, detail="Client is not in pending status")
 
-    # Use the client_id as the state — the callback will use it to find the client
-    state = client_id
-    url = build_install_url(state)
+    # Signed, short-lived state — a raw client_id is guessable/tamperable.
+    state = _sign_install_state(client_id=client_id, agency_owner_id=user_id)
+    url = _install_url(state)
     return InstallUrlOut(url=url, state=state)
 
 
@@ -535,26 +620,35 @@ def get_install_url(client_id: str = Query(...), user_id: str = Depends(get_curr
 # GET /agency/public-install-url — Generate install URL (NO auth, for clients)
 # ---------------------------------------------------------------------------
 @router.get("/public-install-url", response_model=InstallUrlOut)
-def get_public_install_url(client_id: str = Query(...)):
+def get_public_install_url(token: str = Query(..., min_length=16, max_length=512)):
     """Public endpoint for the authorize page to generate a GitHub App install URL.
 
     No auth required — the client clicking the email link is not authenticated.
-    We verify the client exists and is still pending.
+    Authorization is the unguessable invite token, and the returned `state` is a
+    signed JWT bound to that invite (never a raw client_id).
     """
+    token_hash = _hash_token(token)
     result = (
         db().table("agency_clients")
-        .select("id, status")
-        .eq("id", client_id)
+        .select("id, status, invite_token_expires_at")
+        .eq("invite_token_hash", token_hash)
         .limit(1)
         .execute()
     )
     if not result.data:
-        raise HTTPException(status_code=404, detail="Client not found")
-    if result.data[0]["status"] != "pending":
+        raise HTTPException(status_code=404, detail="Invalid authorization link")
+    client = result.data[0]
+    if client["status"] != "pending":
         raise HTTPException(status_code=400, detail="Client is not in pending status")
+    if _invite_expired(client.get("invite_token_expires_at")):
+        raise HTTPException(status_code=400, detail="This authorization link has expired")
 
-    state = client_id
-    url = build_install_url(state)
+    state = _sign_install_state(
+        client_id=client["id"],
+        invite_hash=token_hash,
+        invite_token=token,
+    )
+    url = _install_url(state)
     return InstallUrlOut(url=url, state=state)
 
 
@@ -563,20 +657,22 @@ def get_public_install_url(client_id: str = Query(...)):
 # ---------------------------------------------------------------------------
 @router.get("/github-install-callback")
 def github_install_callback(
-    installation_id: str = Query(...),
-    state: str = Query(...),
+    installation_id: str = Query(..., pattern=r"^\d{1,30}$"),
+    state: str = Query(..., min_length=16, max_length=4096),
 ):
     """Handle the GitHub App installation callback.
 
     GitHub redirects here after the client picks repos in the install UI.
-    The state parameter is the agency_client_id.
+    `state` is our signed JWT, bound to either the agency owner or the client's
+    invite hash; it is never trusted as a raw client id.
     """
-    client_id = state
+    payload = _verify_install_state(state)
+    client_id = payload["client_id"]
 
     # Find the client
     result = (
         db().table("agency_clients")
-        .select("id, agency_owner_id, status")
+        .select("id, agency_owner_id, status, invite_token_hash, invite_token_expires_at")
         .eq("id", client_id)
         .limit(1)
         .execute()
@@ -585,68 +681,93 @@ def github_install_callback(
         raise HTTPException(status_code=404, detail="Invalid installation callback")
 
     client = result.data[0]
+
+    # Bind the signed state to this client and, for public invites, to the
+    # exact invite token that was emailed.
+    signed_owner = payload.get("agency_owner_id") or ""
+    signed_invite_hash = payload.get("invite_hash") or ""
+    if signed_owner:
+        if signed_owner != client.get("agency_owner_id"):
+            raise HTTPException(status_code=403, detail="Installation state does not match this client")
+    elif signed_invite_hash:
+        if not secrets.compare_digest(signed_invite_hash, client.get("invite_token_hash") or ""):
+            raise HTTPException(status_code=400, detail="This invite is no longer valid")
+        if _invite_expired(client.get("invite_token_expires_at")):
+            raise HTTPException(status_code=400, detail="This invite has expired")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid installation state")
+
     if client["status"] != "pending":
         raise HTTPException(status_code=400, detail="This invite has already been used or revoked")
 
-    # Store the installation_id and mark as authorized
-    from datetime import datetime as dt
+    # Store the installation_id and mark as authorized. The status filter keeps
+    # a concurrent second callback from rewriting an already-authorized row.
+    now = datetime.now(timezone.utc).isoformat()
     (
         db().table("agency_clients")
         .update({
             "github_installation_id": installation_id,
             "status": "authorized",
-            "authorized_at": dt.now(timezone.utc).isoformat(),
+            "authorized_at": now,
             "invite_token_hash": None,  # Invalidate token
+            "invite_token_expires_at": None,
         })
         .eq("id", client_id)
+        .eq("status", "pending")
         .execute()
     )
 
     # List repos the client granted via the GitHub App installation
     repos_list = list_installation_repos(installation_id)
     connected_count = 0
+    owner_token_result = (
+        db().table("users")
+        .select("github_access_token")
+        .eq("id", client["agency_owner_id"])
+        .limit(1)
+        .execute()
+    )
+    owner_access_token = (
+        owner_token_result.data[0].get("github_access_token") or ""
+        if owner_token_result.data
+        else ""
+    )
     for repo_data in repos_list:
         try:
+            full_name = repo_data["full_name"]
             existing = (
                 db().table("repos")
                 .select("id")
-                .eq("full_name", repo_data["full_name"])
+                .eq("full_name", full_name)
                 .eq("agency_client_id", client_id)
                 .limit(1)
                 .execute()
             )
             if not existing.data:
-                # Use the agency owner's GitHub access token for repo access
-                # (the agency owner's token is used for scanning; the client's
-                # repos are accessed via the GitHub App installation token)
-                owner_token = (
-                    db().table("users")
-                    .select("github_access_token")
-                    .eq("id", client["agency_owner_id"])
-                    .limit(1)
-                    .execute()
-                )
-                access_token = owner_token.data[0]["github_access_token"] if owner_token.data else ""
-
                 db().table("repos").insert({
                     "user_id": client["agency_owner_id"],
                     "agency_client_id": client_id,
                     "github_repo_id": str(repo_data["id"]),
-                    "full_name": repo_data["full_name"],
+                    "full_name": full_name,
                     "default_branch": repo_data.get("default_branch", "main"),
-                    "access_token": access_token,  # encrypted owner token
+                    # Kept as a compatibility fallback; scanner prefers a fresh
+                    # installation token from github_installation_id.
+                    "access_token": owner_access_token,
                 }).execute()
                 connected_count += 1
         except Exception:
             pass  # Skip repos that fail
 
-    # Redirect to the agency dashboard with success
+    # Redirect (not JSON) so the email link finishes in the browser.
     base_url = settings.frontend_base_url.rstrip("/")
-    return {
-        "status": "authorized",
-        "repos_connected": connected_count,
-        "redirect": f"{base_url}/dashboard/agency?installed=1",
-    }
+    invite_token = payload.get("invite_token") or ""
+    if invite_token:
+        destination = (
+            f"{base_url}/authorize/{quote(invite_token, safe='')}?installed=1"
+        )
+    else:
+        destination = f"{base_url}/dashboard/agency?installed=1&repos={connected_count}"
+    return RedirectResponse(destination, status_code=303)
 
 
 # ---------------------------------------------------------------------------
@@ -680,23 +801,23 @@ def complete_authorization(token: str, body: CompleteAuthIn):
     if client["status"] != "pending":
         raise HTTPException(status_code=400, detail="This authorization link has already been used or revoked")
 
-    # Check expiry
-    expires_at = datetime.fromisoformat(client["invite_token_expires_at"].replace("Z", "+00:00"))
-    if datetime.now(timezone.utc) > expires_at:
+    # Check expiry (missing/malformed values fail closed, never 500)
+    if _invite_expired(client.get("invite_token_expires_at")):
         raise HTTPException(status_code=400, detail="This authorization link has expired")
 
     # Update client: store GitHub token (ENCRYPTED at rest), set status to authorized
-    from datetime import datetime as dt
     enc_token = get_cipher().encrypt(body.github_token)
     (
         db().table("agency_clients")
         .update({
             "github_access_token": enc_token,
             "status": "authorized",
-            "authorized_at": dt.now(timezone.utc).isoformat(),
+            "authorized_at": datetime.now(timezone.utc).isoformat(),
             "invite_token_hash": None,  # Invalidate token
+            "invite_token_expires_at": None,
         })
         .eq("id", client["id"])
+        .eq("status", "pending")
         .execute()
     )
 

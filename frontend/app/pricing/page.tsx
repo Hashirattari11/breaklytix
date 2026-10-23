@@ -7,7 +7,7 @@ import { jsonLdHtml } from "../../lib/jsonld";
 export const metadata: Metadata = {
   title: "API Monitoring Pricing & Plans",
   description:
-    "Transparent API monitoring pricing: Starter $500/mo for 10 APIs, Growth $2,000/mo for 50, Enterprise $10,000/mo. Every plan includes a 14-day free trial.",
+    "Transparent API monitoring pricing: Starter $500/mo for 10 APIs, Growth $2,000/mo for 50, Enterprise $10,000/mo. Every plan includes a 10-day free trial.",
   alternates: { canonical: SITE_URL + "/pricing" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/pricing"),

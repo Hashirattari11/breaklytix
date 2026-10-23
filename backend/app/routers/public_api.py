@@ -1,7 +1,13 @@
-"""Public API v1 — Bearer afx_live_... auth, rate-limited, read-only."""
+"""Public API v1 — Bearer afx_live_... auth, rate-limited.
+
+Read endpoints expose account data; the two repository endpoints let the CLI
+list connected repositories and trigger the same ownership-checked scan the
+dashboard uses.
+"""
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 import time
 from datetime import datetime, timezone
@@ -12,8 +18,10 @@ from pydantic import BaseModel
 
 from ..deps import get_current_user_id
 from ..db import db
+from ..schemas import ScanResultOut
 
 router = APIRouter(prefix="/api/public/v1", tags=["public-api"])
+logger = logging.getLogger("autofix.public_api")
 
 # ---------------------------------------------------------------------------
 # Rate limiting (in-memory per-user counters)
@@ -73,14 +81,26 @@ def _check_rate_limit(user_id: str, limit: int) -> None:
 # ---------------------------------------------------------------------------
 # Auth helper — Bearer afx_live_... → user_id
 # ---------------------------------------------------------------------------
-def _authenticate_bearer(authorization: str = Header(...)) -> str:
-    """Validate Bearer token and return user_id."""
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
+def _authenticate_bearer(authorization: str | None = Header(default=None)) -> str:
+    """Validate Bearer token and return user_id.
 
-    token = authorization[7:]  # strip "Bearer "
+    Missing credentials are an authentication failure (401), not a request
+    validation failure (422). The `WWW-Authenticate` header makes that explicit.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = authorization[7:].strip()  # strip "Bearer "
     if not token.startswith("afx_live_"):
-        raise HTTPException(status_code=401, detail="Invalid API key format")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key format",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     key_hash = hashlib.sha256(token.encode()).hexdigest()
 
@@ -94,14 +114,28 @@ def _authenticate_bearer(authorization: str = Header(...)) -> str:
     )
 
     if not result.data:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     key_row = result.data[0]
     if key_row.get("revoked"):
-        raise HTTPException(status_code=401, detail="API key has been revoked")
+        raise HTTPException(
+            status_code=401,
+            detail="API key has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    # Update last_used_at
-    db().table("api_keys").update({"last_used_at": datetime.now(timezone.utc).isoformat()}).eq("id", key_row["id"]).execute()
+    # Best-effort telemetry: a transient write failure must not reject an
+    # otherwise valid API key.
+    try:
+        db().table("api_keys").update(
+            {"last_used_at": datetime.now(timezone.utc).isoformat()}
+        ).eq("id", key_row["id"]).execute()
+    except Exception:
+        logger.warning("Failed to update last_used_at for API key %s", key_row.get("id"), exc_info=True)
 
     return key_row["user_id"]
 
@@ -152,6 +186,13 @@ class ApiKeyCreateResponse(BaseModel):
     id: str
     key: str
     key_prefix: str
+
+
+class PublicRepoOut(BaseModel):
+    id: str
+    full_name: str
+    default_branch: Optional[str] = None
+    connected_at: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -293,6 +334,42 @@ def list_fixes(
         page=page,
         per_page=per_page,
     )
+
+
+# ---------------------------------------------------------------------------
+# Connected repositories (CLI + integrations)
+# ---------------------------------------------------------------------------
+@router.get("/repos", response_model=list[PublicRepoOut])
+def list_connected_repos(user_id: str = Depends(_authenticate_bearer)):
+    _check_rate_limit(user_id, _get_rate_limit(user_id))
+
+    result = (
+        db()
+        .table("repos")
+        .select("id, full_name, default_branch, connected_at")
+        .eq("user_id", user_id)
+        .order("connected_at", desc=True)
+        .execute()
+    )
+    return [
+        PublicRepoOut(
+            id=row["id"],
+            full_name=row["full_name"],
+            default_branch=row.get("default_branch"),
+            connected_at=row.get("connected_at"),
+        )
+        for row in (result.data or [])
+    ]
+
+
+@router.post("/repos/{repo_id}/scan", response_model=ScanResultOut)
+def scan_connected_repo(repo_id: str, user_id: str = Depends(_authenticate_bearer)):
+    _check_rate_limit(user_id, _get_rate_limit(user_id))
+    from .repos import scan_repo as private_scan
+
+    # `scan_repo` enforces ownership and plan limits itself; we only
+    # authenticate the API key and apply the public API rate limit here.
+    return private_scan(repo_id=repo_id, user_id=user_id)
 
 
 # ---------------------------------------------------------------------------

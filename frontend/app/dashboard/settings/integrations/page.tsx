@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Nav, Spinner } from "../../../../components/ui";
 
@@ -21,7 +21,6 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 function IntegrationsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [conn, setConn] = useState<SlackConn | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,30 +30,49 @@ function IntegrationsContent() {
   const connectedFlag = searchParams.get("connected");
   const oauthError = searchParams.get("error");
 
-  useEffect(() => {
-    load();
+  const authToken = useCallback((): string | null => {
+    const token = localStorage.getItem("autofix_token");
+    if (!token) {
+      setError("Your session has expired. Please sign in again.");
+      return null;
+    }
+    return token;
   }, []);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
+      const token = authToken();
+      if (!token) return;
       const res = await fetch(`${API_BASE}/slack/connection`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("autofix_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setConn(await res.json());
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || `Could not load Slack status (HTTP ${res.status}).`);
+        return;
+      }
+      setConn(await res.json());
     } catch {
-      // ignore
+      setError("Could not reach the server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [authToken]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function connect() {
     setBusy("connect");
     setError(null);
     try {
+      const token = authToken();
+      if (!token) return;
       const res = await fetch(`${API_BASE}/slack/install`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("autofix_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (res.ok && data.install_url) {
@@ -73,9 +91,11 @@ function IntegrationsContent() {
     setBusy("disconnect");
     setError(null);
     try {
+      const token = authToken();
+      if (!token) return;
       const res = await fetch(`${API_BASE}/slack/connection`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("autofix_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         setConn({ connected: false });

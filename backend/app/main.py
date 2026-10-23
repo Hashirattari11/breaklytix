@@ -110,9 +110,16 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    """Ensure CORS headers are present even on HTTP error responses (e.g. 502)."""
+    """Ensure CORS headers are present even on HTTP error responses (e.g. 502).
+
+    Preserve exception headers too: the default handler forwards things like
+    ``WWW-Authenticate`` and ``Retry-After``, and dropping them here broke the
+    public API's Bearer challenge.
+    """
     origin = request.headers.get("origin", "")
-    headers = {"Access-Control-Allow-Methods": "*", "Access-Control-Allow-Headers": "*"}
+    headers = dict(exc.headers or {})
+    headers["Access-Control-Allow-Methods"] = "*"
+    headers["Access-Control-Allow-Headers"] = "*"
     if _origin_allowed(origin):
         headers["Access-Control-Allow-Origin"] = origin
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=headers)

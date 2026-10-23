@@ -73,8 +73,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <aside
         id="admin-sidebar"
         className={`sidebar p-sidebar${sidebarOpen ? " open" : ""}`}
-        role="navigation"
-        aria-label="Admin navigation"
+        aria-label="Admin sidebar"
       >
         <div className="sidebar-header">
           <Link href="/admin" className="brand">

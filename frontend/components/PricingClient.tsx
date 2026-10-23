@@ -124,7 +124,7 @@ export default function PricingPage() {
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <h1 style={{ marginBottom: 12, fontSize: 40 }}>Simple, transparent pricing</h1>
           <p className="muted" style={{ fontSize: 18, maxWidth: 600, margin: "0 auto" }}>
-            Choose the plan that fits your team. All plans include a 14-day free trial.
+            Choose the plan that fits your team. All plans include a 10-day free trial.
             No credit card required to start.
           </p>
         </div>

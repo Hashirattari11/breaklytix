@@ -1,9 +1,11 @@
-# AutoFix Cron Jobs
+# Breaklytix Scheduled Jobs
 
-All cron jobs are declared in `backend/vercel.json` and hit internal
-endpoints that require the `CRON_SECRET` header (`x-internal-secret`).
+**No scheduler is configured in this repository.** `backend/vercel.json`
+contains only the Python function build and catch-all route; it has no `crons`
+block. These endpoints work when called by an external scheduler, but nothing
+runs automatically until an operator configures one.
 
-## Schedule (UTC)
+## Recommended schedule (UTC)
 
 | Job | Endpoint | Schedule | What it does |
 |-----|----------|----------|--------------|
@@ -16,8 +18,14 @@ endpoints that require the `CRON_SECRET` header (`x-internal-secret`).
 - Every endpoint is guarded by `require_internal_secret` in
   `backend/app/deps.py`. Requests without the correct
   `x-internal-secret` header get 401/403.
-- Vercel Cron automatically sends the header; set the env var
-  `CRON_SECRET` (server-side, never exposed to the browser).
+- Set `CRON_SECRET` as a server-side environment variable (never expose it to
+  the browser), then have the external scheduler send it as
+  `x-internal-secret`.
+- If you later add a Vercel `crons` block, Vercel sends a Bearer
+  `CRON_SECRET` header rather than `x-internal-secret`; verify the dependency
+  accepts the header your scheduler actually sends before relying on it.
+- The scheduler must issue `POST` requests. Unauthenticated browser requests
+  must be rejected.
 
 ## Observability
 

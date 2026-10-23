@@ -152,12 +152,18 @@ class Settings(BaseSettings):
     # ---- CORS --------------------------------------------------------------
     # Comma-separated list of allowed frontend origins.
     frontend_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3001,https://frontend-eight-phi-60.vercel.app,https://frontend-*.vercel.app", alias="FRONTEND_ORIGINS"
+        default=(
+            "http://localhost:3000,http://localhost:3001,"
+            "https://breaklytix.site,https://www.breaklytix.site,"
+            "https://frontend-eight-phi-60.vercel.app,"
+            "https://frontend-*.vercel.app"
+        ),
+        alias="FRONTEND_ORIGINS",
     )
     # Base URL of the frontend app. Used for links in emails (invites, welcome,
-    # alerts). Set to the production frontend URL on Vercel.
+    # alerts) and OAuth redirects. Production is the canonical public domain.
     frontend_base_url: str = Field(
-        default="https://frontend-eight-phi-60.vercel.app", alias="FRONTEND_BASE_URL"
+        default="https://breaklytix.site", alias="FRONTEND_BASE_URL"
     )
 
     # ---- Scan limits (keep us well within free-tier + rate limits) --------

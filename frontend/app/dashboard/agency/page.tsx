@@ -2,8 +2,8 @@
 
 export const dynamic = "force-dynamic";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { Spinner } from "@/components/ui";
@@ -37,9 +37,9 @@ function AgencyPage() {
 }
 
 function AgencyPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const repositoryId = searchParams.get("repository_id") ?? "";
+  const installedFlag = searchParams.get("installed");
   const [status, setStatus] = useState<AgencyStatus | null>(null);
   const [clients, setClients] = useState<AgencyClient[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,27 +52,52 @@ function AgencyPageContent() {
   const [testBusy, setTestBusy] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; status: string; detail?: string; sender_warning?: string; sandbox?: boolean } | null>(null);
 
-  useEffect(() => {
-    // Show success message if redirected from GitHub App installation
-    if (searchParams.get("installed") === "1") {
-      setSuccess("GitHub App installed successfully! Repos are being synced.");
-    }
-    load();
-  }, [router, searchParams, repositoryId]);
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem("autofix_token");
+      if (!token) {
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
       const repoQuery = repositoryId ? `?repository_id=${encodeURIComponent(repositoryId)}` : "";
+      const auth = { Authorization: `Bearer ${token}` };
       const [statusRes, clientsRes] = await Promise.all([
-        fetch(`${API_BASE}/agency/status${repoQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/agency/clients${repoQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/agency/status${repoQuery}`, { headers: auth }),
+        fetch(`${API_BASE}/agency/clients${repoQuery}`, { headers: auth }),
       ]);
-      if (statusRes.ok) setStatus(await statusRes.json());
-      if (clientsRes.ok) setClients(await clientsRes.json());
-    } catch {} finally { setLoading(false); }
-  }
+      if (statusRes.status === 401 || clientsRes.status === 401) {
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
+      if (!statusRes.ok || !clientsRes.ok) {
+        const failed = !statusRes.ok ? statusRes : clientsRes;
+        const data = await failed.json().catch(() => ({}));
+        setError(
+          data.detail ||
+            (failed.status === 403
+              ? "Agency access is required for this account."
+              : `Could not load agency data (HTTP ${failed.status}).`)
+        );
+        return;
+      }
+      setStatus(await statusRes.json());
+      setClients(await clientsRes.json());
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [repositoryId]);
+
+  useEffect(() => {
+    // Show success message if redirected from GitHub App installation.
+    if (installedFlag === "1") {
+      setSuccess("GitHub App installed successfully! Repos are being synced.");
+    }
+    void load();
+  }, [installedFlag, load]);
 
   async function inviteClient() {
     if (!inviteName.trim() || !inviteEmail.trim()) return;
@@ -153,6 +178,16 @@ function AgencyPageContent() {
   if (loading) return (
     <div style={{ padding: "0 24px 64px", maxWidth: 1200, margin: "0 auto" }}>
       <div style={{ textAlign: "center", padding: 80 }}><Spinner /> <span style={{ marginLeft: 8, color: "var(--muted)" }}>Loading agency dashboard...</span></div>
+    </div>
+  );
+
+  if (error && !status) return (
+    <div style={{ padding: "0 24px 64px", maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "40px", textAlign: "center" }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>Could not load Agency Mode</h2>
+        <p style={{ color: "var(--muted)", marginBottom: 24 }}>{error}</p>
+        <button className="btn btn-primary" style={{ borderRadius: 10 }} onClick={() => load()}>Try again</button>
+      </div>
     </div>
   );
 

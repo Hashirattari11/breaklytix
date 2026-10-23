@@ -35,6 +35,6 @@ export const LANDING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes. Every plan starts with a 14-day free trial and no credit card is required, so you can see detected APIs and sample alerts against your own repositories before you pay.",
+    a: "Yes. Every plan starts with a 10-day free trial and no credit card is required, so you can see detected APIs and sample alerts against your own repositories before you pay.",
   },
 ];

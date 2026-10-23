@@ -50,15 +50,18 @@ export default function AuthCallbackClient() {
       return;
     }
 
-    // One-time CSRF check against the state pinned in session storage.
-    const expected =
-      typeof window !== "undefined" ? sessionStorage.getItem("autofix_oauth_state") : null;
+    // One-time CSRF check against the state pinned in session storage. Fail
+    // closed when state is missing or storage is unavailable: an absent state
+    // must never be treated as a valid match.
+    let expected: string | null = null;
     try {
+      expected = sessionStorage.getItem("autofix_oauth_state");
       sessionStorage.removeItem("autofix_oauth_state");
     } catch {
-      /* ignore */
+      setError("Sign-in requires browser session storage. Enable it and try again.");
+      return;
     }
-    if (expected && state !== expected) {
+    if (!expected || !state || state !== expected) {
       setError("Sign-in state mismatch — the request may have been tampered with. Please try again.");
       return;
     }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 import { Spinner } from "@/components/ui";
+import { getUser } from "@/lib/auth";
 import { htmlToReadableText } from "@/lib/sanitize";
 import {
   getProviderEvent,
@@ -53,6 +54,11 @@ export default function ChangelogEventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    setIsAdmin(Boolean(getUser()?.is_admin));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -213,22 +219,29 @@ export default function ChangelogEventDetailPage() {
 
       {actionError && <div className="error-box" style={{ marginBottom: 16 }}>{actionError}</div>}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <button
-          className="btn btn-primary"
-          disabled={acting || event.review_state === "reviewed"}
-          onClick={() => mark("review")}
-        >
-          {event.review_state === "reviewed" ? "Reviewed" : "Mark as Reviewed"}
-        </button>
-        <button
-          className="btn btn-secondary"
-          disabled={acting || event.review_state === "dismissed"}
-          onClick={() => mark("dismiss")}
-        >
-          {event.review_state === "dismissed" ? "Dismissed" : "Dismiss"}
-        </button>
-      </div>
+      {isAdmin ? (
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button
+            className="btn btn-primary"
+            disabled={acting || event.review_state === "reviewed"}
+            onClick={() => mark("review")}
+          >
+            {event.review_state === "reviewed" ? "Reviewed" : "Mark as Reviewed"}
+          </button>
+          <button
+            className="btn btn-secondary"
+            disabled={acting || event.review_state === "dismissed"}
+            onClick={() => mark("dismiss")}
+          >
+            {event.review_state === "dismissed" ? "Dismissed" : "Dismiss"}
+          </button>
+        </div>
+      ) : (
+        <p className="muted small" style={{ marginTop: 8 }}>
+          Review state is shared across all customers and can only be changed by
+          a Breaklytix administrator.
+        </p>
+      )}
     </div>
   );
 }

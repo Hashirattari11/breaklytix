@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import time
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 import jwt
@@ -90,6 +91,15 @@ def list_installation_repos(installation_id: str) -> list[dict]:
 
 
 def build_install_url(state: str) -> str:
-    """Build the GitHub App installation URL for the client to pick repos."""
-    slug = settings.github_app_slug
-    return f"https://github.com/apps/{slug}/installations/new?state={state}"
+    """Build the GitHub App installation URL for the client to pick repos.
+
+    Both the App slug and OAuth state are URL-encoded so a missing/odd slug or
+    a state containing reserved characters can never change the redirect target.
+    """
+    slug = (settings.github_app_slug or "").strip()
+    if not slug:
+        raise ValueError("GitHub App is not configured (GITHUB_APP_SLUG is empty)")
+    return (
+        f"https://github.com/apps/{quote(slug, safe='')}/installations/new"
+        f"?state={quote(state, safe='')}"
+    )

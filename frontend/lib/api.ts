@@ -171,11 +171,13 @@ export class ApiError extends Error {
 export async function request<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   await ensureSession();
   const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string> | undefined),
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const headers = new Headers(options.headers);
+  // Only declare a JSON body when one exists; GET/DELETE with a JSON
+  // Content-Type triggered unnecessary CORS preflights.
+  if (options.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
@@ -435,10 +437,16 @@ export const getFixes = (repoId: string, status?: string) => {
 };
 
 export const approveFix = (repoId: string, fixId: string) =>
-  request<FixActionResponse>(`/repos/${repoId}/fixes/${fixId}/approve`, { method: "POST" });
+  request<FixActionResponse>(`/repos/${repoId}/fixes/${fixId}/approve`, {
+    method: "POST",
+    body: "{}",
+  });
 
 export const dismissFix = (repoId: string, fixId: string) =>
-  request<FixActionResponse>(`/repos/${repoId}/fixes/${fixId}/dismiss`, { method: "POST" });
+  request<FixActionResponse>(`/repos/${repoId}/fixes/${fixId}/dismiss`, {
+    method: "POST",
+    body: "{}",
+  });
 
 // ---- Health Intelligence (real data, capability-gated) ----------------------
 export type UsageGraphIntegration = {

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from pydantic import BaseModel
@@ -27,6 +28,46 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 logger = logging.getLogger("billing")
 
 
+def _frontend_base() -> str:
+    from ..config import settings
+    base = (settings.frontend_base_url or "").rstrip("/")
+    if not base:
+        raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not configured")
+    return base
+
+
+def _validated_return_url(candidate: str, *, field: str) -> str:
+    """Only allow Stripe redirects back to a configured frontend origin.
+
+    An authenticated user could otherwise pass an arbitrary success_url and
+    turn Checkout into an open redirect (and receive the session id there).
+    """
+    from ..config import settings
+    try:
+        parsed = urlsplit(candidate)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"{field} is not a valid URL")
+    if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username or parsed.password:
+        raise HTTPException(status_code=400, detail=f"{field} must be an http(s) frontend URL")
+
+    origin = f"{parsed.scheme}://{parsed.netloc}".lower()
+    allowed: set[str] = set()
+    if settings.frontend_base_url:
+        base = urlsplit(settings.frontend_base_url)
+        if base.scheme and base.netloc:
+            allowed.add(f"{base.scheme}://{base.netloc}".lower())
+    for configured in settings.cors_origins:
+        configured = configured.strip().rstrip("/")
+        if configured and "*" not in configured:
+            allowed.add(configured.lower())
+    if origin not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field} must point to the Breaklytix frontend",
+        )
+    return candidate
+
+
 # ---------------------------------------------------------------------------
 # Checkout Session
 # ---------------------------------------------------------------------------
@@ -41,12 +82,15 @@ def create_checkout(body: CheckoutSessionIn, user_id: str = Depends(get_current_
     if not user.data:
         raise HTTPException(status_code=404, detail="User not found")
 
+    success_url = _validated_return_url(body.success_url, field="success_url")
+    cancel_url = _validated_return_url(body.cancel_url, field="cancel_url")
+
     try:
         session_id, url = create_checkout_session(
             user_id=user_id,
             plan=body.plan,
-            success_url=body.success_url,
-            cancel_url=body.cancel_url,
+            success_url=success_url,
+            cancel_url=cancel_url,
             customer_email=user.data[0]["email"],
         )
     except ValueError as exc:
@@ -64,9 +108,8 @@ def create_checkout(body: CheckoutSessionIn, user_id: str = Depends(get_current_
 @router.get("/portal", response_model=BillingPortalOut)
 def billing_portal(user_id: str = Depends(get_current_user_id)) -> BillingPortalOut:
     """Generate a Stripe Billing Portal session for the current user."""
-    # Get frontend URL for return_url
-    from ..config import settings
-    return_url = settings.frontend_origins.split(",")[0].strip() + "/dashboard/billing"
+    # Canonical frontend base (not the first CORS origin, which may be localhost).
+    return_url = f"{_frontend_base()}/dashboard/billing"
 
     try:
         url = create_billing_portal_session(user_id, return_url)

@@ -104,7 +104,7 @@ export default function BillingPage() {
   {(status?.plan || "trial").charAt(0).toUpperCase() + (status?.plan || "trial").slice(1)}
 </div>
               <div className="muted small" style={{ marginTop: 4 }}>
-                {isTrial ? "14-day free trial" : isActive ? "Subscription active" : "No active subscription"}
+                {isTrial ? "10-day free trial" : isActive ? "Subscription active" : "No active subscription"}
               </div>
             </div>
             <div>

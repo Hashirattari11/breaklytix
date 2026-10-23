@@ -12,6 +12,7 @@ from __future__ import annotations
 import stripe
 import uuid
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import urlsplit, urlunsplit
 
 from .config import settings
 from .db import db
@@ -97,12 +98,18 @@ def create_checkout_session(
         customer_id = customer.id
         db().table("users").update({"stripe_customer_id": customer_id}).eq("id", user_id).execute()
 
+    # Append the Stripe placeholder without corrupting an existing query
+    # string (the old `+ "?session_id=..."` produced two `?` characters).
+    parts = urlsplit(success_url)
+    query = parts.query + ("&" if parts.query else "") + "session_id={CHECKOUT_SESSION_ID}"
+    checkout_success_url = urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+
     # Create checkout session
     session = stripe.checkout.Session.create(
         customer=customer_id,
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
-        success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
+        success_url=checkout_success_url,
         cancel_url=cancel_url,
         metadata={
             "autofix_user_id": user_id,
@@ -159,15 +166,25 @@ def process_stripe_webhook(payload: bytes, sig_header: str) -> dict:
     if existing.data:
         return {"status": "already_processed", "event_id": event.id}
 
-    # Store event for idempotency
+    # Claim the event for idempotency. If the handler fails, remove the claim
+    # so Stripe's retry is processed again; the old flow committed the claim
+    # before handling and silently turned every retry into "already_processed".
     db().table("stripe_webhook_events").insert({
         "stripe_event_id": event.id,
         "event_type": event.type,
         "payload": event.to_dict(),
     }).execute()
 
-    # Route to handler
-    result = _handle_stripe_event(event)
+    try:
+        result = _handle_stripe_event(event)
+    except Exception:
+        try:
+            db().table("stripe_webhook_events").delete().eq(
+                "stripe_event_id", event.id
+            ).execute()
+        except Exception:
+            pass
+        raise
 
     return {"status": "processed", "event_id": event.id, "result": result}
 

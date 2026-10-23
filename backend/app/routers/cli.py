@@ -12,12 +12,15 @@ from pydantic import BaseModel
 
 from ..deps import get_current_user_id
 from ..config import settings
+from ..redact import redact_snippet
 
 router = APIRouter(prefix="/cli", tags=["cli"])
 
 # Max bytes a scanned file may occupy before it is skipped (avoids reading
 # arbitrarily large/hostile files).
 MAX_SCAN_FILE_BYTES = 256 * 1024
+MAX_SCAN_FILES = 5000
+MAX_SCAN_DEPTH = 25
 
 # ─── API Detection Patterns ──────────────────────────────────────────────────
 API_PATTERNS: dict[str, list[str]] = {
@@ -104,9 +107,9 @@ def local_scan(body: LocalScanIn, user_id: str = Depends(get_current_user_id)):
     scan_path = Path(body.path).resolve()
 
     if not scan_path.exists():
-        raise HTTPException(status_code=400, detail=f"Path not found: {scan_path}")
+        raise HTTPException(status_code=400, detail="Path not found in the scan sandbox")
     if not scan_path.is_dir():
-        raise HTTPException(status_code=400, detail=f"Not a directory: {scan_path}")
+        raise HTTPException(status_code=400, detail="Path is not a directory")
 
     # Confine to the sandbox root (fail closed on any resolution error).
     try:
@@ -116,26 +119,34 @@ def local_scan(body: LocalScanIn, user_id: str = Depends(get_current_user_id)):
     if common != str(scan_root):
         raise HTTPException(
             status_code=403,
-            detail=f"Path is outside the allowed scan sandbox root: {scan_root}",
+            detail="Path is outside the allowed scan sandbox",
         )
 
     detections: list[dict] = []
     file_count = 0
 
-    def walk(dir: Path):
+    def walk(dir: Path, depth: int = 0):
         nonlocal file_count
+        if depth > MAX_SCAN_DEPTH or file_count >= MAX_SCAN_FILES:
+            return
         try:
             entries = list(dir.iterdir())
-        except PermissionError:
+        except (PermissionError, OSError):
             return
 
         for entry in entries:
+            if file_count >= MAX_SCAN_FILES:
+                return
+            # Never follow symlinks: a link inside the sandbox could otherwise
+            # point at /etc, a home directory, or another tenant's files.
+            if entry.is_symlink():
+                continue
             if entry.is_dir():
                 if entry.name not in IGNORE_DIRS:
-                    walk(entry)
+                    walk(entry, depth + 1)
                 continue
 
-            if entry.suffix.lower() not in SCAN_EXTENSIONS:
+            if not entry.is_file() or entry.suffix.lower() not in SCAN_EXTENSIONS:
                 continue
 
             file_count += 1
@@ -154,7 +165,11 @@ def local_scan(body: LocalScanIn, user_id: str = Depends(get_current_user_id)):
                             for i, line in enumerate(content.splitlines(), 1):
                                 if pattern.search(line):
                                     lines.append(i)
-                            snippet = content.splitlines()[lines[0] - 1].strip()[:120] if lines else None
+                            snippet = (
+                                redact_snippet(content.splitlines()[lines[0] - 1].strip()[:120])
+                                if lines
+                                else None
+                            )
                             detections.append({
                                 "api": api,
                                 "file": relative,
@@ -182,7 +197,7 @@ def local_scan(body: LocalScanIn, user_id: str = Depends(get_current_user_id)):
         summary[d["api"]] = summary.get(d["api"], 0) + 1
 
     return LocalScanOut(
-        scanned_path=str(scan_path),
+        scanned_path=str(scan_path.relative_to(scan_root)).replace("\\", "/"),
         file_count=file_count,
         detection_count=len(unique),
         detections=[Detection(**d) for d in unique],

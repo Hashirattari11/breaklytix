@@ -22,8 +22,10 @@ import { SITE_URL } from "@/lib/site";
  * Verified 2026-10-22: all six user agents above received 200 with no
  * challenge header on /docs/breaking-api-changes.
  *
- * `/authorize/<token>` is deliberately absent: it returns 404 and disallowing a
- * non-existent path only adds noise to the ruleset.
+ * `/authorize/<token>` is deliberately absent: the route exists and is inherited
+ * from the root layout's `noindex`, so a robots.txt block would only hide that
+ * directive. Disallowing a private invite URL would also add noise without
+ * improving security.
  */
 export default function robots(): MetadataRoute.Robots {
   return {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoc, docsBySection, relatedDocs, prevNext, type DocBlock } from "@/lib/docs";
 import { DOC_SEO } from "@/lib/docs-seo";
@@ -10,8 +11,9 @@ export function generateStaticParams() {
   return docsBySection().flatMap((g) => g.articles.map((a) => ({ slug: a.slug })));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const doc = getDoc(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const doc = getDoc(slug);
   if (!doc) return {};
   const seo = DOC_SEO[doc.slug];
   const url = `${SITE_URL}/docs/${doc.slug}`;
@@ -144,8 +146,9 @@ function Block({ b }: { b: DocBlock }) {
   }
 }
 
-export default function DocArticlePage({ params }: { params: { slug: string } }) {
-  const doc = getDoc(params.slug);
+export default async function DocArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const doc = getDoc(slug);
   if (!doc) notFound();
 
   const groups = docsBySection();
@@ -162,7 +165,7 @@ export default function DocArticlePage({ params }: { params: { slug: string } })
         <nav className="p-docs-nav" aria-label="Documentation sections" style={{ position: "sticky", top: 24, maxHeight: "calc(100vh - 48px)", overflowY: "auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <LogoMark size={22} />
-            <a href="/docs" style={{ fontWeight: 700, fontSize: 15, textDecoration: "none", color: "inherit" }}>Docs home</a>
+            <Link href="/docs" style={{ fontWeight: 700, fontSize: 15, textDecoration: "none", color: "inherit" }}>Docs home</Link>
           </div>
           {groups.map((g) => (
             <div key={g.section} style={{ marginBottom: 14 }}>

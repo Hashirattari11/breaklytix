@@ -40,7 +40,9 @@ async function checkAdmin(token: string): Promise<AdminState> {
 }
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const token = cookies().get("bx_session")?.value;
+  // Next.js 15+ made the dynamic request APIs async.
+  const cookieStore = await cookies();
+  const token = cookieStore.get("bx_session")?.value;
   if (!token) {
     redirect("/login?next=%2Fadmin");
   }

@@ -32,7 +32,7 @@ from ..schemas import (
     FixesListOut,
     FindingOut,
 )
-from .repos import _repo_scan_tokens
+from .repos import _repo_scan_tokens, assert_repo_access_active
 
 router = APIRouter(prefix="/repos", tags=["fixes"])
 
@@ -47,6 +47,20 @@ def _owned_repo(user_id: str, repo_id: str) -> dict:
     if not repo or repo["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Repo not found")
     return repo
+
+
+def _rule_severity(rule: dict) -> str:
+    """Resolve the real registry severity for a persisted fix rule.
+
+    `fix_rules` has no severity column; the old expression accidentally used
+    the description/status and silently reported every PR as "medium".
+    """
+    title = rule.get("title")
+    if title:
+        for candidate in RULES:
+            if candidate.title == title:
+                return candidate.severity
+    return "medium"
 
 
 def _user_github_token(user_id: str) -> str:
@@ -143,7 +157,7 @@ async def _create_fix_pr(repo: dict, fix: dict, token: str) -> tuple[str, int]:
         diff=fix.get("diff_preview") or "",
         validation=detail,
         confidence=float(rule.get("confidence") or 0),
-        severity=rule.get("description") and fix.get("status") or "medium",
+        severity=_rule_severity(rule),
     )
     result = pr_lib.create_pr_from_file_change(
         token=token,
@@ -300,11 +314,12 @@ def list_fixes(
 async def approve_fix(
     repo_id: str,
     fix_id: str,
-    body: FixActionIn,
+    body: FixActionIn | None = None,
     user_id: str = Depends(get_current_user_id),
 ) -> FixActionOut:
     """Approve a 'needs_review' fix by creating a REAL GitHub PR."""
     repo = _owned_repo(user_id, repo_id)
+    assert_repo_access_active(repo)
 
     fix_res = (
         db().table("fixes")
@@ -324,11 +339,33 @@ async def approve_fix(
             detail=f"Fix cannot be approved from status '{fix['status']}'",
         )
 
-    token = _user_github_token(user_id)
-    try:
-        pr_url, pr_number = await _create_fix_pr(repo, fix, token)
-    except GitHubError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    # Use the same ordered token resolution as scanning: installation token for
+    # agency-managed repos, then the repo snapshot, then the user's freshest
+    # token. The previous code only used the user token, so agency PRs failed.
+    tokens = _repo_scan_tokens(repo, user_id)
+    if not tokens:
+        raise HTTPException(
+            status_code=400,
+            detail="No GitHub connection on file for this repository. Reconnect or re-authorize it.",
+        )
+
+    last_auth_error: GitHubAuthError | None = None
+    result: tuple[str, int] | None = None
+    for token in tokens:
+        try:
+            result = await _create_fix_pr(repo, fix, token)
+            break
+        except GitHubAuthError as exc:
+            last_auth_error = exc
+            continue
+        except GitHubError as exc:
+            raise HTTPException(status_code=502, detail=str(exc))
+    if result is None:
+        raise HTTPException(
+            status_code=502,
+            detail=str(last_auth_error or "GitHub rejected the available credentials."),
+        )
+    pr_url, pr_number = result
 
     now = datetime.now(timezone.utc).isoformat()
     db().table("fixes").update({
@@ -336,7 +373,7 @@ async def approve_fix(
         "pr_url": pr_url,
         "pr_number": pr_number,
         "updated_at": now,
-    }).eq("id", fix_id).execute()
+    }).eq("id", fix_id).eq("status", fix["status"]).execute()
 
     return FixActionOut(
         fix_id=fix_id,
@@ -353,11 +390,12 @@ async def approve_fix(
 def dismiss_fix(
     repo_id: str,
     fix_id: str,
-    body: FixActionIn,
+    body: FixActionIn | None = None,
     user_id: str = Depends(get_current_user_id),
 ) -> FixActionOut:
     """Dismiss a 'needs_review' fix (mark as rejected, no PR created)."""
-    _owned_repo(user_id, repo_id)
+    repo = _owned_repo(user_id, repo_id)
+    assert_repo_access_active(repo)
 
     fix_res = (
         db().table("fixes")
@@ -378,10 +416,12 @@ def dismiss_fix(
         )
 
     now = datetime.now(timezone.utc).isoformat()
+    # Status filter closes the select-then-update race with a concurrent
+    # approve: a fix that moved to pr_created cannot be overwritten as rejected.
     db().table("fixes").update({
         "status": "rejected",
         "updated_at": now,
-    }).eq("id", fix_id).execute()
+    }).eq("id", fix_id).eq("status", fix["status"]).execute()
 
     return FixActionOut(
         fix_id=fix_id,

@@ -8,6 +8,7 @@ cryptography==50.0.2
 PyJWT==2.15.1
 httpx==0.28.1
 requests==2.34.2
+certifi==2026.10.19
 beautifulsoup4==4.12.3
 stripe==8.0.0
 

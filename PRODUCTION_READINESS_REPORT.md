@@ -22,8 +22,8 @@
 | Responsive 390 / 768 / 1440 px | **PASS** — 0 failures, 9 reviewed warning groups |
 | Lighthouse accessibility / best practices / SEO | **PASS** — 100/100/100 on 12 public pages |
 | Performance benchmark | **NOT TESTED** — tool available here does not run performance audits |
-| Backend test suite | **PASS** — 280 passed, 6 subtests passed |
-| Typecheck / lint / production build | **PASS** (one pre-existing lint warning) |
+| Backend test suite | **PASS** - 297 passed, 6 subtests passed |
+| Typecheck / lint / production build | **PASS** |
 | Live production verification | **NOT TESTED** — nothing was deployed |
 
 ---
@@ -429,8 +429,45 @@ cd D:\autofix\backend
 | Mobile/tablet/desktop responsive check | **PASS** (9 reviewed warnings) |
 | Lighthouse accessibility / best practices / SEO | **PASS** (100 on 12 pages) |
 | Performance benchmark | **NOT TESTED** |
-| Backend tests | **PASS** (280) |
+| Backend tests | **PASS** (297) |
 | Typecheck / lint / build | **PASS** (1 pre-existing warning) |
 | Google Search Console verification/submission | **MANUAL ACTION REQUIRED** |
 | Live production verification | **NOT TESTED** (nothing deployed) |
 | No push/deploy/DNS/email changes | **CONFIRMED** |
+---
+
+## 10. Final verification update (Next.js 15 migration + security hardening)
+
+**Date:** 23 October 2026 (final pass)
+
+### Dependency and build state
+- Frontend upgraded to `next@15.5.28` and `eslint-config-next@15.5.28`; React 18.3.1 retained.
+- PostCSS and source-map-js pinned to 8.5.31 / 1.2.2 via overrides.
+- `npm audit --omit=dev`: **0 vulnerabilities**.
+- `pip-audit -r requirements.txt`: **no known vulnerabilities** (certifi 2026.10.19 pinned).
+- `npx tsc --noEmit`: PASS; `npm run lint`: PASS (0 warnings/errors); `npm run build`: PASS (59 routes generated).
+- `npm run seo:validate`: **46 URLs, 52 links, 0 failures, 0 warnings**.
+- `seo_crawl.py`: **46 pages, 52 links, 0 failures** (admin pages intentionally redirect without a production API cookie in this local run).
+
+### Admin gate matrix (re-run against local production build)
+- No cookie `/admin`: 307 -> `/login?next=%2Fadmin`.
+- `bx_session=user-token`: 403 UI ("Admin access required"), no admin shell.
+- `bx_session=suspended-admin-token`: 307 -> login (suspended treated as unauthenticated).
+- `bx_session=admin-token`: 200 admin shell, admin navigation present.
+- `POST /api/session` with admin token: 200, `HttpOnly; Secure; SameSite=lax` cookie.
+- `POST /api/session` with cross-origin origin: 403 `bad_origin`.
+- Backend test suite: **297 passed, 6 subtests passed** (includes 16 security regression tests).
+
+### Responsive / accessibility (re-run)
+- `responsive_audit.py` (Playwright + system Edge, 390/768/1440): **0 failures**, 9 reviewed warning groups (small footer/nav targets only; no horizontal overflow, missing alt text, or page errors).
+- Lighthouse (Edge, accessibility/best-practices/SEO): **100/100/100** on `/`, `/pricing`, `/providers`, `/docs/breaking-api-changes`, and `/admin`. The admin page's SEO category is intentionally not applicable because `/admin` is noindexed.
+- Performance benchmark remains **NOT MEASURED**; no performance numbers were fabricated.
+
+### Remaining manual actions
+1. Grant admin access through `ADMIN_USER_IDS` or `users.is_admin` for the owner account only.
+2. Provision and verify `support@breaklytix.site`, plus the legal address if required.
+3. Submit/verify the sitemap in Google Search Console against `https://breaklytix.site`.
+4. Run Lighthouse performance and the responsive matrix against the deployed production URL after release.
+5. Keep the seven pre-existing untracked user files out of any commit unless explicitly requested.
+
+No push, deployment, DNS change, email send, or external account change was performed.

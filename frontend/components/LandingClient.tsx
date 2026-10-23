@@ -974,7 +974,7 @@ export default function LandingPage() {
           <div className="container">
             <div className="section-header">
               <h2 id="pricing-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, lineHeight: 1.2, margin: "0 0 12px" }}>Simple, transparent pricing</h2>
-              <p className="section-subheadline">All plans include a 14-day free trial. No credit card required.</p>
+              <p className="section-subheadline">All plans include a 10-day free trial. No credit card required.</p>
             </div>
             <div className="lp-pricing-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, maxWidth: 1000, margin: "0 auto", alignItems: "stretch" }}>
               {[

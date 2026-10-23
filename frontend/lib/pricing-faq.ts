@@ -17,7 +17,7 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What happens after my free trial ends?",
-    a: "After 14 days, you'll be prompted to select a paid plan. Your data and monitoring continue uninterrupted if you upgrade. If you don't upgrade, monitoring will pause until you subscribe.",
+    a: "After 10 days, you'll be prompted to select a paid plan. Your data and monitoring continue uninterrupted if you upgrade. If you don't upgrade, monitoring will pause until you subscribe.",
   },
   {
     q: "Do you offer annual billing discounts?",

@@ -75,7 +75,7 @@ export default function ChangelogPage() {
     setLoading(true);
     try {
       const [evRes, mxRes] = await Promise.all([
-        getProviderEvents({ limit: 200 }),
+        getProviderEvents({ limit: 100 }),
         getMonitoringMatrix(),
       ]);
       setEvents(evRes.events || []);

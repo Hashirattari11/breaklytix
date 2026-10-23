@@ -1,25 +1,30 @@
 #!/usr/bin/env node
 /**
- * autofix-cli — entry point
+ * breaklytix — CLI entry point
  * Usage:
- *   autofix login              Open browser to authenticate
- *   autofix scan               Trigger scan of current repo
- *   autofix scan --dir <path>  Scan a local directory (no git required)
- *   autofix status             Show alerts and fixes
- *   autofix watch              Watch mode (continuous monitoring)
+ *   breaklytix login              Validate and save an API key
+ *   breaklytix scan               Trigger a server-side scan of the current repo
+ *   breaklytix scan --dir <path>  Scan a local directory (no upload)
+ *   breaklytix status             Show alerts and fixes
+ *   breaklytix watch              Re-scan the current directory every 30s
  */
-const { execSync, exec } = require("child_process");
+const { execSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const http = require("http");
 const https = require("https");
-const crypto = require("crypto");
 
 const RC_PATH = path.join(
-  process.env.HOME || process.env.USERPROFILE,
+  process.env.HOME || process.env.USERPROFILE || os.homedir(),
   ".autofixrc"
 );
-const API_BASE = process.env.AUTOFIX_API_URL || "http://localhost:8000";
+const DEFAULT_API_URL = "https://backend-virid-ten-43.vercel.app";
+const API_BASE = (process.env.AUTOFIX_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
+const WEB_BASE = (process.env.AUTOFIX_WEB_URL || "https://breaklytix.site").replace(/\/+$/, "");
+const MAX_SCAN_FILE_BYTES = 512 * 1024;
+const MAX_SCAN_FILES = 5000;
+const MAX_SCAN_DEPTH = 25;
 
 // ─── API Patterns (detects usage in source code) ────────────────────────────
 const API_PATTERNS = {
@@ -78,7 +83,102 @@ function loadConfig() {
 }
 
 function saveConfig(config) {
-  fs.writeFileSync(RC_PATH, JSON.stringify(config, null, 2));
+  // The file contains a live API key. Create it owner-only (0600); Windows
+  // ignores the mode, so also try an explicit chmod for POSIX systems.
+  fs.writeFileSync(RC_PATH, JSON.stringify(config, null, 2), { mode: 0o600 });
+  try {
+    fs.chmodSync(RC_PATH, 0o600);
+  } catch {
+    // Best effort on platforms without POSIX permissions.
+  }
+}
+
+function redactSnippet(line) {
+  if (!line) return "";
+  return line
+    .replace(/\bSG\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g, "SG.[REDACTED]")
+    .replace(/\b(sk_live_|sk_test_|rk_live_|whsec_|xox[baprs]-|gh[pousr]_|github_pat_|AKIA)[A-Za-z0-9_-]{6,}/g, "$1[REDACTED]")
+    .replace(/((?:api[_-]?key|secret|token|password|authorization)\s*[:=]\s*["']?)[^"'\s,;]{6,}/gi, "$1[REDACTED]");
+}
+
+function parseGitRemote(remote) {
+  if (!remote) return null;
+  let candidate = String(remote).trim();
+
+  // scp-like syntax: git@github.com:owner/repo.git
+  const scp = candidate.match(/^[^@\s]+@[^:\s]+:(.+)$/);
+  if (scp) candidate = scp[1];
+  else {
+    try {
+      const parsed = new URL(candidate);
+      candidate = parsed.pathname.replace(/^\/+/, "");
+    } catch {
+      return null;
+    }
+  }
+
+  candidate = candidate.replace(/\.git$/i, "").replace(/\/+$/, "");
+  const parts = candidate.split("/").filter(Boolean);
+  if (parts.length !== 2) return null;
+  if (!/^[A-Za-z0-9_.-]+$/.test(parts[0]) || !/^[A-Za-z0-9_.-]+$/.test(parts[1])) {
+    return null;
+  }
+  return `${parts[0]}/${parts[1]}`;
+}
+
+function readHidden(promptText) {
+  if (!process.stdin.isTTY) {
+    const readline = require("readline");
+    return new Promise((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      rl.question(promptText, (answer) => {
+        rl.close();
+        resolve(answer.trim());
+      });
+    });
+  }
+
+  return new Promise((resolve) => {
+    process.stdout.write(promptText);
+    let value = "";
+    const wasRaw = process.stdin.isRaw;
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding("utf8");
+
+    const cleanup = () => {
+      process.stdin.setRawMode(Boolean(wasRaw));
+      process.stdin.pause();
+      process.stdin.removeListener("data", onData);
+    };
+    const onData = (chunk) => {
+      for (const ch of chunk) {
+        if (ch === "\r" || ch === "\n") {
+          cleanup();
+          process.stdout.write("\n");
+          resolve(value.trim());
+          return;
+        }
+        if (ch === "\u0003") {
+          cleanup();
+          process.stdout.write("\n");
+          process.exit(130);
+        }
+        if (ch === "\u007f" || ch === "\b") {
+          if (value.length > 0) {
+            value = value.slice(0, -1);
+            process.stdout.write("\b \b");
+          }
+          continue;
+        }
+        if (ch >= " ") {
+          value += ch;
+          process.stdout.write("*");
+        }
+      }
+    };
+    process.stdin.on("data", onData);
+  });
 }
 
 function apiRequest(method, endpoint, body, token) {
@@ -86,7 +186,8 @@ function apiRequest(method, endpoint, body, token) {
   const isHttps = url.protocol === "https:";
   const lib = isHttps ? https : http;
 
-  const headers = { "Content-Type": "application/json" };
+  const headers = {};
+  if (body !== undefined && body !== null) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   return new Promise((resolve, reject) => {
@@ -97,21 +198,29 @@ function apiRequest(method, endpoint, body, token) {
         let data = "";
         res.on("data", (chunk) => (data += chunk));
         res.on("end", () => {
+          if (!data.trim()) {
+            if (res.statusCode >= 400) reject(new Error(`HTTP ${res.statusCode}`));
+            else resolve({});
+            return;
+          }
           try {
             const json = JSON.parse(data);
             if (res.statusCode >= 400) {
-              reject(new Error(json.detail || `HTTP ${res.statusCode}`));
+              const detail = Array.isArray(json.detail)
+                ? json.detail.map((d) => d.msg || JSON.stringify(d)).join("; ")
+                : json.detail;
+              reject(new Error(detail || `HTTP ${res.statusCode}`));
             } else {
               resolve(json);
             }
           } catch {
-            reject(new Error(`HTTP ${res.statusCode}: ${data}`));
+            reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 300)}`));
           }
         });
       }
     );
     req.on("error", reject);
-    if (body) req.write(JSON.stringify(body));
+    if (body !== undefined && body !== null) req.write(JSON.stringify(body));
     req.end();
   });
 }
@@ -123,31 +232,49 @@ function scanLocalDir(dirPath) {
     console.error(`❌ Directory not found: ${resolved}`);
     process.exit(1);
   }
+  if (!fs.statSync(resolved).isDirectory()) {
+    console.error(`❌ Not a directory: ${resolved}`);
+    process.exit(1);
+  }
 
   console.log(`\n🔍 Scanning: ${resolved}\n`);
 
   const detections = [];
   let fileCount = 0;
 
-  function walkDir(dir) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
+  function walkDir(dir, depth = 0) {
+    if (depth > MAX_SCAN_DEPTH || fileCount >= MAX_SCAN_FILES) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
     for (const entry of entries) {
+      if (fileCount >= MAX_SCAN_FILES) return;
       const fullPath = path.join(dir, entry.name);
 
+      // Never follow symlinks: they can escape the project directory, loop, or
+      // expose unrelated files through a link committed to the repository.
+      if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) {
         if (!IGNORE_DIRS.includes(entry.name)) {
-          walkDir(fullPath);
+          walkDir(fullPath, depth + 1);
         }
         continue;
       }
+      if (!entry.isFile()) continue;
 
       const ext = path.extname(entry.name).toLowerCase();
       if (!SCAN_EXTENSIONS.includes(ext)) continue;
 
       fileCount++;
       try {
+        const stat = fs.statSync(fullPath);
+        if (stat.size > MAX_SCAN_FILE_BYTES) continue;
         const content = fs.readFileSync(fullPath, "utf8");
-        const relativePath = path.relative(resolved, fullPath);
+        const relativePath = path.relative(resolved, fullPath).split(path.sep).join("/");
 
         for (const [api, patterns] of Object.entries(API_PATTERNS)) {
           for (const pattern of patterns) {
@@ -168,7 +295,9 @@ function scanLocalDir(dirPath) {
                 file: relativePath,
                 matches: matches.length,
                 lines: lineNumbers.slice(0, 5),
-                snippet: lines[lineNumbers[0] - 1]?.trim().slice(0, 120),
+                snippet: redactSnippet(
+                  lines[lineNumbers[0] - 1]?.trim().slice(0, 120)
+                ),
               });
             }
           }
@@ -190,7 +319,7 @@ function scanLocalDir(dirPath) {
     return true;
   });
 
-  // Sort by severity
+  // Stable provider display order (the CLI has no per-detection severity data).
   const severityOrder = { github: 0, stripe: 1, twilio: 2, shopify: 3, sendgrid: 4 };
   unique.sort((a, b) => (severityOrder[a.api] ?? 9) - (severityOrder[b.api] ?? 9));
 
@@ -200,7 +329,7 @@ function scanLocalDir(dirPath) {
 
   if (unique.length === 0) {
     console.log("✅ No third-party API usage detected.\n");
-    return;
+    return { fileCount, detections: unique, grouped: {} };
   }
 
   // Group by API
@@ -234,25 +363,28 @@ function scanLocalDir(dirPath) {
 
 // ─── Commands ───────────────────────────────────────────────────────────────
 async function login() {
-  console.log("\n🔑 AutoFix Login\n");
+  console.log("\n🔑 Breaklytix Login\n");
   console.log("To get an API key:");
-  console.log("  1. Go to http://localhost:3000/dashboard/settings/api-keys");
+  console.log(`  1. Go to ${WEB_BASE}/dashboard/settings/api-keys`);
   console.log('  2. Click "Generate Key"\n');
-  const readline = require("readline");
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const key = await new Promise((r) =>
-    rl.question("Paste your API key (afx_live_...): ", r)
-  );
-  rl.close();
+  const key = await readHidden("Paste your API key (input hidden): ");
 
   if (!key.startsWith("afx_live_")) {
     console.error("❌ Invalid key format. Key must start with afx_live_");
     process.exit(1);
   }
 
+  // Validate before persisting so a typo does not leave a broken session on disk.
+  try {
+    await apiRequest("GET", "/api/public/v1/alerts?per_page=1", undefined, key);
+  } catch (e) {
+    console.error(`❌ The API rejected this key: ${e.message}`);
+    process.exit(1);
+  }
+
   saveConfig({ api_key: key });
-  console.log("✅ Saved to " + RC_PATH);
-  console.log("   Run `autofix status` to get started.\n");
+  console.log("✅ Key validated and saved to " + RC_PATH);
+  console.log("   Run `breaklytix status` to get started.\n");
 }
 
 async function scan() {
@@ -261,34 +393,21 @@ async function scan() {
 
   // Check for --dir flag
   const dirIndex = args.indexOf("--dir");
-  if (dirIndex !== -1 && args[dirIndex + 1]) {
+  if (dirIndex !== -1) {
     const dirPath = args[dirIndex + 1];
-    const result = scanLocalDir(dirPath);
-
-    // Try to upload to API if logged in
-    if (config?.api_key && result && result.detections.length > 0) {
-      console.log("📤 Uploading results to AutoFix API...");
-      try {
-        await apiRequest("POST", "/api/public/v1/detections/bulk", {
-          detections: result.detections.map((d) => ({
-            api_name: d.api,
-            file_path: d.file,
-            line_numbers: d.lines,
-            match_count: d.matches,
-          })),
-        }, config.api_key);
-        console.log("✅ Results uploaded to dashboard.\n");
-      } catch (e) {
-        console.log(`⚠️  Could not upload: ${e.message}`);
-        console.log("   Results saved locally.\n");
-      }
+    if (!dirPath) {
+      console.error("❌ --dir requires a path. Example: breaklytix scan --dir .");
+      process.exit(1);
     }
+    scanLocalDir(dirPath);
+    console.log("ℹ️  This was a local-only scan; no files or results were uploaded.");
+    console.log("   Connect a GitHub repository in the dashboard for server-side monitoring.\n");
     return;
   }
 
   // Original git-based scan
   if (!config?.api_key) {
-    console.error("❌ Not logged in. Run `autofix login` first.");
+    console.error("❌ Not logged in. Run `breaklytix login` first.");
     process.exit(1);
   }
 
@@ -297,42 +416,50 @@ async function scan() {
   let repoName;
   try {
     const remote = execSync("git remote get-url origin", { encoding: "utf8" }).trim();
-    repoName = remote.split("/").slice(-2).join("/").replace(".git", "");
+    repoName = parseGitRemote(remote);
+    if (!repoName) throw new Error("unsupported remote URL");
   } catch {
-    console.error("❌ Not a git repository or no remote configured.");
-    console.log("   Use `autofix scan --dir /path` to scan a local directory.\n");
+    console.error("❌ Not a git repository or the origin remote is not a GitHub owner/repo URL.");
+    console.log("   Use `breaklytix scan --dir ./path` to scan a local directory.\n");
     process.exit(1);
   }
 
   console.log(`   Repository: ${repoName}`);
 
+  let repos;
   try {
-    const repos = await apiRequest("GET", "/repos", null, config.api_key);
-    const repo = repos.find((r) => r.full_name === repoName);
-    if (repo) {
-      console.log(`   Repo ID: ${repo.id}`);
-      console.log("   Triggering scan...");
-      const result = await apiRequest("POST", `/repos/${repo.id}/scan`, null, config.api_key);
-      console.log(`   ✅ Scan complete: ${result.detections_count || 0} detections, ${result.alerts_count || 0} alerts\n`);
-      return;
-    }
+    repos = await apiRequest("GET", "/api/public/v1/repos", undefined, config.api_key);
   } catch (e) {
-    // Fall through
-  }
-
-  console.log(`   ⚠️  Repo "${repoName}" not connected to AutoFix.`);
-  console.log("   Connect it first at http://localhost:3000/dashboard\n");
-}
-
-async function watch() {
-  const config = loadConfig();
-  if (!config?.api_key) {
-    console.error("❌ Not logged in. Run `autofix login` first.");
+    console.error(`❌ Could not load connected repositories: ${e.message}`);
     process.exit(1);
   }
 
-  console.log("\n👁️  AutoFix Watch Mode");
-  console.log("   Monitoring for changes... (Press Ctrl+C to stop)\n");
+  const repo = Array.isArray(repos) ? repos.find((r) => r.full_name === repoName) : null;
+  if (!repo) {
+    console.log(`   ⚠️  Repo "${repoName}" is not connected to Breaklytix.`);
+    console.log(`   Connect it first at ${WEB_BASE}/dashboard/repos\n`);
+    process.exit(1);
+  }
+
+  console.log(`   Repo ID: ${repo.id}`);
+  console.log("   Triggering scan...");
+  try {
+    const result = await apiRequest("POST", `/api/public/v1/repos/${encodeURIComponent(repo.id)}/scan`, undefined, config.api_key);
+    console.log(
+      `   ✅ Scan complete: ${result.files_scanned ?? 0} files, ` +
+      `${result.detections_found ?? 0} detections, ` +
+      `${result.new_apis_detected ?? 0} new API(s)\n`
+    );
+    if (result.plan_warning) console.log(`   ⚠️  ${result.plan_warning}\n`);
+  } catch (e) {
+    console.error(`❌ Scan failed: ${e.message}\n`);
+    process.exit(1);
+  }
+}
+
+async function watch() {
+  console.log("\n👁️  Breaklytix local watch mode");
+  console.log("   Re-scanning this directory every 30 seconds. Press Ctrl+C to stop.\n");
 
   let lastScan = null;
 
@@ -353,11 +480,11 @@ async function watch() {
 async function status() {
   const config = loadConfig();
   if (!config?.api_key) {
-    console.error("❌ Not logged in. Run `autofix login` first.");
+    console.error("❌ Not logged in. Run `breaklytix login` first.");
     process.exit(1);
   }
 
-  console.log("\n📊 AutoFix Status\n");
+  console.log("\n📊 Breaklytix Status\n");
 
   try {
     const [alertsRes, fixesRes] = await Promise.all([
@@ -367,7 +494,7 @@ async function status() {
 
     const alerts = alertsRes.alerts || [];
     if (alerts.length === 0) {
-      console.log("✅ No alerts — all APIs are stable.\n");
+      console.log("ℹ️  No alerts returned for this account (this does not by itself prove every API is stable).\n");
     } else {
       console.log(`⚠️  ${alerts.length} alert${alerts.length !== 1 ? "s" : ""}:\n`);
       console.log(
@@ -379,8 +506,8 @@ async function status() {
       );
       console.log("  " + "─".repeat(75));
       for (const a of alerts.slice(0, 20)) {
-        const sev = (a.severity || "medium").padEnd(10);
-        const api = (a.api_name || "—").padEnd(25);
+        const sev = (a.severity || "—").padEnd(10);
+        const api = (a.provider || a.api_name || "—").padEnd(25);
         const change = (a.change_type || "—").padEnd(20);
         const repo = a.repo_id ? a.repo_id.slice(0, 8) + "…" : "—";
         console.log(`  ${sev}${api}${change}${repo}`);
@@ -433,22 +560,27 @@ switch (cmd) {
     break;
   default:
     console.log(`
-🔧 autofix-cli — AutoFix API CLI
+🔧 breaklytix — Breaklytix API CLI
 
 Usage:
-  autofix login              Authenticate with your API key
-  autofix scan               Scan current git repo for API usage
-  autofix scan --dir <path>  Scan a local directory (no git required)
-  autofix status             Show alerts and pending fixes
-  autofix watch              Watch mode (continuous monitoring)
+  breaklytix login              Validate and save your API key
+  breaklytix scan               Scan the connected git repository via the API
+  breaklytix scan --dir <path>  Scan a local directory (no upload)
+  breaklytix status             Show alerts and pending fixes
+  breaklytix watch              Re-scan the current directory every 30s
 
 Examples:
-  autofix scan --dir ./src           Scan src folder
-  autofix scan --dir C:\\Projects\\app  Scan Windows directory
-  autofix scan --dir /home/user/app  Scan Linux directory
+  breaklytix scan --dir ./src           Scan a source folder
+  breaklytix scan --dir C:\\Projects\\app  Scan a Windows directory
+  breaklytix scan --dir /home/user/app  Scan a Linux directory
 
 Configuration:
   API URL: ${API_BASE}
-  Config:  ${RC_PATH}
+  Web URL: ${WEB_BASE}
+  Config:  ${RC_PATH} (owner-only permissions where supported)
+
+Environment overrides:
+  AUTOFIX_API_URL   API origin
+  AUTOFIX_WEB_URL   Dashboard origin used in printed links
 `);
 }

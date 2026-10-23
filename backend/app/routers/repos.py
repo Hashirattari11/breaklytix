@@ -14,6 +14,7 @@ from ..crypto import get_cipher
 from ..db import db, fetch_one
 from ..deps import get_current_user_id
 from ..detection import scan_file
+from ..github_app import get_installation_access_token
 from ..github_client import (
     GitHubAuthError,
     GitHubError,
@@ -69,10 +70,28 @@ def _repo_scan_tokens(repo: dict, user_id: str) -> list[str]:
     Decryption failures are skipped, never fatal.
     """
     tokens: list[str] = []
+    agency_client_id = repo.get("agency_client_id")
+    if agency_client_id:
+        client = fetch_one("agency_clients", {"id": agency_client_id})
+        if not client or client.get("status") != "authorized":
+            # Revoked/pending agency access must never fall back to the agency
+            # owner's token, which may still have broad repo access.
+            return []
+        installation_id = client.get("github_installation_id")
+        if installation_id:
+            try:
+                installation_token = get_installation_access_token(str(installation_id))
+            except Exception:
+                installation_token = None
+            if installation_token:
+                tokens.append(installation_token)
+
     raw = repo.get("access_token")
     if raw:
         try:
-            tokens.append(get_cipher().decrypt(raw))
+            token = get_cipher().decrypt(raw)
+            if token and token not in tokens:
+                tokens.append(token)
         except Exception:
             pass
     try:
@@ -89,6 +108,16 @@ def _owned_repo(user_id: str, repo_id: str) -> dict:
     if not repo or repo["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Repo not found")
     return repo
+
+
+def assert_repo_access_active(repo: dict) -> None:
+    """Fail closed when an agency-managed repo's client has been revoked."""
+    agency_client_id = repo.get("agency_client_id")
+    if not agency_client_id:
+        return
+    client = fetch_one("agency_clients", {"id": agency_client_id})
+    if not client or client.get("status") != "authorized":
+        raise HTTPException(status_code=403, detail="Client repository access is not authorized")
 
 
 def _repo_out(r: dict) -> RepoOut:
@@ -134,15 +163,26 @@ def list_connected(
     user_id: str = Depends(get_current_user_id),
     as_client: str | None = Query(None),
 ) -> list[RepoOut]:
-    # Phase 5 §6: agency owners can view client repos
-    effective_user = user_id
+    # Phase 5 §6: agency owners can view client repos. Agency repos are owned
+    # by the agency user (user_id=owner) and linked by agency_client_id, so
+    # filtering on the client id as a user id returned nothing.
     if as_client:
         from .agency import _resolve_client_user_id
-        effective_user = _resolve_client_user_id(user_id, as_client)
-
-    res = (
-        db().table("repos").select("*").eq("user_id", effective_user).order("connected_at", desc=True).execute()
-    )
+        _resolve_client_user_id(user_id, as_client)
+        res = (
+            db().table("repos").select("*")
+            .eq("agency_client_id", as_client)
+            .eq("user_id", user_id)
+            .order("connected_at", desc=True)
+            .execute()
+        )
+    else:
+        res = (
+            db().table("repos").select("*")
+            .eq("user_id", user_id)
+            .order("connected_at", desc=True)
+            .execute()
+        )
     return [_repo_out(r) for r in (res.data or [])]
 
 
@@ -354,11 +394,18 @@ def get_connected_repo(
     user_id: str = Depends(get_current_user_id),
     as_client: str | None = Query(None),
 ) -> RepoOut:
-    effective_user = user_id
     if as_client:
         from .agency import _resolve_client_user_id
-        effective_user = _resolve_client_user_id(user_id, as_client)
-    return _repo_out(_owned_repo(effective_user, repo_id))
+        _resolve_client_user_id(user_id, as_client)
+        repo = fetch_one("repos", {"id": repo_id})
+        if (
+            not repo
+            or repo.get("agency_client_id") != as_client
+            or repo.get("user_id") != user_id
+        ):
+            raise HTTPException(status_code=404, detail="Repo not found")
+        return _repo_out(repo)
+    return _repo_out(_owned_repo(user_id, repo_id))
 
 
 # ---------------------------------------------------------------------------
@@ -367,6 +414,7 @@ def get_connected_repo(
 @router.post("/{repo_id}/scan", response_model=ScanResultOut)
 def scan_repo(repo_id: str, user_id: str = Depends(get_current_user_id)) -> ScanResultOut:
     repo = _owned_repo(user_id, repo_id)
+    assert_repo_access_active(repo)
     full_name = repo["full_name"]
     branch = repo.get("default_branch", "main")
     logger.info("[API HEALTH] Scan started for %s (user=%s)", full_name, user_id)

@@ -31,13 +31,24 @@ export default function ApiKeysPage() {
 
   async function loadKeys() {
     setLoading(true);
+    setError(null);
     try {
+      const token = localStorage.getItem("autofix_token");
+      if (!token) {
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/public/v1/api-keys`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("autofix_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setKeys(await res.json());
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || `Could not load API keys (HTTP ${res.status}).`);
+        return;
+      }
+      setKeys(await res.json());
     } catch {
-      // ignore
+      setError("Could not reach the server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -47,9 +58,14 @@ export default function ApiKeysPage() {
     setBusy(true);
     setError(null);
     try {
+      const token = localStorage.getItem("autofix_token");
+      if (!token) {
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/public/v1/api-keys`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("autofix_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
@@ -68,14 +84,25 @@ export default function ApiKeysPage() {
 
   async function revokeKey(id: string) {
     if (!confirm("Revoke this API key? This cannot be undone.")) return;
+    setError(null);
     try {
+      const token = localStorage.getItem("autofix_token");
+      if (!token) {
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/public/v1/api-keys/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("autofix_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) await loadKeys();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || `Could not revoke the key (HTTP ${res.status}).`);
+        return;
+      }
+      await loadKeys();
     } catch {
-      // ignore
+      setError("Could not reach the server. The key was not revoked.");
     }
   }
 

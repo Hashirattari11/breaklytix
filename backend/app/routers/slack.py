@@ -10,7 +10,10 @@ Endpoints:
 from __future__ import annotations
 
 import json
+import time
+from urllib.parse import urlencode
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
@@ -30,6 +33,42 @@ from ..slack_integration import (
 router = APIRouter(prefix="/slack", tags=["slack"])
 
 
+def _signed_state(user_id: str) -> str:
+    """Short-lived, signed OAuth state (never a raw user id)."""
+    if not settings.jwt_secret:
+        raise HTTPException(status_code=503, detail="Slack OAuth signing is not configured.")
+    now = int(time.time())
+    return jwt.encode(
+        {
+            "scope": "slack_install",
+            "sub": user_id,
+            "iat": now,
+            "exp": now + 15 * 60,
+        },
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+
+
+def _state_user_id(state: str) -> str | None:
+    if not settings.jwt_secret:
+        return None
+    try:
+        payload = jwt.decode(state, settings.jwt_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        return None
+    if payload.get("scope") != "slack_install":
+        return None
+    return payload.get("sub") or None
+
+
+def _frontend_redirect(**params: str) -> str:
+    base = (settings.frontend_base_url or "").rstrip("/")
+    if not base:
+        raise HTTPException(status_code=500, detail="FRONTEND_BASE_URL is not configured")
+    return f"{base}/dashboard/settings/integrations?{urlencode(params)}"
+
+
 # ---------------------------------------------------------------------------
 # Install / OAuth flow
 # ---------------------------------------------------------------------------
@@ -43,8 +82,9 @@ def slack_install_url(user_id: str = Depends(get_current_user_id)) -> dict:
             status_code=503,
             detail="Slack integration not configured on the server.",
         )
-    # Encode user_id in state so the callback knows who to associate the connection with.
-    state = user_id
+    # Signed state: the callback can associate the connection with the right
+    # account, while an attacker cannot forge a state for another user.
+    state = _signed_state(user_id)
     return {"install_url": get_install_url_absolute(state=state)}
 
 
@@ -56,30 +96,42 @@ async def slack_oauth_callback(
     state: str | None = None,
 ) -> Response:
     """Slack OAuth callback.
-    Slack redirects the user here after they authorize the app. `state` carries the
-    user_id so we can associate the connection with the right account.
+
+    Slack redirects the user here after they authorize the app. `state` is a
+    signed, short-lived token identifying the account; a raw user id was
+    forgeable (account-binding CSRF).
     """
     if error:
         return RedirectResponse(
-            url=f"{settings.frontend_origins.split(',')[0].strip()}/dashboard/settings/integrations?error={error}",
+            url=_frontend_redirect(error=error),
             status_code=302,
         )
     if not code or not state:
-        raise HTTPException(status_code=400, detail="Missing code or state from Slack.")
+        return RedirectResponse(
+            url=_frontend_redirect(error="Slack did not return a code and state."),
+            status_code=302,
+        )
+
+    callback_user_id = _state_user_id(state)
+    if not callback_user_id:
+        return RedirectResponse(
+            url=_frontend_redirect(error="This Slack install link is invalid or expired. Try again."),
+            status_code=302,
+        )
 
     try:
         # Exchange the install code for a bot token + channel info.
         data = exchange_install_code(code)
     except SlackError as exc:
         return RedirectResponse(
-            url=f"{settings.frontend_origins.split(',')[0].strip()}/dashboard/settings/integrations?error={exc}",
+            url=_frontend_redirect(error=str(exc)),
             status_code=302,
         )
 
-    # Save the connection for the user in `state`.
+    # Save the connection for the user bound by the signed state.
     try:
         save_connection(
-            user_id=state,
+            user_id=callback_user_id,
             access_token=data["access_token"],
             team_id=data["team_id"],
             team_name=data["team_name"],
@@ -88,13 +140,13 @@ async def slack_oauth_callback(
         )
     except SlackError as exc:
         return RedirectResponse(
-            url=f"{settings.frontend_origins.split(',')[0].strip()}/dashboard/settings/integrations?error={exc}",
+            url=_frontend_redirect(error=str(exc)),
             status_code=302,
         )
 
     # Redirect back to the integrations page with success.
     return RedirectResponse(
-        url=f"{settings.frontend_origins.split(',')[0].strip()}/dashboard/settings/integrations?connected=true",
+        url=_frontend_redirect(connected="true"),
         status_code=302,
     )
 
@@ -164,7 +216,10 @@ async def slack_interactions(request: Request) -> Response:
         # belongs to a user_id; we find it from the connection table.
         # Since the interaction doesn't carry auth, we look up the connection
         # by the team/channel it came from.
-        user_id = await _find_user_for_channel(payload.get("channel", {}).get("id"))
+        user_id = await _find_user_for_channel(
+            payload.get("channel", {}).get("id"),
+            payload.get("team", {}).get("id"),
+        )
         if not user_id:
             continue
 
@@ -175,13 +230,20 @@ async def slack_interactions(request: Request) -> Response:
     return Response(content="", status_code=200)
 
 
-async def _find_user_for_channel(channel_id: str) -> str | None:
-    """Look up which user owns the Slack connection for this channel."""
+async def _find_user_for_channel(channel_id: str | None, team_id: str | None) -> str | None:
+    """Look up the connection owner for this exact workspace + channel.
+
+    Channel IDs are only unique within a Slack workspace; matching on the
+    channel alone could dispatch an approval to the wrong customer.
+    """
+    if not channel_id or not team_id:
+        return None
     from ..db import db
     res = (
         db()
         .table("slack_connections")
         .select("user_id")
+        .eq("slack_team_id", team_id)
         .eq("slack_channel_id", channel_id)
         .limit(1)
         .execute()
@@ -195,16 +257,18 @@ async def _approve_fix_via_slack(user_id: str, repo_id: str, fix_id: str) -> Non
     """Reuse the same approve logic as the dashboard's POST /repos/{id}/fixes/{id}/approve.
     We inline the essential steps here to avoid circular imports.
     """
-    from ..billing import check_plan_limit
-    from ..config import settings
-    from ..crypto import get_cipher
     from ..db import db, fetch_one
-    from ..github_client import GitHubError
+    from ..github_client import GitHubAuthError, GitHubError
     from ..routers.fixes import _create_fix_pr
+    from ..routers.repos import _repo_scan_tokens, assert_repo_access_active
 
     # Verify ownership
     repo = fetch_one("repos", {"id": repo_id})
     if not repo or repo["user_id"] != user_id:
+        return
+    try:
+        assert_repo_access_active(repo)
+    except HTTPException:
         return
 
     # Fetch fix with rule
@@ -224,12 +288,18 @@ async def _approve_fix_via_slack(user_id: str, repo_id: str, fix_id: str) -> Non
     if fix["status"] not in ("needs_review", "pending"):
         return
 
-    token = get_cipher().decrypt(repo["access_token"])
-
-    try:
-        pr_url, pr_number = await _create_fix_pr(repo, fix, token)
-    except GitHubError:
+    pr_result: tuple[str, int] | None = None
+    for token in _repo_scan_tokens(repo, user_id):
+        try:
+            pr_result = await _create_fix_pr(repo, fix, token)
+            break
+        except GitHubAuthError:
+            continue
+        except GitHubError:
+            return
+    if pr_result is None:
         return
+    pr_url, pr_number = pr_result
 
     # Update fix status
     from datetime import datetime, timezone
@@ -239,7 +309,7 @@ async def _approve_fix_via_slack(user_id: str, repo_id: str, fix_id: str) -> Non
         "pr_url": pr_url,
         "pr_number": pr_number,
         "updated_at": now,
-    }).eq("id", fix_id).execute()
+    }).eq("id", fix_id).eq("status", fix["status"]).execute()
 
     # Post back to Slack with the PR link (optional follow-up).
     conn = get_connection(user_id)

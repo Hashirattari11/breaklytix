@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { apiFetch } from "../../../../../lib/api";
 
 interface Issue {
@@ -42,7 +43,9 @@ const SEVERITY_COLOR: Record<string, string> = {
 
 const STATUSES = ["open", "acknowledged", "in_progress", "resolved", "ignored"];
 
-export default function IssueDetailPage({ params }: { params: { id: string } }) {
+export default function IssueDetailPage() {
+  const params = useParams<{ id: string }>();
+  const issueId = String(params.id);
   const [issue, setIssue] = useState<Issue | null>(null);
   const [repoName, setRepoName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -51,14 +54,14 @@ export default function IssueDetailPage({ params }: { params: { id: string } }) 
   const [prMessage, setPrMessage] = useState("");
 
   useEffect(() => {
-    apiFetch(`/health/issues/${params.id}`)
+    apiFetch(`/health/issues/${issueId}`)
       .then((res: any) => {
         setIssue(res.issue);
         setRepoName(res.repo?.full_name || "");
       })
       .catch(() => setIssue(null))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [issueId]);
 
   if (loading) return <div className="loading">Loading issue...</div>;
   if (!issue) return <div className="error-state">Issue not found.</div>;

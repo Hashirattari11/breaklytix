@@ -289,7 +289,9 @@ async def review_event(
     event_id: str,
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
-    """Mark an event as reviewed."""
+    """Mark an event as reviewed (global state: admin-only)."""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Admin access required")
     res = db().table("changelog_events").update({"review_state": "reviewed"}).eq("id", event_id).execute()
     return {"updated": bool(res.data)}
 
@@ -299,6 +301,8 @@ async def dismiss_event(
     event_id: str,
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
-    """Dismiss an event (hidden from default view)."""
+    """Dismiss an event (global state: admin-only)."""
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Admin access required")
     res = db().table("changelog_events").update({"review_state": "dismissed"}).eq("id", event_id).execute()
     return {"updated": bool(res.data)}
