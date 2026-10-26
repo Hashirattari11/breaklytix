@@ -878,7 +878,7 @@ h2 {
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
-.footer-column h4 {
+.footer-column h2 {
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -892,12 +892,15 @@ h2 {
   margin: 0;
 }
 .footer-column li {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .footer-column a {
+  display: inline-block;
+  padding: 4px 0;
   color: #d1d5db;
   text-decoration: none;
   font-size: 14px;
+  line-height: 1.2;
 }
 .footer-column a:hover {
   color: white;

@@ -12,7 +12,7 @@ import { LogoMark } from "./Logo";
 import { SUPPORT_EMAIL } from "../lib/site";
 import { LANDING_FAQ } from "../lib/landing-faq";
 
-/* â”€â”€â”€ Intersection Observer hook â”€â”€â”€ */
+/* ─── Intersection Observer hook ─── */
 function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -29,7 +29,7 @@ function useReveal(threshold = 0.15) {
   return { ref, visible };
 }
 
-/* â”€â”€â”€ prefers-reduced-motion hook â”€â”€â”€ */
+/* ─── prefers-reduced-motion hook ─── */
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -42,7 +42,7 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-/* â”€â”€â”€ Animated counter â”€â”€â”€ */
+/* ─── Animated counter ─── */
 function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [val, setVal] = useState(0);
   const { ref, visible } = useReveal(0.3);
@@ -61,7 +61,7 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
   return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
 }
 
-/* â”€â”€â”€ Provider category â†’ color helpers â”€â”€â”€ */
+/* ─── Provider category → color helpers ─── */
 const CATEGORY_COLORS: Record<ProviderCategory, string> = {
   payment: "#635bff",
   communication: "#f22f46",
@@ -80,7 +80,7 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-/* â”€â”€â”€ GitHub CTA (existing real OAuth flow â€” no fake signup) â”€â”€â”€ */
+/* ─── GitHub CTA (existing real OAuth flow — no fake signup) ─── */
 function GithubCta({
   className = "",
   style,
@@ -104,12 +104,12 @@ function GithubCta({
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════
    AHA-MOMENT HERO DEMO
    An animated simulation of the real Breaklytix flow:
-   API CHANGE â†’ Breaklytix Detection â†’ Repository â†’ File â†’ Risk â†’ Action
+   API CHANGE → Breaklytix Detection → Repository → File → Risk → Action
    Data is illustrative and labeled as a product demonstration.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════ */
 
 const DEMO_STEPS = 6; // 0 alert, 1 repo link, 2 files, 3 risk, 4 action, 5 hold
 
@@ -139,7 +139,7 @@ function AhaDemo() {
     return () => clearInterval(id);
   }, [reduced]);
 
-  // Confidence counter (0 â†’ 94 when the risk step shows).
+  // Confidence counter (0 → 94 when the risk step shows).
   useEffect(() => {
     if (reduced) { setConfidence(94); return; }
     if (step < 3 && step !== 0) { setConfidence(0); return; }
@@ -174,12 +174,12 @@ function AhaDemo() {
         <span className="lp-code-dot" style={{ background: "#ff5f57" }} />
         <span className="lp-code-dot" style={{ background: "#ffbd2e" }} />
         <span className="lp-code-dot" style={{ background: "#28ca42" }} />
-        <span className="aha-chrome-title">Breaklytix â€” Impact Analysis</span>
+        <span className="aha-chrome-title">Breaklytix — Impact Analysis</span>
         <span className="aha-demo-tag">demo</span>
       </div>
 
       <div className="aha-body">
-        {/* STEP 1 â€” API change detected */}
+        {/* STEP 1 — API change detected */}
         <div className="aha-row" style={dim(0)}>
           <div className="aha-provider-badge" style={{ background: "#635bff" }}>S</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -188,10 +188,10 @@ function AhaDemo() {
               <span className="aha-badge aha-badge-danger" style={{ marginLeft: 8 }}>BREAKING RISK</span>
             </div>
             <div className="aha-row-sub">
-              <strong>Stripe</strong> Â· charges API deprecation published
+              <strong>Stripe</strong> · charges API deprecation published
             </div>
             <div className="aha-row-meta">
-              source: stripe.com/docs/upgrades Â· {reduced ? "14:32" : "today"} Â· changelog monitor
+              source: stripe.com/docs/upgrades · {reduced ? "14:32" : "today"} · changelog monitor
             </div>
           </div>
           <span className={`aha-pulse-dot ${reduced ? "" : "live"}`} />
@@ -200,14 +200,14 @@ function AhaDemo() {
         {/* connector line */}
         <div className={`aha-connector ${show(1) ? "on" : ""}`} aria-hidden="true"><span /></div>
 
-        {/* STEP 2 â€” repository matched */}
+        {/* STEP 2 — repository matched */}
         <div className="aha-row" style={dim(1)}>
           <div className="aha-file-icon" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="aha-row-title">REPOSITORY MATCHED</div>
-            <div className="aha-row-sub"><span className="aha-mono">payments-service</span> Â· your GitHub repository</div>
+            <div className="aha-row-sub"><span className="aha-mono">payments-service</span> · your GitHub repository</div>
           </div>
           <span className={`aha-badge ${show(1) ? "aha-badge-success" : "aha-badge-neutral"}`}>{show(1) ? "MATCHED" : "SCANNING"}</span>
         </div>
@@ -215,21 +215,21 @@ function AhaDemo() {
         {/* connector line */}
         <div className={`aha-connector ${show(2) ? "on" : ""}`} aria-hidden="true"><span /></div>
 
-        {/* STEP 3 â€” affected files/functions */}
+        {/* STEP 3 — affected files/functions */}
         <div className="aha-row" style={dim(2)}>
           <div className="aha-file-icon" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="aha-row-title">IMPACT ANALYSIS â€” 2 FILES AFFECTED</div>
+            <div className="aha-row-title">IMPACT ANALYSIS — 2 FILES AFFECTED</div>
             <div className="aha-code-lines">
-              <div><span className="aha-mono aha-file">src/payment/checkout.ts</span> <span className="aha-arrow">â†’</span> <span className="aha-fn">createCheckoutSession()</span></div>
-              <div><span className="aha-mono aha-file">src/webhooks/stripe.ts</span> <span className="aha-arrow">â†’</span> <span className="aha-fn">handleStripeWebhook()</span></div>
+              <div><span className="aha-mono aha-file">src/payment/checkout.ts</span> <span className="aha-arrow">→</span> <span className="aha-fn">createCheckoutSession()</span></div>
+              <div><span className="aha-mono aha-file">src/webhooks/stripe.ts</span> <span className="aha-arrow">→</span> <span className="aha-fn">handleStripeWebhook()</span></div>
             </div>
           </div>
         </div>
 
-        {/* STEP 4 â€” risk + confidence */}
+        {/* STEP 4 — risk + confidence */}
         <div className="aha-risk-row" style={dim(3)}>
           <div className="aha-risk-cell">
             <span className="aha-label">RISK</span>
@@ -245,7 +245,7 @@ function AhaDemo() {
           </div>
         </div>
 
-        {/* STEP 5 â€” recommended action */}
+        {/* STEP 5 — recommended action */}
         <div className="aha-action" style={dim(4)}>
           <div className="aha-row-title" style={{ marginBottom: 6 }}>RECOMMENDED ACTION</div>
           <p className="aha-action-text">
@@ -261,9 +261,9 @@ function AhaDemo() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════
    BEFORE / AFTER flow
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════ */
 function BeforeAfter() {
   const { ref, visible } = useReveal(0.2);
   const before = ["API provider changes", "No one notices", "Code keeps running", "Provider removes / changes API", "Production incident", "Engineers investigate"];
@@ -276,7 +276,7 @@ function BeforeAfter() {
           {before.map((s, i) => (
             <li key={s} className="ba-step" style={{ opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(-12px)", transition: `all 0.5s ease ${i * 0.12}s` }}>
               <span className="ba-idx ba-idx-bad">{i + 1}</span>{s}
-              {i < before.length - 1 && <span className="ba-arrow-bad" aria-hidden="true">â†“</span>}
+              {i < before.length - 1 && <span className="ba-arrow-bad" aria-hidden="true">↓</span>}
             </li>
           ))}
         </ol>
@@ -287,7 +287,7 @@ function BeforeAfter() {
           {after.map((s, i) => (
             <li key={s} className="ba-step" style={{ opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(12px)", transition: `all 0.5s ease ${0.3 + i * 0.12}s` }}>
               <span className="ba-idx ba-idx-good">{i + 1}</span>{s}
-              {i < after.length - 1 && <span className="ba-arrow-good" aria-hidden="true">â†“</span>}
+              {i < after.length - 1 && <span className="ba-arrow-good" aria-hidden="true">↓</span>}
             </li>
           ))}
         </ol>
@@ -296,16 +296,16 @@ function BeforeAfter() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   WHAT BREAKLYTIX ACTUALLY TELLS YOU â€” 4 cards, sequential reveal
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   WHAT BREAKLYTIX ACTUALLY TELLS YOU — 4 cards, sequential reveal
+   ═══════════════════════════════════════════════════════════════ */
 function WhatYouGet() {
   const r1 = useReveal(0.2); const r2 = useReveal(0.2); const r3 = useReveal(0.2); const r4 = useReveal(0.2);
   const cards = [
-    { r: r1, tag: "01 Â· WHAT CHANGED", body: <>Provider <strong>changed / deprecated an API</strong> â€” detected from the official changelog.</>, tone: "#a78bfa" },
-    { r: r2, tag: "02 Â· WHAT IS AFFECTED", body: <><span className="aha-mono">payments-service</span><br /><span className="aha-mono">src/payment/checkout.ts</span><br /><span className="aha-mono">createCheckoutSession()</span></>, tone: "#06b6d4" },
-    { r: r3, tag: "03 Â· HOW SERIOUS IS IT", body: <><span className="aha-badge aha-badge-danger">HIGH RISK</span><br /><strong>94% confidence</strong> â€” scored against your detected usage.</>, tone: "#f59e0b" },
-    { r: r4, tag: "04 Â· WHAT SHOULD I DO", body: <>Review the affected API usage and <strong>update the integration</strong> â€” with a link to the provider&apos;s official source.</>, tone: "#22c55e" },
+    { r: r1, tag: "01 · WHAT CHANGED", body: <>Provider <strong>changed / deprecated an API</strong> — detected from the official changelog.</>, tone: "#a78bfa" },
+    { r: r2, tag: "02 · WHAT IS AFFECTED", body: <><span className="aha-mono">payments-service</span><br /><span className="aha-mono">src/payment/checkout.ts</span><br /><span className="aha-mono">createCheckoutSession()</span></>, tone: "#06b6d4" },
+    { r: r3, tag: "03 · HOW SERIOUS IS IT", body: <><span className="aha-badge aha-badge-danger">HIGH RISK</span><br /><strong>94% confidence</strong> — scored against your detected usage.</>, tone: "#f59e0b" },
+    { r: r4, tag: "04 · WHAT SHOULD I DO", body: <>Review the affected API usage and <strong>update the integration</strong> — with a link to the provider&apos;s official source.</>, tone: "#22c55e" },
   ];
   return (
     <div className="wyg-grid">
@@ -319,9 +319,9 @@ function WhatYouGet() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   CODE IMPACT VISUAL â€” API change â†” repository code
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════════════════
+   CODE IMPACT VISUAL — API change ↔ repository code
+   ═══════════════════════════════════════════════════════════════ */
 function CodeImpact() {
   const { ref, visible } = useReveal(0.25);
   return (
@@ -330,10 +330,10 @@ function CodeImpact() {
         <div className="ci-card ci-card-provider">
           <div className="ci-card-head"><span className="aha-provider-badge" style={{ background: "#635bff" }}>S</span> Provider change</div>
           <div className="ci-field"><span className="aha-label">Provider</span> Stripe</div>
-          <div className="ci-field"><span className="aha-label">Change</span> Deprecated API endpoint â€” <span className="aha-mono">source</span> parameter removed</div>
+          <div className="ci-field"><span className="aha-label">Change</span> Deprecated API endpoint — <span className="aha-mono">source</span> parameter removed</div>
           <div className="ci-field"><span className="aha-label">Source</span> <span className="aha-mono">stripe.com/docs/upgrades</span></div>
         </div>
-        <div className={`ci-link ${visible ? "on" : ""}`} aria-hidden="true"><span className="ci-link-line" /><span className="ci-link-arrow">â‡¢</span></div>
+        <div className={`ci-link ${visible ? "on" : ""}`} aria-hidden="true"><span className="ci-link-line" /><span className="ci-link-arrow">⇢</span></div>
         <div className="ci-card ci-card-code">
           <div className="lp-code-header" style={{ borderRadius: "12px 12px 0 0" }}>
             <span className="lp-code-dot" style={{ background: "#ff5f57" }} /><span className="lp-code-dot" style={{ background: "#ffbd2e" }} /><span className="lp-code-dot" style={{ background: "#28ca42" }} />
@@ -345,7 +345,7 @@ export async function createCheckoutSession() {
   return await stripe.charges.create({
     amount: 2000,
     currency: "usd",
-    source: token, // âš ï¸ parameter removed upstream
+    source: token, // ⚠ parameter removed upstream
   });
 }`}</code></pre>
           <div className="ci-code-foot">
@@ -359,7 +359,7 @@ export async function createCheckoutSession() {
         {["payments-service", "src/payment/checkout.ts", "createCheckoutSession()"].map((c, i) => (
           <span key={c} className="ci-chain-item" style={{ opacity: visible ? 1 : 0, transition: `opacity 0.5s ease ${0.3 + i * 0.2}s` }}>
             <span className="aha-mono">{c}</span>
-            {i < 2 && <span className="ci-chain-arrow" aria-hidden="true">â†’</span>}
+            {i < 2 && <span className="ci-chain-arrow" aria-hidden="true">→</span>}
           </span>
         ))}
         <span className="aha-badge aha-badge-danger" style={{ opacity: visible ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>RISK: HIGH</span>
@@ -368,9 +368,9 @@ export async function createCheckoutSession() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════
    MAIN PAGE
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
   const router = useRouter();
   useEffect(() => {
@@ -491,7 +491,7 @@ export default function LandingPage() {
         }
         .lp-scroll-top.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-        /* â”€â”€â”€ AHA demo â”€â”€â”€ */
+        /* ─── AHA demo ─── */
         .aha-wrap {
           background: #131327; border: 1px solid #2d2d44; border-radius: 16px;
           box-shadow: 0 24px 70px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,91,255,0.08);
@@ -557,7 +557,7 @@ export default function LandingPage() {
         }
         .aha-action-meta { font-family: var(--font-mono); font-size: 11px; color: #9a9ac4; }
 
-        /* â”€â”€â”€ Before / After â”€â”€â”€ */
+        /* ─── Before / After ─── */
         .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 1050px; margin: 0 auto; }
         .ba-col { border-radius: 16px; padding: 28px; border: 1px solid var(--border); }
         .ba-col-before { background: rgba(239,68,68,0.04); border-color: rgba(239,68,68,0.18); }
@@ -576,7 +576,7 @@ export default function LandingPage() {
         .ba-arrow-bad { width: 100%; color: rgba(239,68,68,0.35); font-size: 11px; padding-left: 6px; line-height: 0.6; }
         .ba-arrow-good { width: 100%; color: rgba(99,91,255,0.4); font-size: 11px; padding-left: 6px; line-height: 0.6; }
 
-        /* â”€â”€â”€ What you get â”€â”€â”€ */
+        /* ─── What you get ─── */
         .wyg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1200px; margin: 0 auto; }
         .wyg-card {
           background: var(--surface); border: 1px solid var(--border); border-top: 3px solid;
@@ -586,7 +586,7 @@ export default function LandingPage() {
         .wyg-body { font-size: 14.5px; line-height: 1.65; color: var(--text, inherit); }
         .wyg-body .aha-mono { display: inline-block; padding: 1px 0; }
 
-        /* â”€â”€â”€ Code impact â”€â”€â”€ */
+        /* ─── Code impact ─── */
         .ci-wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
         .ci-col { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; align-items: stretch; }
         .ci-card { border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
@@ -612,7 +612,7 @@ export default function LandingPage() {
         .ci-chain-item .aha-mono { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.25); border-radius: 8px; padding: 5px 10px; }
         .ci-chain-arrow { color: #9a9ac4; }
 
-        /* â”€â”€â”€ Pain points / steps / diff â”€â”€â”€ */
+        /* ─── Pain points / steps / diff ─── */
         .pain-card {
           background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 30px;
           transition: transform 0.3s, border-color 0.3s;
@@ -646,7 +646,7 @@ export default function LandingPage() {
         .pv-field:last-child { border-bottom: none; }
         .preview-note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
 
-        /* â”€â”€â”€ Responsive â”€â”€â”€ */
+        /* ─── Responsive ─── */
         @media (max-width: 1024px) {
           .lp-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .lp-apis-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -701,7 +701,7 @@ export default function LandingPage() {
         @media (min-width: 769px) and (max-width: 1023px) {
           .lp-pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         }
-        /* â”€â”€â”€ Reduced motion â”€â”€â”€ */
+        /* ─── Reduced motion ─── */
         @media (prefers-reduced-motion: reduce) {
           .lp-hero-bg::before, .lp-cta-glow, .aha-pulse-dot.live { animation: none !important; }
           .lp-glow-btn::after { display: none; }
@@ -727,7 +727,7 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â• */}
+        {/* ═══════ HERO ═══════ */}
         <section className="lp-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", padding: "120px 24px 80px" }} aria-labelledby="hero-title">
           <div className="lp-hero-bg" />
           <div className="container" style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1.05fr 1fr", gap: 56, alignItems: "center" }} ref={hero.ref}>
@@ -740,7 +740,7 @@ export default function LandingPage() {
                 Know what API changes will <span style={{ background: "linear-gradient(135deg, #a78bfa, #06b6d4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>break your code</span> before they break production.
               </h1>
               <p style={{ fontSize: 18, lineHeight: 1.7, color: "rgba(255,255,255,0.68)", margin: "0 0 30px", maxWidth: 540 }}>
-                Breaklytix monitors your third-party API dependencies and maps provider changes directly to the <strong style={{ color: "white" }}>repositories, files, and code usage</strong> they could affect â€” with risk, confidence, and what to fix.
+                Breaklytix monitors your third-party API dependencies and maps provider changes directly to the <strong style={{ color: "white" }}>repositories, files, and code usage</strong> they could affect — with risk, confidence, and what to fix.
               </p>
               <div className="lp-hero-cta" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
@@ -749,14 +749,14 @@ export default function LandingPage() {
                     style={{ fontSize: 16, padding: "16px 30px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }}
                     event="hero_cta_click"
                   >
-                    Scan My Repository â€” Free
+                    Scan My Repository — Free
                   </GithubCta>
                   <Link href="#how-it-works" className="btn btn-lg" style={{ fontSize: 15, padding: "16px 26px", background: "rgba(255,255,255,0.07)", color: "white", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12 }} onClick={() => track("see_how_click")}>
                     See How It Works
                   </Link>
                 </div>
                 <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.5)", margin: "4px 0 0" }}>
-                  No credit card required&nbsp;â€¢&nbsp;Connect GitHub&nbsp;â€¢&nbsp;Scan your first repository free
+                  No credit card required&nbsp;•&nbsp;Connect GitHub&nbsp;•&nbsp;Scan your first repository free
                 </p>
               </div>
             </div>
@@ -766,7 +766,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• BEFORE / AFTER â•â•â•â•â•â•â• */}
+        {/* ═══════ BEFORE / AFTER ═══════ */}
         <section id="before-after" className="section" style={{ background: "var(--bg)" }} aria-labelledby="ba-title-h">
           <div className="container">
             <div className="section-header">
@@ -777,18 +777,18 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• WHAT YOU GET â•â•â•â•â•â•â• */}
+        {/* ═══════ WHAT YOU GET ═══════ */}
         <section id="product" className="section" style={{ background: "var(--surface)" }} aria-labelledby="wyg-title">
           <div className="container">
             <div className="section-header">
               <h2 id="wyg-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, lineHeight: 1.2, margin: "0 0 12px" }}>Don&apos;t just know that an API changed. Know what it means for your code.</h2>
-              <p className="section-subheadline">Every alert answers four questions â€” in order.</p>
+              <p className="section-subheadline">Every alert answers four questions — in order.</p>
             </div>
             <WhatYouGet />
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• MID CTA â•â•â•â•â•â•â• */}
+        {/* ═══════ MID CTA ═══════ */}
         <section style={{ padding: "72px 24px" }} ref={midCta.ref}>
           <div className="lp-cta-section" style={{ opacity: midCta.visible ? 1 : 0, transform: midCta.visible ? "translateY(0)" : "translateY(24px)", transition: "all 0.6s ease" }}>
             <div className="lp-cta-glow" />
@@ -796,13 +796,13 @@ export default function LandingPage() {
               <h2 style={{ fontSize: "clamp(26px, 3.6vw, 34px)", fontWeight: 800, color: "white", margin: "0 0 14px", lineHeight: 1.25 }}>Your APIs are dependencies. Start monitoring them.</h2>
               <p style={{ fontSize: 16.5, color: "rgba(255,255,255,0.65)", margin: "0 0 28px", lineHeight: 1.6 }}>See your API dependencies and potential impact before they become production problems.</p>
               <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 34px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }} event="github_connect_click">
-                Scan My Repository â€” Free
+                Scan My Repository — Free
               </GithubCta>
             </div>
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• CODE IMPACT VISUAL â•â•â•â•â•â•â• */}
+        {/* ═══════ CODE IMPACT VISUAL ═══════ */}
         <section className="section" style={{ background: "var(--bg)" }} aria-labelledby="ci-title">
           <div className="container">
             <div className="section-header">
@@ -813,16 +813,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• PAIN POINTS â•â•â•â•â•â•â• */}
+        {/* ═══════ PAIN POINTS ═══════ */}
         <section className="section" style={{ background: "var(--surface)" }} aria-labelledby="pain-title">
           <div className="container">
             <div className="section-header">
               <h2 id="pain-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, lineHeight: 1.2, margin: "0 0 12px" }}>Why this keeps happening</h2>
-              <p className="section-subheadline">Third-party APIs are dependencies â€” most teams just can&apos;t see them.</p>
+              <p className="section-subheadline">Third-party APIs are dependencies — most teams just can&apos;t see them.</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, maxWidth: 1000, margin: "0 auto" }} className="lp-steps-grid">
               {[
-                { t: "APIs change.", d: "Provider APIs evolve, deprecate, and ship new SDK versions â€” constantly, and on their schedule." },
+                { t: "APIs change.", d: "Provider APIs evolve, deprecate, and ship new SDK versions — constantly, and on their schedule." },
                 { t: "Your code depends on them.", d: "Your application may have API usage scattered across repositories, files, and call sites." },
                 { t: "Production shouldn't be your warning system.", d: "Know about potential impact before your customers discover it for you." },
               ].map((p, i) => (
@@ -835,7 +835,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• DIFFERENTIATION â•â•â•â•â•â•â• */}
+        {/* ═══════ DIFFERENTIATION ═══════ */}
         <section className="section" style={{ background: "var(--bg)" }} aria-labelledby="diff-title">
           <div className="container">
             <div className="section-header">
@@ -845,27 +845,27 @@ export default function LandingPage() {
             <div className="diff-grid" ref={diff.ref} style={{ opacity: diff.visible ? 1 : 0, transition: "opacity 0.6s ease" }}>
               <div className="diff-col">
                 <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 14px", color: "var(--muted)" }}>Traditional API monitoring</h3>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Detect provider changes</div>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Show the changelog</div>
-                <div className="diff-item"><span className="diff-no">âœ—</span> Doesn&apos;t know your code</div>
-                <div className="diff-item"><span className="diff-no">âœ—</span> Doesn&apos;t identify affected files</div>
-                <div className="diff-item"><span className="diff-no">âœ—</span> Doesn&apos;t explain repository-level impact</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Detect provider changes</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Show the changelog</div>
+                <div className="diff-item"><span className="diff-no">✗</span> Doesn&apos;t know your code</div>
+                <div className="diff-item"><span className="diff-no">✗</span> Doesn&apos;t identify affected files</div>
+                <div className="diff-item"><span className="diff-no">✗</span> Doesn&apos;t explain repository-level impact</div>
               </div>
               <div className="diff-col breaklytix">
                 <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 14px" }}>Breaklytix</h3>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Detect provider changes</div>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Understand API dependencies in your code</div>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Map changes to your repositories</div>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Identify affected files and functions</div>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Show severity and confidence</div>
-                <div className="diff-item"><span className="diff-yes">âœ“</span> Recommend the next step â€” with the official source</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Detect provider changes</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Understand API dependencies in your code</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Map changes to your repositories</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Identify affected files and functions</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Show severity and confidence</div>
+                <div className="diff-item"><span className="diff-yes">✓</span> Recommend the next step — with the official source</div>
               </div>
             </div>
             <p style={{ textAlign: "center", fontSize: 15, color: "var(--muted)", marginTop: 32 }}>Built for modern engineering teams. Early access is open.</p>
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• HOW IT WORKS â•â•â•â•â•â•â• */}
+        {/* ═══════ HOW IT WORKS ═══════ */}
         <section id="how-it-works" className="section" style={{ background: "var(--surface)" }} aria-labelledby="how-title">
           <div className="container">
             <div className="section-header">
@@ -877,7 +877,7 @@ export default function LandingPage() {
                 { num: "01", title: "Connect", desc: "Connect your GitHub account and pick a repository." },
                 { num: "02", title: "Discover", desc: "Breaklytix scans your code and discovers every third-party API dependency." },
                 { num: "03", title: "Monitor", desc: "We monitor provider changes, deprecations, incidents, and SDK releases daily." },
-                { num: "04", title: "Understand impact", desc: "See which repositories, files, and code usage may be affected â€” with risk and confidence." },
+                { num: "04", title: "Understand impact", desc: "See which repositories, files, and code usage may be affected — with risk and confidence." },
               ].map((s, i) => (
                 <div key={s.num} className="step-card" ref={steps[i].ref} style={{ opacity: steps[i].visible ? 1 : 0, transform: steps[i].visible ? "translateY(0)" : "translateY(24px)", transition: `all 0.6s ease ${i * 0.15}s` }}>
                   <div className="step-num">{s.num}</div>
@@ -890,25 +890,25 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• PRODUCT PREVIEW (illustrative) â•â•â•â•â•â•â• */}
+        {/* ═══════ PRODUCT PREVIEW (illustrative) ═══════ */}
         <section className="section" style={{ background: "var(--bg)" }} aria-labelledby="preview-title">
           <div className="container">
             <div className="section-header">
               <h2 id="preview-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, lineHeight: 1.2, margin: "0 0 12px" }}>The alert you actually want to receive</h2>
-              <p className="section-subheadline">Every field a developer needs â€” nothing they have to chase down.</p>
+              <p className="section-subheadline">Every field a developer needs — nothing they have to chase down.</p>
             </div>
             <div ref={preview.ref} style={{ opacity: preview.visible ? 1 : 0, transform: preview.visible ? "translateY(0)" : "translateY(24px)", transition: "all 0.7s ease" }}>
               <div className="preview-panel">
                 <div className="preview-head">
                   <span className="lp-code-dot" style={{ background: "#ff5f57" }} /><span className="lp-code-dot" style={{ background: "#ffbd2e" }} /><span className="lp-code-dot" style={{ background: "#28ca42" }} />
-                  <span style={{ marginLeft: 8, fontSize: 12, color: "#b3b3cf", fontFamily: "var(--font-mono)" }}>Breaklytix â€” Breaking change alert</span>
+                  <span style={{ marginLeft: 8, fontSize: 12, color: "#b3b3cf", fontFamily: "var(--font-mono)" }}>Breaklytix — Breaking change alert</span>
                   <span className="aha-demo-tag" style={{ marginLeft: "auto" }}>illustrative demo</span>
                 </div>
                 <div className="preview-grid">
                   <div className="preview-left">
                     <div className="pv-field"><span className="aha-label">PROVIDER</span><br /><strong style={{ color: "white" }}>Stripe</strong></div>
                     <div className="pv-field"><span className="aha-label">REPOSITORY</span><br /><span className="aha-mono">payments-service</span></div>
-                    <div className="pv-field"><span className="aha-label">CHANGE</span><br />Deprecated API endpoint â€” <span className="aha-mono">source</span> parameter removed</div>
+                    <div className="pv-field"><span className="aha-label">CHANGE</span><br />Deprecated API endpoint — <span className="aha-mono">source</span> parameter removed</div>
                     <div className="pv-field"><span className="aha-label">SEVERITY</span> <span className="aha-badge aha-badge-danger" style={{ marginLeft: 8 }}>HIGH</span></div>
                     <div className="pv-field"><span className="aha-label">CONFIDENCE</span> <strong style={{ color: "#ff8a8a" }}>94%</strong></div>
                     <div className="pv-field"><span className="aha-label">OFFICIAL SOURCE</span><br /><span className="aha-mono">stripe.com/docs/upgrades</span></div>
@@ -916,8 +916,8 @@ export default function LandingPage() {
                   <div className="preview-right">
                     <div className="aha-row-title" style={{ marginBottom: 10 }}>AFFECTED FILES</div>
                     <div className="aha-code-lines" style={{ marginBottom: 18 }}>
-                      <div><span className="aha-mono aha-file">src/payment/checkout.ts</span> <span className="aha-arrow">â†’</span> <span className="aha-fn">createCheckoutSession()</span></div>
-                      <div><span className="aha-mono aha-file">src/webhooks/stripe.ts</span> <span className="aha-arrow">â†’</span> <span className="aha-fn">handleStripeWebhook()</span></div>
+                      <div><span className="aha-mono aha-file">src/payment/checkout.ts</span> <span className="aha-arrow">→</span> <span className="aha-fn">createCheckoutSession()</span></div>
+                      <div><span className="aha-mono aha-file">src/webhooks/stripe.ts</span> <span className="aha-arrow">→</span> <span className="aha-fn">handleStripeWebhook()</span></div>
                     </div>
                     <div className="aha-row-title" style={{ marginBottom: 6 }}>RECOMMENDED ACTION</div>
                     <p style={{ fontSize: 13.5, color: "#d6d6ea", lineHeight: 1.6, margin: "0 0 14px" }}>
@@ -927,30 +927,30 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              <p className="preview-note">Illustrative demonstration using sample data â€” your alerts use your repositories and real provider changes.</p>
+              <p className="preview-note">Illustrative demonstration using sample data — your alerts use your repositories and real provider changes.</p>
             </div>
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• GITHUB CTA â•â•â•â•â•â•â• */}
+        {/* ═══════ GITHUB CTA ═══════ */}
         <section id="get-started" className="section" style={{ background: "linear-gradient(135deg, #0f0a2e, #1a1145 60%, #0d1b3e)" }} aria-labelledby="gh-title">
           <div className="container" style={{ textAlign: "center" }}>
             <h2 id="gh-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, color: "white", margin: "0 0 14px" }}>Find your API risks in minutes.</h2>
             <p style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", margin: "0 0 28px" }}>Connect GitHub, choose a repository, and let Breaklytix map your API dependencies.</p>
             <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 34px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }} event="github_connect_click">
-              Connect GitHub â€” Free
+              Connect GitHub — Free
             </GithubCta>
             <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.5)", marginTop: 16 }}>Start with one repository. No credit card required.</p>
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• SUPPORTED APIs â•â•â•â•â•â•â• */}
+        {/* ═══════ SUPPORTED APIs ═══════ */}
         <section id="apis" className="section" style={{ background: "var(--surface)" }} aria-labelledby="apis-title">
           <div className="container">
             <div className="section-header">
               <h2 id="apis-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, lineHeight: 1.2, margin: "0 0 12px" }}>Supported APIs</h2>
               <p className="section-subheadline">
-                We detect and monitor <strong style={{ color: "var(--accent)" }}>{PROVIDER_REGISTRY.length} third-party APIs</strong> â€” payments, communication, cloud, AI, analytics, databases and more.
+                We detect and monitor <strong style={{ color: "var(--accent)" }}>{PROVIDER_REGISTRY.length} third-party APIs</strong> — payments, communication, cloud, AI, analytics, databases and more.
               </p>
             </div>
             <div ref={apisRef.ref} className="lp-apis-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 20, maxWidth: 1200, margin: "0 auto", opacity: apisRef.visible ? 1 : 0, transition: "opacity 0.6s ease" }}>
@@ -961,7 +961,7 @@ export default function LandingPage() {
                     <div className="lp-api-logo" style={{ background: color }}>{api.displayName.charAt(0)}</div>
                     <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>{api.displayName}</h3>
                     <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: "var(--green-bg)", color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>{api.monitoringStatus === "supported" ? "Monitored" : "Detected"}</span>
-                    <p style={{ fontSize: 12, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>{capitalize(api.category)} Â· {api.detectionEnabled ? "Detection active" : "Detection ready"}</p>
+                    <p style={{ fontSize: 12, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>{capitalize(api.category)} · {api.detectionEnabled ? "Detection active" : "Detection ready"}</p>
                   </div>
                 );
               })}
@@ -969,7 +969,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* â•â•â•â•â•â•â• PRICING â•â•â•â•â•â•â• */}
+        {/* ═══════ PRICING ═══════ */}
         <section id="pricing" className="section" style={{ background: "var(--bg)" }} aria-labelledby="pricing-title">
           <div className="container">
             <div className="section-header">
@@ -1040,7 +1040,7 @@ export default function LandingPage() {
               <p style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", margin: "0 0 30px", lineHeight: 1.6 }}>Know what changed. Know what is affected. Know what to fix.</p>
               <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
                 <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 36px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }} event="github_connect_click">
-                  Scan My Repository â€” Free
+                  Scan My Repository — Free
                 </GithubCta>
                 <Link href="#product" className="btn btn-lg" style={{ fontSize: 15, padding: "16px 26px", background: "rgba(255,255,255,0.07)", color: "white", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12 }}>
                   Explore Breaklytix
@@ -1051,13 +1051,13 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* â•â•â•â•â•â•â• FOOTER â•â•â•â•â•â•â• */}
+      {/* ═══════ FOOTER ═══════ */}
       <footer className="landing-footer">
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
               <Link href="/" className="brand" style={{ fontSize: 20, color: "white" }}><LogoMark size={30} withWordmark /></Link>
-              <p className="footer-tagline">Know what API changes will break your code â€” before they break production.</p>
+              <p className="footer-tagline">Know what API changes will break your code — before they break production.</p>
             </div>
             <div className="footer-links">
               <div className="footer-column">

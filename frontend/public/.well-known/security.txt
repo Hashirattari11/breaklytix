@@ -1,0 +1,5 @@
+Contact: https://breaklytix.site/contact
+Policy: https://breaklytix.site/security
+Canonical: https://breaklytix.site/.well-known/security.txt
+Preferred-Languages: en
+Expires: 2027-10-01T00:00:00.000Z

@@ -1,7 +1,6 @@
-// Breaklytix brand logo — official logo image with the bolt "B" mark.
-// The mark is cropped from the full logo (square, mark sits in the upper
-// portion) via object-fit/object-position, so every size stays crisp and the
-// API (size / withWordmark / className) used across the app stays unchanged.
+// Breaklytix brand logo — official bolt "B" mark, pre-cropped from the full
+// logo so pages download a 3.5 KB mark instead of the 55 KB wordmark asset.
+// The full logo stays at /logo.png for JSON-LD and the web manifest.
 type LogoProps = {
   size?: number;
   withWordmark?: boolean;
@@ -9,11 +8,6 @@ type LogoProps = {
 };
 
 export function LogoMark({ size = 32, withWordmark = false, className }: LogoProps) {
-  // Zoom window: the bolt "B" mark sits around (47%, 30%) of the source image;
-  // we magnify 2.6× and center that point inside the box to show only the mark.
-  const zoom = 2.6;
-  const markX = 0.47;
-  const markY = 0.3;
   return (
     <span className={className} style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
       <span
@@ -32,19 +26,11 @@ export function LogoMark({ size = 32, withWordmark = false, className }: LogoPro
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo.png"
+          src="/logo-mark.webp"
           alt="Breaklytix"
-          width={Math.round(size * zoom)}
-          height={Math.round(size * zoom)}
-          style={{
-            position: "absolute",
-            width: size * zoom,
-            height: size * zoom,
-            maxWidth: "none",
-            left: size * 0.5 - size * zoom * markX,
-            top: size * 0.5 - size * zoom * markY,
-            display: "block",
-          }}
+          width={size}
+          height={size}
+          style={{ width: size, height: size, display: "block", objectFit: "cover" }}
         />
       </span>
       {withWordmark && (
