@@ -7,7 +7,7 @@ import { LANDING_FAQ } from "../lib/landing-faq";
 export const metadata: Metadata = {
   title: "Breaklytix — Know What API Changes Will Break Your Code",
   description:
-    "Breaklytix monitors API changes and maps their potential impact to your GitHub repositories, files, and code usage before they become production incidents.",
+    "Breaklytix monitors third-party API provider changelogs, detects breaking changes, and maps their impact to the exact files in your GitHub repositories.",
   alternates: { canonical: SITE_URL + "/" },
   robots: { index: true, follow: true },
   // pageOpenGraph("/") supplies url + type + siteName, matching every other

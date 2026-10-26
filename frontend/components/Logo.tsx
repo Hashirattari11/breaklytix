@@ -33,7 +33,7 @@ export function LogoMark({ size = 32, withWordmark = false, className }: LogoPro
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
-          alt=""
+          alt="Breaklytix"
           width={Math.round(size * zoom)}
           height={Math.round(size * zoom)}
           style={{

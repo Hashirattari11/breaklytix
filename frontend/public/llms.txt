@@ -1,0 +1,56 @@
+# Breaklytix
+
+> Breaklytix monitors 44 third-party API provider changelogs daily, detects breaking changes that match code in connected GitHub repositories, and proposes pull requests that a human reviews and approves.
+
+Breaklytix is a web application for engineering teams that depend on third-party APIs. It scans GitHub repositories, builds a usage map of SDKs, REST endpoints, environment variables and package versions, matches provider changelog events against that usage, and surfaces the affected files and lines before a change reaches production.
+
+## Key pages
+
+- [Home](https://breaklytix.site/): product overview, workflow, pricing and FAQ.
+- [Documentation](https://breaklytix.site/docs): 18 consolidated guides covering setup, monitoring, runtime intelligence, code breaks, alerts, billing and troubleshooting.
+- [Providers](https://breaklytix.site/providers): the 44 monitored API providers.
+- [Pricing](https://breaklytix.site/pricing): plans, limits and trial details.
+- [About](https://breaklytix.site/about): what the product does and how it is built.
+- [Security](https://breaklytix.site/security): access, encryption and data-handling controls.
+- [Contact](https://breaklytix.site/contact): support and sales contact.
+
+## Documentation
+
+- [Overview](https://breaklytix.site/docs/overview): what Breaklytix does and how the pieces fit together.
+- [Quickstart](https://breaklytix.site/docs/quickstart): from GitHub sign-in to the first repository scan and alert.
+- [Breaking API changes](https://breaklytix.site/docs/breaking-api-changes): how providers signal breaking changes and how to read them.
+- [Sign in and connect GitHub](https://breaklytix.site/docs/sign-in): OAuth scopes, token storage and sign-out.
+- [Repository scanner](https://breaklytix.site/docs/repository-scanner): how static analysis builds the API usage map.
+- [Provider monitoring](https://breaklytix.site/docs/providers): the monitored changelog sources and classification pipeline.
+- [Runtime Intelligence](https://breaklytix.site/docs/runtime-intelligence): health scores, high-severity findings, five provider incident feeds and GitHub rate-limit snapshots.
+- [Code break detection](https://breaklytix.site/docs/code-breaks): how a provider change is matched to code and how auto-fix approval works.
+- [Impact overview](https://breaklytix.site/docs/impact-overview): blast-radius analysis and deploy-day fire drills.
+- [Alerts and notifications](https://breaklytix.site/docs/alerts): alert lifecycle, email preferences, delivery caps and Slack.
+- [Agency mode](https://breaklytix.site/docs/agency-mode): managing client repositories through invites.
+- [CLI and integrations](https://breaklytix.site/docs/cli): the developer CLI and Slack integration.
+- [Settings and security](https://breaklytix.site/docs/settings): account settings, API keys, sessions and security model.
+- [Billing](https://breaklytix.site/docs/billing): plans, trial behavior and billing mechanics.
+- [Troubleshooting](https://breaklytix.site/docs/troubleshooting): common failure modes and fixes.
+- [API change monitoring guide](https://breaklytix.site/docs/api-change-monitoring): a practical guide to monitoring third-party API changes.
+- [GitHub API change impact](https://breaklytix.site/docs/github-api-change-impact): how GitHub API changes affect repositories.
+- [Stripe changelog example](https://breaklytix.site/docs/stripe-changelog-example): a worked example using the Stripe changelog.
+
+## Canonical product facts
+
+- Monitoring runs once a day at 06:00 UTC: fetch provider changelogs, process new entries into classified events, match them against scanned code, and run the daily repository scan. The weekly digest is sent Mondays at 09:00 UTC.
+- Repository scanning uses GitHub OAuth scopes `read:user`, `user:email` and `repo`. The `repo` scope is broader than read-only because private repository access and approved auto-fix pull requests require it.
+- Breaklytix never merges a pull request. A proposed fix creates a branch and pull request only after the user approves that specific fix; a human still reviews and merges it.
+- Runtime Intelligence collects incidents from five official status feeds: Stripe, OpenAI, GitHub, Twilio and SendGrid. Incident and GitHub rate-limit data is refreshed during repository scans, not continuously streamed.
+- The Anomalies view is a filtered list of open reliability findings with high or critical risk, not statistical anomaly detection.
+- Ten notification preferences are stored. Only Breaking change alerts and the Weekly digest currently gate email. Scan-result, welcome, agency-invite and test messages are transactional.
+- Alert email is capped at five per user per day and deduplicated within a 60-minute window. The weekly digest follows its own weekly schedule.
+- Slack mirrors matched breaking-change alerts only and is notification-only. Fix approvals happen in the dashboard.
+- There is no daily status email.
+- Plans: Starter $500/month for 10 monitored APIs, Growth $2,000/month for 50, Enterprise $10,000/month with unlimited monitored APIs. Limits are per account, not per repository.
+- Every plan starts with a 10-day unlimited trial and no credit card. If the trial ends without a subscription, the account continues with the default limit of 10 monitored APIs; monitoring does not pause.
+- The CLI is installed from source. Its local scan is bounded to 5,000 files, 512 KB per file and a directory depth of 25.
+
+## Machine-readable discovery
+
+- [Sitemap](https://breaklytix.site/sitemap.xml)
+- [Robots](https://breaklytix.site/robots.txt)
