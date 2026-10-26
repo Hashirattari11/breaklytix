@@ -60,7 +60,7 @@ const jsonLd = {
 const PRINCIPLES = [
   {
     title: "Access you control",
-    body: "Repository scanning uses the GitHub access you authorize with the repo scope, including private repositories. Breaklytix reads repository contents to detect API usage; it never pushes, merges or edits a repository unless you explicitly enable auto-fix pull requests, and even then a human reviews and merges.",
+    body: "Repository scanning uses the GitHub access you authorize with the repo scope, including private repositories. Breaklytix reads repository contents to detect API usage. It never pushes, merges or edits a repository on its own; an auto-fix pull request is created only after you approve a specific proposed fix, and a human still reviews and merges it.",
   },
   {
     title: "Official sources only",

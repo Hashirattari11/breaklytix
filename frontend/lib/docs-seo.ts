@@ -73,9 +73,9 @@ export const DOC_SEO: Record<string, DocSeo> = {
 
   // ── Runtime Intelligence ─────────────────────────────────────────────────
   "runtime-intelligence": {
-    title: "Runtime Intelligence: Live API Health Signals",
+    title: "Runtime Intelligence: API Health Signals",
     description:
-      "Health scores, error and failure signals, provider incidents, rate-limit snapshots and anomalies for the APIs your repositories depend on.",
+      "Health scores, high-severity reliability findings, incidents for five provider status feeds, and GitHub rate-limit snapshots, with honest empty states.",
     updated: REWRITTEN,
   },
 
@@ -99,7 +99,7 @@ export const DOC_SEO: Record<string, DocSeo> = {
   alerts: {
     title: "Alert Lifecycle, Email and Slack Delivery",
     description:
-      "How alerts are created and resolved, which of the ten email categories fire, why delivery is capped, and how Slack mirrors alerts and fix approvals.",
+      "How alerts are created and resolved, which email categories are actually gated, the five-per-day alert cap, and why Slack is notification-only.",
     updated: REWRITTEN,
   },
 

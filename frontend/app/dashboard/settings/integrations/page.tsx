@@ -120,7 +120,7 @@ function IntegrationsContent() {
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ marginBottom: 4 }}>Integrations</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Connect external tools to mirror alerts and approve fixes from Slack.
+            Connect external tools to mirror breaking-change alerts into Slack.
           </p>
         </div>
 
@@ -141,8 +141,8 @@ function IntegrationsContent() {
             <h2>Slack</h2>
           </div>
           <p className="muted small" style={{ marginTop: 0 }}>
-            Mirror breaking-change alerts to a Slack channel and approve fixes
-            directly from Slack. Emails are still sent — Slack is additive.
+            Mirror breaking-change alerts to a Slack channel. Fix approval stays in
+            the dashboard. Emails are still sent — Slack is additive.
           </p>
 
           {loading ? (

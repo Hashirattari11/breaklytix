@@ -8,7 +8,6 @@ import {
   updateNotificationPreferences,
   sendTestEmail,
   TestEmailResponse,
-  updateDailyStatus,
 } from "../../../lib/api";
 import { clearSession, getUser, User } from "../../../lib/auth";
 import { formatDate, Spinner } from "../../../components/ui";
@@ -17,15 +16,15 @@ import { applyTheme, getStoredTheme, initTheme, resolveTheme, setTheme, watchSys
 
 const PREF_LABELS: Record<string, { title: string; desc: string }> = {
   breaking_changes: { title: "Breaking change alerts", desc: "Email when a monitored API ships a breaking change affecting your code" },
-  code_breaks: { title: "Code breaks", desc: "Email when a detected API change breaks your code" },
-  api_errors: { title: "API errors", desc: "Email about elevated API error rates on your integrations" },
-  rate_limits: { title: "Rate limit warnings", desc: "Email when your API usage approaches rate limits" },
-  quota: { title: "Quota usage", desc: "Email when plan or API quotas are nearly exhausted" },
-  provider_incidents: { title: "Provider incidents", desc: "Email when a provider reports an incident status" },
-  anomalies: { title: "Anomalies", desc: "Email about reliability anomalies in your integrations" },
-  auto_fix: { title: "Auto-fix results", desc: "Email when Breaklytix applies or proposes a fix" },
-  scan_results: { title: "Scan results", desc: "Email when an on-demand repo scan completes" },
-  digest: { title: "Weekly digest", desc: "Receive a weekly summary of alerts, fixes, and API usage" },
+  code_breaks: { title: "Code breaks", desc: "Saved preference — no separate email is sent for this category yet" },
+  api_errors: { title: "API errors", desc: "Saved preference — no separate email is sent for this category yet" },
+  rate_limits: { title: "Rate limit warnings", desc: "Saved preference — no separate email is sent for this category yet" },
+  quota: { title: "Quota usage", desc: "Saved preference — no separate email is sent for this category yet" },
+  provider_incidents: { title: "Provider incidents", desc: "Saved preference — no separate email is sent for this category yet" },
+  anomalies: { title: "Anomalies", desc: "Saved preference — no separate email is sent for this category yet" },
+  auto_fix: { title: "Auto-fix results", desc: "Saved preference — fix results appear in Code Break Detection" },
+  scan_results: { title: "Scan results", desc: "The first-scan confirmation is transactional and is not controlled by this switch" },
+  digest: { title: "Weekly digest", desc: "Weekly summary email, sent Mondays at 09:00 UTC" },
 };
 
 type SettingsTab = "general" | "notifications" | "email" | "billing" | "danger";
@@ -82,8 +81,6 @@ export default function SettingsPage() {
   const [prefsError, setPrefsError] = useState<string | null>(null);
   const [testState, setTestState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [testResult, setTestResult] = useState<TestEmailResponse | null>(null);
-  const [dailyStatus, setDailyStatus] = useState<boolean>(false);
-  const [savingDailyStatus, setSavingDailyStatus] = useState(false);
   const [themePref, setThemePref] = useState<ThemePref>("system");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
@@ -116,43 +113,12 @@ export default function SettingsPage() {
     return unsub;
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      setDailyStatus(user.notify_daily_status || false);
-    }
-  }, [user]);
-
   async function loadPrefs() {
     try {
       const res = await getNotificationPreferences();
       setPrefs(res.categories);
     } catch {
       // Left null; the section shows a "could not load" state.
-    }
-  }
-
-  async function loadDailyStatus() {
-    try {
-      // Daily status is part of user object, loaded in useEffect
-      if (user) {
-        setDailyStatus(user.notify_daily_status || false);
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  async function handleToggleDailyStatus() {
-    setSavingDailyStatus(true);
-    try {
-      const res = await updateDailyStatus(!dailyStatus);
-      setDailyStatus(res.notify_daily_status);
-      toast.success("Daily status email preference saved");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to update preference";
-      toast.error(msg);
-    } finally {
-      setSavingDailyStatus(false);
     }
   }
 
@@ -221,7 +187,7 @@ export default function SettingsPage() {
     setDisconnecting(true);
     try {
       clearSession();
-      window.location.href = "/dashboard";
+      window.location.href = "/login";
     } catch (e) {
       console.error("Disconnect failed:", e);
       alert("Failed to disconnect. Please try again.");
@@ -309,7 +275,7 @@ export default function SettingsPage() {
                 </button>
                 <button className="p-btn p-btn--ghost" onClick={() => setShowDisconnectConfirm(true)} disabled={disconnecting}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  Disconnect GitHub
+                  Sign out of this browser
                 </button>
               </div>
             </section>
@@ -345,8 +311,9 @@ export default function SettingsPage() {
             <section className="p-settings-card p-anim-fade-up" key="notifications">
               <h3>Notification preferences</h3>
               <p>
-                Notifications are sent to your account email ({user?.email || "your account"}) when alerts match
-                your scanned code. Preferences are saved to your account and apply to automated alert emails.
+                Notifications are sent to your account email ({user?.email || "your account"}). Only
+                Breaking change alerts and the Weekly digest currently control email; the other switches are
+                saved preferences, and every alert remains visible in the dashboard.
               </p>
 
               {!prefs ? (
@@ -370,16 +337,9 @@ export default function SettingsPage() {
                   <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid var(--border)" }}>
                     <h4 style={{ margin: "0 0 8px" }}>Daily status email</h4>
                     <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--muted)" }}>
-                      Receive a daily email with the status of your monitored repositories, even when nothing is wrong.
-                      By default, you only receive emails when issues are detected.
+                      A daily status email is not currently sent. The recurring summary is the Weekly digest
+                      above, delivered on Mondays at 09:00 UTC.
                     </p>
-                    <Switch
-                      checked={dailyStatus}
-                      onChange={handleToggleDailyStatus}
-                      label="Email me every day"
-                      hint="Send a daily status report regardless of issues"
-                    />
-                    {savingDailyStatus && <span style={{ marginLeft: 12, fontSize: 13, color: "var(--muted)" }}>Saving...</span>}
                   </div>
 
                   <div className="p-save-bar" style={{ marginTop: 24 }}>

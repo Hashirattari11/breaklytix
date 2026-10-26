@@ -65,7 +65,7 @@ export default function AcceptableUsePage() {
 
       <LegalSection id="automation" title="4. Automation & Auto-Fix">
         <ul style={{ paddingLeft: 20 }}>
-          <li>Auto-fix pull requests are generated per your configuration and are never merged automatically. Do not enable auto-fix on repositories where you are not authorized to open pull requests.</li>
+          <li>Auto-fix pull requests are proposed per finding and are never merged automatically. Approve them only in repositories where you are authorized to open pull requests.</li>
           <li>Do not deliberately generate excessive scans, alerts, or pull requests to disrupt a repository, an organization, or the service.</li>
         </ul>
       </LegalSection>

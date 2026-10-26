@@ -83,7 +83,7 @@ export default function SecurityPage() {
         <ul style={{ paddingLeft: 20 }}>
           <li>We access GitHub only through the permissions you grant when you connect a repository.</li>
           <li>Repository scanning reads metadata and source files needed to detect API usage.</li>
-          <li>Auto-fix may create branches and open pull requests in repositories you connect — only after you authorize the connection. Pull requests are never merged automatically; you review and merge them.</li>
+          <li>Auto-fix may create branches and open pull requests in repositories you connect — only after you approve a proposed fix. Pull requests are never merged automatically; you review and merge them.</li>
           <li>You can revoke the application&apos;s GitHub access at any time from your GitHub account settings.</li>
         </ul>
       </LegalSection>

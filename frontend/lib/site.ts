@@ -4,7 +4,7 @@ export const SITE_URL = "https://breaklytix.site";
 export const SITE_NAME = "Breaklytix";
 // Keep between 150–160 chars so search engines show the full snippet.
 export const SITE_DESCRIPTION =
-  "Breaklytix detects the third-party APIs your repos use, monitors 44+ provider changelogs daily, and alerts you before a breaking change reaches production.";
+  "Breaklytix detects the third-party APIs your repos use, monitors 44 provider changelogs daily, and alerts you before a breaking change reaches production.";
 
 // Support contact. Configure via NEXT_PUBLIC_SUPPORT_EMAIL. The default is the
 // brand-domain address; the mailbox/forwarding for it must be provisioned by an
@@ -53,15 +53,15 @@ export function absoluteUrl(path = "/"): string {
  * articles read their own dates from `lib/docs-seo.ts`.
  */
 export const CONTENT_UPDATED: Record<string, string> = {
-  "/": "2026-10-22",
-  "/about": "2026-10-21",
+  "/": "2026-10-26",
+  "/about": "2026-10-26",
   "/providers": "2026-10-21",
-  "/pricing": "2026-10-22",
-  "/docs": "2026-10-22",
+  "/pricing": "2026-10-26",
+  "/docs": "2026-10-26",
   "/contact": "2026-10-21",
   "/privacy": "2026-10-21",
-  "/terms": "2026-10-21",
-  "/security": "2026-10-21",
-  "/acceptable-use": "2026-10-21",
+  "/terms": "2026-10-26",
+  "/security": "2026-10-26",
+  "/acceptable-use": "2026-10-26",
   "/cookies": "2026-10-21",
 };

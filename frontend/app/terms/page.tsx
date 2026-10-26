@@ -98,7 +98,7 @@ export default function TermsPage() {
 
       <LegalSection id="auto-fix" title="8. Auto-Fix & Pull Requests">
         <ul style={{ paddingLeft: 20 }}>
-          <li>When auto-fix is enabled for a connected repository, the service may open pull requests containing suggested fixes for detected issues.</li>
+          <li>When you approve a proposed fix for a connected repository, the service may open a pull request containing the suggested change.</li>
           <li>Auto-fix pull requests are suggestions, not guarantees. They are not merged automatically.</li>
           <li><strong>You are solely responsible for reviewing, testing, and deciding whether to merge any auto-fix pull request.</strong> We are not liable for changes made by merging them.</li>
         </ul>

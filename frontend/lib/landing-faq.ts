@@ -19,7 +19,7 @@ export const LANDING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How does Breaklytix detect which APIs my code uses?",
-    a: "You connect your GitHub repositories, and Breaklytix scans them to build a live map of the third-party APIs they depend on — the provider, endpoint, function, file, and even the code block that uses it.",
+    a: "You connect your GitHub repositories, and Breaklytix scans them to build a usage map of the third-party APIs they depend on — the provider, endpoint, function, file, and even the code block that uses it.",
   },
   {
     q: "What happens when a provider ships a breaking change?",
@@ -27,14 +27,14 @@ export const LANDING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Does Breaklytix change my code automatically?",
-    a: "No. High-confidence changes can generate an auto-fix pull request, but it only opens after you approve it in the review UI. Nothing is merged into your default branch without your team's review.",
+    a: "No. A supported mechanical fix can propose an auto-fix pull request, but it only opens after you approve it in the review UI. Nothing is merged into your default branch without your team's review.",
   },
   {
     q: "Which providers does Breaklytix monitor?",
-    a: "Breaklytix supports 44+ providers across payments, commerce, communications, email, cloud, and DevOps — including Stripe, Shopify, Twilio, SendGrid, and GitHub. You can see the full list on the providers page.",
+    a: "Breaklytix supports 44 providers across payments, commerce, communications, email, cloud, and DevOps — including Stripe, Shopify, Twilio, SendGrid, and GitHub. You can see the full list on the providers page.",
   },
   {
     q: "Is there a free trial?",
-    a: "Yes. Every plan starts with a 10-day free trial and no credit card is required, so you can see detected APIs and sample alerts against your own repositories before you pay.",
+    a: "Yes. Every plan starts with a 10-day free trial and no credit card is required, so you can see detected APIs and real alerts against your own repositories before you pay.",
   },
 ];
