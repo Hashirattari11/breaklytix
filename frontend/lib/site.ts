@@ -4,7 +4,7 @@ export const SITE_URL = "https://breaklytix.site";
 export const SITE_NAME = "Breaklytix";
 // Keep between 150–160 chars so search engines show the full snippet.
 export const SITE_DESCRIPTION =
-  "Breaklytix detects the third-party APIs your repos use, monitors 44+ provider changelogs around the clock, and alerts you the moment a breaking change ships.";
+  "Breaklytix detects the third-party APIs your repos use, monitors 44+ provider changelogs daily, and alerts you before a breaking change reaches production.";
 
 // Support contact. Configure via NEXT_PUBLIC_SUPPORT_EMAIL. The default is the
 // brand-domain address; the mailbox/forwarding for it must be provisioned by an

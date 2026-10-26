@@ -48,13 +48,31 @@ const PUBLIC_CACHE_PATHS = [
 ];
 const nextConfig = {
   reactStrictMode: true,
-  // The two legal stubs under /docs duplicated /privacy and /terms (thin pages,
-  // identical titles, two URLs for one policy). They were removed from the docs
-  // registry and consolidated onto the canonical legal routes.
+  // The docs set was consolidated from 35 pages to 18 substantial guides. The
+  // thin stubs were merged into their section guide, so their URLs permanently
+  // redirect to the page that now owns the content. Permanent (308) preserves
+  // whatever ranking signal the old URLs accumulated.
   async redirects() {
     return [
       { source: "/docs/privacy-policy", destination: "/privacy", permanent: true },
       { source: "/docs/terms-of-service", destination: "/terms", permanent: true },
+      { source: "/docs/github-connection", destination: "/docs/sign-in", permanent: true },
+      { source: "/docs/changelog", destination: "/docs/providers", permanent: true },
+      { source: "/docs/api-errors", destination: "/docs/runtime-intelligence", permanent: true },
+      { source: "/docs/provider-incidents", destination: "/docs/runtime-intelligence", permanent: true },
+      { source: "/docs/rate-limit-events", destination: "/docs/runtime-intelligence", permanent: true },
+      { source: "/docs/deprecated-apis", destination: "/docs/code-breaks", permanent: true },
+      { source: "/docs/auto-fix-prs", destination: "/docs/code-breaks", permanent: true },
+      { source: "/docs/fire-drill", destination: "/docs/impact-overview", permanent: true },
+      { source: "/docs/deploy-day", destination: "/docs/impact-overview", permanent: true },
+      { source: "/docs/notifications", destination: "/docs/alerts", permanent: true },
+      { source: "/docs/email-alerts", destination: "/docs/alerts", permanent: true },
+      { source: "/docs/agency-invites", destination: "/docs/agency-mode", permanent: true },
+      { source: "/docs/slack-integration", destination: "/docs/cli", permanent: true },
+      { source: "/docs/theme", destination: "/docs/settings", permanent: true },
+      { source: "/docs/api-keys", destination: "/docs/settings", permanent: true },
+      { source: "/docs/security-model", destination: "/docs/settings", permanent: true },
+      { source: "/docs/faq", destination: "/docs/troubleshooting", permanent: true },
     ];
   },
   async headers() {

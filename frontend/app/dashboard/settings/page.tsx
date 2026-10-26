@@ -61,7 +61,7 @@ const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   },
   {
     id: "danger",
-    label: "Danger zone",
+    label: "Session",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
     ),
@@ -214,7 +214,7 @@ export default function SettingsPage() {
   }
 
   function reconnect() {
-    window.location.href = "/dashboard";
+    window.location.href = "/auth/github";
   }
 
   async function handleDisconnect() {
@@ -229,11 +229,6 @@ export default function SettingsPage() {
       setDisconnecting(false);
       setShowDisconnectConfirm(false);
     }
-  }
-
-  function logout() {
-    clearSession();
-    window.location.href = "/dashboard";
   }
 
   if (!user) {
@@ -281,7 +276,7 @@ export default function SettingsPage() {
             <section className="p-settings-card p-anim-fade-up" key="general">
               <h3>GitHub connection</h3>
               <p>
-                Read-only access (<code>public_repo</code>, <code>read:user</code>, <code>user:email</code>).
+                Access uses the <code>repo</code>, <code>read:user</code> and <code>user:email</code> scopes.
                 Reconnect if you&apos;ve changed permissions or revoked access.
               </p>
 
@@ -503,9 +498,11 @@ export default function SettingsPage() {
           {/* ─── DANGER ZONE ─── */}
           {tab === "danger" && (
             <section className="p-settings-card p-anim-fade-up" key="danger" style={{ borderColor: "var(--red-bg, #fee2e2)" }}>
-              <h3 style={{ color: "var(--red, #b91c1c)" }}>Danger zone</h3>
+              <h3 style={{ color: "var(--red, #b91c1c)" }}>Session</h3>
               <p>
-                Irreversible actions. Disconnecting GitHub will remove all repository access and stop monitoring.
+                Signing out clears the session token in this browser. It does not delete your account,
+                repositories, alerts or billing record, and it does not revoke Breaklytix&apos;s GitHub
+                authorization. To revoke that authorization, use GitHub → Settings → Applications.
               </p>
 
               <div className="p-row-cols">
@@ -515,11 +512,7 @@ export default function SettingsPage() {
                   onClick={() => setShowDisconnectConfirm(true)}
                   disabled={disconnecting}
                 >
-                  {disconnecting ? "Disconnecting…" : "Disconnect GitHub account"}
-                </button>
-                <button className="p-btn p-btn--ghost" onClick={logout}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                  Sign out
+                  {disconnecting ? "Signing out…" : "Sign out of this browser"}
                 </button>
               </div>
             </section>
@@ -527,27 +520,27 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Disconnect confirm dialog (preserved behavior) */}
+      {/* Sign-out confirm dialog (preserved behavior) */}
       {showDisconnectConfirm && (
         <div className="confirm-dialog" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
           <div className="confirm-content">
-            <h3 id="confirm-title">Disconnect GitHub account?</h3>
+            <h3 id="confirm-title">Sign out of this browser?</h3>
             <p id="confirm-desc" className="muted" style={{ marginTop: 8 }}>This will:</p>
             <ul style={{ marginTop: 12, paddingLeft: 20, color: "var(--text)" }}>
-              <li>Remove your GitHub OAuth token and revoke repository access</li>
-              <li>Stop all API monitoring for your connected repositories</li>
-              <li>Delete alert history and fix data</li>
-              <li>Sign you out immediately</li>
+              <li>Clear the session token stored in this browser</li>
+              <li>Stop showing your dashboard until you sign in again</li>
+              <li>Leave your account, repositories, alerts and billing record intact</li>
             </ul>
             <p className="muted small" style={{ marginTop: 16 }}>
-              This action cannot be undone.
+              To revoke Breaklytix&apos;s GitHub authorization, use GitHub → Settings → Applications.
+              You can sign in again at any time.
             </p>
             <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button className="btn btn-secondary" onClick={() => setShowDisconnectConfirm(false)}>
                 Cancel
               </button>
               <button className="btn btn-danger" onClick={handleDisconnect} disabled={disconnecting}>
-                {disconnecting ? <><Spinner /> Disconnecting…</> : "Yes, disconnect"}
+                {disconnecting ? <><Spinner /> Signing out…</> : "Yes, sign out"}
               </button>
             </div>
           </div>

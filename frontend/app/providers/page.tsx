@@ -66,7 +66,7 @@ const FAQ = [
   },
   {
     q: "How often are provider changelogs checked?",
-    a: "Changelog sources are polled on a schedule throughout the day and deduplicated by a stable fingerprint, so the same entry is never turned into two alerts. Each provider's cadence follows how often that provider actually publishes.",
+    a: "Changelog sources are fetched once a day at 06:00 UTC, normalised, and deduplicated by a stable fingerprint so the same entry is never turned into two alerts. On-demand repository scans run immediately and use the latest stored events.",
   },
   {
     q: "Does Breaklytix monitor providers that are not in this list?",
@@ -198,7 +198,7 @@ export default function ProvidersPage() {
             against the API calls in your repositories and tells you which files are affected.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 20 }}>
-            <Link href="/docs/changelog" className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>
+            <Link href="/docs/providers" className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>
               How monitoring works
             </Link>
             <Link href="/pricing" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>
@@ -339,7 +339,7 @@ export default function ProvidersPage() {
             </li>
           </ol>
           <p style={{ fontSize: 14, color: "var(--muted-strong, #55555f)", lineHeight: 1.7 }}>
-            Read the details in <Link href="/docs/changelog">provider changes &amp; changelog</Link>, or see how{" "}
+            Read the details in <Link href="/docs/providers">provider changes &amp; changelog</Link>, or see how{" "}
             <Link href="/docs/providers">coverage is decided</Link>.
           </p>
         </section>

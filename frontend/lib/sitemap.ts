@@ -6,7 +6,7 @@ import { DOC_SEO } from "@/lib/docs-seo";
 /**
  * Single source of truth for `/sitemap.xml`.
  *
- * 43 URLs is small enough for one flat urlset, so that is what we ship: one
+ * 29 URLs is small enough for one flat urlset, so that is what we ship: one
  * file a person can open and read top to bottom. A sitemap index would add a
  * second hop for the crawler and nothing else at this size.
  *
@@ -39,8 +39,8 @@ const LEGAL_PAGES: { path: string; priority: number }[] = [
   { path: "/cookies", priority: 0.2 },
 ];
 
-// The one guide written to rank for informational queries. Every other article
-// in /docs is reference material and stays at the default priority.
+// The flagship explainer gets weekly crawl frequency. The other articles —
+// including the two long-form guides — are reference material and stay monthly.
 const FLAGSHIP_DOC = "breaking-api-changes";
 
 function coreEntries(): SitemapEntry[] {

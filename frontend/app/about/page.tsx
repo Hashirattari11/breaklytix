@@ -59,16 +59,16 @@ const jsonLd = {
 
 const PRINCIPLES = [
   {
-    title: "Read-only by default",
-    body: "Repository scanning uses read-only GitHub permissions. Breaklytix never pushes, merges or edits a repository unless you explicitly enable auto-fix pull requests, and even then a human reviews and merges.",
+    title: "Access you control",
+    body: "Repository scanning uses the GitHub access you authorize with the repo scope, including private repositories. Breaklytix reads repository contents to detect API usage; it never pushes, merges or edits a repository unless you explicitly enable auto-fix pull requests, and even then a human reviews and merges.",
   },
   {
     title: "Official sources only",
     body: "Changes come from each provider's own changelog, release notes or release feed. No scraped aggregators, no guessed release dates, no invented severity scores.",
   },
   {
-    title: "No provider secrets stored",
-    body: "Breaklytix detects which APIs your code calls from imports, packages, endpoint strings and environment variable names. It never asks for, stores or transmits the values of your provider keys.",
+    title: "Provider keys encrypted",
+    body: "Scanning detects which APIs your code calls from imports, packages, endpoint strings and environment variable names; it does not need provider credentials. If you add a provider API key for runtime signals, it is encrypted with Fernet at rest and never returned to the browser.",
   },
   {
     title: "Honest empty states",
@@ -142,9 +142,9 @@ export default function AboutPage() {
         <section style={{ marginBottom: 40 }}>
           <h2 className="h2" style={{ fontSize: 22, marginBottom: 10 }}>How it works</h2>
           <ol style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 10, lineHeight: 1.7, fontSize: 15.5 }}>
-            <li>Connect a GitHub repository with read-only access.</li>
+            <li>Connect a GitHub repository through OAuth.</li>
             <li>The scanner maps the providers, SDKs, endpoints and environment variable names your code uses.</li>
-            <li>Provider changelogs are polled and normalised into classified change entries.</li>
+            <li>Provider changelogs are fetched daily and normalised into classified change entries.</li>
             <li>Each entry is matched against your detected usage; matches become alerts with file and line references.</li>
             <li>Mechanical fixes can be proposed as reviewable pull requests.</li>
           </ol>

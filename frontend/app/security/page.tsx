@@ -66,7 +66,7 @@ export default function SecurityPage() {
       <LegalSection id="authentication" title="4. Authentication">
         <ul style={{ paddingLeft: 20 }}>
           <li>Sign-in uses GitHub OAuth 2.0. We never see or store your GitHub password.</li>
-          <li>After OAuth, the backend issues a short-lived, signed session token (30 days) that the frontend keeps in browser storage.</li>
+          <li>After OAuth, the backend issues a signed session token valid for 30 days that the frontend keeps in browser storage. Signing out clears it from that browser.</li>
           <li>The frontend&apos;s GitHub OAuth flow uses a random one-time state value to prevent request forgery.</li>
         </ul>
       </LegalSection>
