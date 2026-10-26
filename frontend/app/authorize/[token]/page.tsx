@@ -203,7 +203,7 @@ export default function AuthorizePage() {
           </div>
 
           <div className="auth-footer">
-            <p>Breaklytix — <a href="/">Detect. Alert. Fix. Automatically.</a></p>
+            <p>Breaklytix — <Link href="/">Detect. Alert. Fix. Automatically.</Link></p>
           </div>
         </div>
       </div>

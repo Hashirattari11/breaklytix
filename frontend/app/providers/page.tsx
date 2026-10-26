@@ -339,8 +339,8 @@ export default function ProvidersPage() {
             </li>
           </ol>
           <p style={{ fontSize: 14, color: "var(--muted-strong, #55555f)", lineHeight: 1.7 }}>
-            Read the details in <a href="/docs/changelog">provider changes &amp; changelog</a>, or see how{" "}
-            <a href="/docs/providers">coverage is decided</a>.
+            Read the details in <Link href="/docs/changelog">provider changes &amp; changelog</Link>, or see how{" "}
+            <Link href="/docs/providers">coverage is decided</Link>.
           </p>
         </section>
 
