@@ -1,5 +1,6 @@
-# Repo root is uploaded because the Vercel project's Root Directory is
-# "frontend" (Vercel uploads the repo root, then builds only frontend/).
+# Repo root is uploaded for both Vercel projects. The frontend project builds
+# frontend/, while the backend project uses root directory "backend/" and needs
+# backend/ included or its Python function is silently omitted.
 # Keep secrets, logs, local state, and unrelated trees out of the bundle.
 # NOTE: Vercel always excludes .git and .env* regardless of this file.
 
@@ -21,8 +22,7 @@
 # Vercel project state (must not be bundled)
 .vercel/
 
-# unrelated backend / CLI / data trees (only frontend/ is built)
-backend/
+# unrelated CLI / data trees
 cli/
 db/
 examples/
