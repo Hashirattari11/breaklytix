@@ -4,9 +4,9 @@ import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Acceptable Use Policy",
+  title: "Acceptable Use and Platform Rules",
   description:
-    `The conduct ${SITE_NAME} prohibits: abuse of the service, API misuse, unauthorized access, and other misuse of the platform.`,
+    `What ${SITE_NAME} prohibits: service abuse, API misuse, unauthorized access, malware, scraping, resale, and other misuse of the platform.`,
   alternates: { canonical: SITE_URL + "/acceptable-use" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/acceptable-use"),

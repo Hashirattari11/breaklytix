@@ -4,7 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/JsonLd";
 import { SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Security & Data Protection",
+  title: "Security, Encryption & Data Protection",
   description:
     `How ${SITE_NAME} protects your data: encrypted credentials, OAuth authentication, scoped GitHub access, access control, and secure logging.`,
   alternates: { canonical: SITE_URL + "/security" },

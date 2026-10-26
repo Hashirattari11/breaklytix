@@ -7,7 +7,7 @@ import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOp
 export const metadata: Metadata = {
   title: "Contact Breaklytix Support and Sales",
   description:
-    `Get help with ${SITE_NAME}: support email, GitHub issues, and legal, privacy, or data-deletion contacts.`,
+    `Contact ${SITE_NAME} for product support, billing questions, bug reports, security disclosures, or legal and privacy requests. Email the team directly.`,
   alternates: { canonical: SITE_URL + "/contact" },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/contact"),
