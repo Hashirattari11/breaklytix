@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalLayout, { LegalSection, LegalTitle, LEGAL_LINKS } from "@/components/LegalLayout";
-import { BreadcrumbJsonLd } from "@/components/JsonLd";
+import { BreadcrumbJsonLd, ContactPageJsonLd } from "@/components/JsonLd";
 import Link from "next/link";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
 
@@ -23,6 +23,7 @@ export default function ContactPage() {
   return (
     <LegalLayout>
       <BreadcrumbJsonLd name="Contact & Support" path="/contact" />
+      <ContactPageJsonLd />
       <LegalTitle
         title="Contact & Support"
         updated="September 8, 2026"

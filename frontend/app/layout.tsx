@@ -28,6 +28,16 @@ export const metadata: Metadata = {
   // Private-by-default: dashboard/admin/auth pages must NOT be indexed.
   // Public marketing pages override this per-page (see /, /pricing, /terms, /privacy).
   robots: { index: false, follow: false },
+  // Search Console / Bing Webmaster ownership proof. Set the env var in Vercel
+  // and redeploy; no code change is needed per project. Google Search Console
+  // is the only way to request indexing and see real coverage data, so this
+  // stays wired up permanently.
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION }
+      : undefined,
+  },
   // NOTE: openGraph/twitter deliberately set NO url, title or description here.
   // A static `url: SITE_URL` in the root layout was inherited by every page, so
   // og:url pointed at the homepage for /pricing, /docs, /contact, /privacy and
