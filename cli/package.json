@@ -5,7 +5,7 @@
   "homepage": "https://breaklytix.site",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Hashirattari11/test.git",
+    "url": "git+https://github.com/Hashirattari11/breaklytix.git",
     "directory": "cli"
   },
   "bugs": {

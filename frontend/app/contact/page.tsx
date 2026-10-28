@@ -42,12 +42,12 @@ export default function ContactPage() {
         <p>
           For bug reports and feature requests, you can also open an issue on our public repository:{" "}
           <a
-            href="https://github.com/Hashirattari11/test/issues"
+            href="https://github.com/Hashirattari11/breaklytix/issues"
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "var(--accent-text, #4f46e5)" }}
           >
-            github.com/Hashirattari11/test/issues
+            github.com/Hashirattari11/breaklytix/issues
           </a>
           . Please do not include API keys, tokens, or other secrets in issues, emails, or screenshots.
         </p>

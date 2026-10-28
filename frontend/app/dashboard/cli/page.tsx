@@ -19,8 +19,8 @@ export default function CliPage() {
   if (!mounted) return null;
 
   const commands = [
-    { cmd: "git clone https://github.com/Hashirattari11/test.git", label: "Get the source", desc: "The CLI is currently installed from the project repository" },
-    { cmd: "cd test/cli && npm install -g .", label: "Install globally", desc: "Requires Node.js 18 or newer" },
+    { cmd: "git clone https://github.com/Hashirattari11/breaklytix.git", label: "Get the source", desc: "The CLI is currently installed from the project repository" },
+    { cmd: "cd breaklytix/cli && npm install -g .", label: "Install globally", desc: "Requires Node.js 18 or newer" },
     { cmd: "breaklytix login", label: "Authenticate", desc: "Paste an API key generated in Settings → API Keys" },
     { cmd: "breaklytix scan", label: "Scan repository", desc: "Scan the current git repository for API usage" },
     { cmd: "breaklytix scan --dir ./path/to/project", label: "Scan a directory", desc: "Scan any local folder without a git repository" },
@@ -165,7 +165,7 @@ export default function CliPage() {
           <h2>Quick Start Guide</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {[
-              { step: 1, title: "Install the CLI", desc: "Clone the project and run cd test/cli && npm install -g . (Node.js 18+)." },
+              { step: 1, title: "Install the CLI", desc: "Clone the project and run cd breaklytix/cli && npm install -g . (Node.js 18+)." },
               { step: 2, title: "Get your API key", desc: "Go to Settings → API Keys in the dashboard and generate a new key." },
               { step: 3, title: "Authenticate", desc: "Run breaklytix login and paste your API key when prompted. The key is validated before it is saved." },
               { step: 4, title: "Scan your project", desc: "Navigate to your project and run breaklytix scan — or breaklytix scan --dir ./path for any folder." },

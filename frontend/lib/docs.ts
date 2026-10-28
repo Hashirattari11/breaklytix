@@ -615,7 +615,7 @@ export const DOCS: DocArticle[] = [
       { t: "p", x: "The CLI is for the moment before code is pushed. It runs a local provider detection pass without sending a repository to the server, and it can trigger a server-side scan when you want the full pipeline. It is distributed from source; there is no published npm package yet." },
       { t: "h", x: "Install" },
       { t: "p", x: "You need Node.js 18 or newer and git. Clone the repository and install the CLI globally:" },
-      { t: "code", x: "git clone https://github.com/Hashirattari11/test.git\ncd test/cli && npm install -g ." },
+      { t: "code", x: "git clone https://github.com/Hashirattari11/breaklytix.git\ncd breaklytix/cli && npm install -g ." },
       { t: "p", x: "The binary is called breaklytix. It works on Linux, macOS and Windows. The configuration is stored in .autofixrc in your home directory and is created with owner-only permissions because it holds a live API key." },
       { t: "h", x: "Authenticate" },
       { t: "ul", x: [
