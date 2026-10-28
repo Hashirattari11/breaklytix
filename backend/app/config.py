@@ -75,7 +75,16 @@ class Settings(BaseSettings):
         alias="SLACK_BOT_SCOPES",
     )
 
-    # ---- Email (Resend REST API) ------------------------------------------
+    # ---- Email (transactional sending) ------------------------------------
+    # Active transport: "brevo" (default) or "resend". The Breaklytix domain is
+    # verified in Brevo, so production sends go through Brevo first; Resend
+    # stays available as a fallback via EMAIL_PROVIDER=resend.
+    email_provider: str = Field(default="brevo", alias="EMAIL_PROVIDER")
+    brevo_api_key: str = Field(default="", alias="BREVO_API_KEY")
+    brevo_from_email: str = Field(
+        default="Breaklytix <noreply@breaklytix.site>",
+        alias="BREVO_FROM_EMAIL",
+    )
     resend_api_key: str = Field(default="", alias="RESEND_API_KEY")
     resend_from_email: str = Field(
         default="Breaklytix <noreply@breaklytix.site>",

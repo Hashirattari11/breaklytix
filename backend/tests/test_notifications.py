@@ -96,8 +96,8 @@ def test_test_email_fails_closed_without_address(monkeypatch):
 
 def test_test_email_sends_real(monkeypatch):
     monkeypatch.setattr(email_service, "db", lambda: _RespDB([{"email": "a@b.com"}]))
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <a@b.dev>")
     monkeypatch.setattr(email_service, "_recent_same_fingerprint", lambda fp: False)
     monkeypatch.setattr(email_service, "_daily_count", lambda uid: 0)
     monkeypatch.setattr(email_service, "_insert_delivery", lambda **kw: None)

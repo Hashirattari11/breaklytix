@@ -1,8 +1,8 @@
 """Email service + notification preferences + test-email endpoint tests.
 
-Pure unit tests (no live DB / no live Resend): the Supabase client, settings,
-and the Resend transport are monkeypatched, matching the project's existing
-offline test style. Real sends are verified end-to-end against deployment.
+Pure unit tests (no live DB / no live email provider): the Supabase client,
+settings, and the email transport are monkeypatched, matching the project's
+existing offline test style. Real sends are verified end-to-end against deployment.
 """
 import pytest
 
@@ -64,41 +64,44 @@ class _FakeDB:
 # sender_problem / sender_is_sandbox
 # ---------------------------------------------------------------------------
 def test_sender_problem_missing_key(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "")
     problem = sender_problem()
     assert problem and problem.startswith(SENDER_NOT_CONFIGURED)
 
 
 def test_sender_problem_missing_from(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "")
     problem = sender_problem()
     assert problem and problem.startswith(SENDER_NOT_CONFIGURED)
 
 
 def test_sender_problem_malformed_from(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "not-an-email")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "not-an-email")
     problem = sender_problem()
     assert problem and problem.startswith(SENDER_NOT_CONFIGURED)
 
 
 def test_sender_problem_valid(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <no-reply@autofix.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <no-reply@autofix.dev>")
     assert sender_problem() is None
 
 
 def test_sender_problem_valid_name_with_spaces(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
     monkeypatch.setattr(
-        email_service.settings, "resend_from_email",
-        "Breaklytix <onboarding@resend.dev>",
+        email_service.settings, "brevo_from_email",
+        "Breaklytix Labs <onboarding@brevo.com>",
     )
     assert sender_problem() is None
+    assert sender_is_sandbox() is False
 
 
-def test_sender_is_sandbox(monkeypatch):
+def test_sender_is_sandbox_resend_provider(monkeypatch):
+    # Brevo has no sandbox sender; the Resend sandbox only applies to Resend.
+    monkeypatch.setattr(email_service.settings, "email_provider", "resend")
     monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <onboarding@resend.dev>")
     assert sender_is_sandbox() is True
     monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
@@ -145,7 +148,7 @@ def test_resolve_user_email(monkeypatch):
 # send_alert_email
 # ---------------------------------------------------------------------------
 def test_send_fails_closed_on_sender_config(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "")
     inserted = []
     monkeypatch.setattr(
         email_service, "_insert_delivery",
@@ -159,8 +162,8 @@ def test_send_fails_closed_on_sender_config(monkeypatch):
 
 
 def test_send_success_returns_message_id(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <a@b.dev>")
     monkeypatch.setattr(email_service, "_recent_same_fingerprint", lambda fp: False)
     monkeypatch.setattr(email_service, "_daily_count", lambda uid: 0)
     monkeypatch.setattr(email_service, "_insert_delivery", lambda **kw: None)
@@ -175,12 +178,12 @@ def test_send_success_returns_message_id(monkeypatch):
 
 
 def test_send_failure_categorizes_rejected(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <a@b.dev>")
     monkeypatch.setattr(email_service, "_recent_same_fingerprint", lambda fp: False)
     monkeypatch.setattr(email_service, "_daily_count", lambda uid: 0)
     monkeypatch.setattr(email_service, "_insert_delivery", lambda **kw: None)
-    monkeypatch.setattr(email_service, "send_email", lambda *a, **k: (False, "403: rejected by Resend"))
+    monkeypatch.setattr(email_service, "send_email", lambda *a, **k: (False, "403: rejected by Brevo"))
 
     result = send_alert_email(
         user_id="u1", recipient="a@b.com", alert_type="alert",
@@ -191,8 +194,8 @@ def test_send_failure_categorizes_rejected(monkeypatch):
 
 
 def test_send_failure_categorizes_rate_limit(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <a@b.dev>")
     monkeypatch.setattr(email_service, "_recent_same_fingerprint", lambda fp: False)
     monkeypatch.setattr(email_service, "_daily_count", lambda uid: 0)
     monkeypatch.setattr(email_service, "_insert_delivery", lambda **kw: None)
@@ -207,8 +210,8 @@ def test_send_failure_categorizes_rate_limit(monkeypatch):
 
 
 def test_send_dedup_suppresses_duplicate(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <a@b.dev>")
     sent = []
     monkeypatch.setattr(email_service, "_recent_same_fingerprint", lambda fp: True)
     monkeypatch.setattr(email_service, "_insert_delivery", lambda **kw: None)
@@ -223,8 +226,8 @@ def test_send_dedup_suppresses_duplicate(monkeypatch):
 
 
 def test_send_daily_cap(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
-    monkeypatch.setattr(email_service.settings, "resend_from_email", "Breaklytix <a@b.dev>")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_from_email", "Breaklytix <a@b.dev>")
     monkeypatch.setattr(email_service, "_recent_same_fingerprint", lambda fp: False)
     monkeypatch.setattr(email_service, "_daily_count", lambda uid: email_service.MAX_ALERT_EMAILS_PER_DAY + 1)
     monkeypatch.setattr(email_service, "_insert_delivery", lambda **kw: None)

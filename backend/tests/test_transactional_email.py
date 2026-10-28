@@ -43,9 +43,9 @@ class _FakeDB:
 
 
 def _cfg_ok(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "re_abc")
     monkeypatch.setattr(
-        email_service.settings, "resend_from_email", "Breaklytix <no-reply@autofix.dev>"
+        email_service.settings, "brevo_from_email", "Breaklytix <no-reply@autofix.dev>"
     )
 
 
@@ -53,7 +53,7 @@ def _cfg_ok(monkeypatch):
 # send_transactional_email
 # ---------------------------------------------------------------------------
 def test_transactional_fails_closed_on_sender_config(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "")
+    monkeypatch.setattr(email_service.settings, "brevo_api_key", "")
     inserted = []
     monkeypatch.setattr(
         email_service, "_insert_delivery",
@@ -87,7 +87,10 @@ def test_transactional_success_returns_accepted_status(monkeypatch):
 
 
 def test_transactional_sandbox_warning(monkeypatch):
-    monkeypatch.setattr(email_service.settings, "resend_api_key", "re_abc")
+    monkeypatch.setattr(email_service.settings, "email_provider", "resend")
+    monkeypatch.setattr(
+        email_service.settings, "resend_api_key", "re_abc",
+    )
     monkeypatch.setattr(
         email_service.settings, "resend_from_email",
         "Breaklytix <onboarding@resend.dev>",  # sandbox sender

@@ -209,17 +209,44 @@ def debug_crypto(_: None = Depends(require_internal_secret)) -> dict:
 
 
 @app.get("/debug/email", tags=["meta"])
-def debug_email(_: None = Depends(require_internal_secret)) -> dict:
-    """Verify RESEND_API_KEY is loaded and email sending works from this deployment."""
+def debug_email(
+    to: str | None = None,
+    _: None = Depends(require_internal_secret),
+) -> dict:
+    """Verify the active email provider API key is loaded and sending works.
+
+    The active provider comes from EMAIL_PROVIDER (default: "brevo"); the
+    response reports the key state + a real test send for that provider.
+
+    Optional `to` overrides the recipient (must be a plain email address) so a
+    real delivery can be verified against a mailbox you control. Still guarded
+    by X-Internal-Secret, so this cannot be used as an open relay.
+    """
     import re
-    from .email_client import send_email
-    # Extract the email address from "Name <email>" for the test recipient
-    m = re.search(r"<([^>]+)>", settings.resend_from_email or "")
-    recipient = m.group(1) if m else "test@example.com"
+    from .email_client import get_provider, send_email
+
+    provider = get_provider()
+    if provider == "brevo":
+        api_key = settings.brevo_api_key
+        from_addr = settings.brevo_from_email
+    else:
+        api_key = settings.resend_api_key
+        from_addr = settings.resend_from_email
+
+    sender_match = re.search(r"<([^>]+)>", from_addr or "")
+    sender_addr = sender_match.group(1) if sender_match else "test@example.com"
+    if to:
+        if not re.fullmatch(r"[^<>@\s]+@[^<>@\s]+\.[^<>@\s]+", to):
+            raise StarletteHTTPException(status_code=400, detail="Invalid `to` address")
+        recipient = to
+    else:
+        recipient = sender_addr
     return {
-        "resend_api_key_loaded": bool(settings.resend_api_key),
-        "resend_key_prefix": (settings.resend_api_key or "")[:8] + "..." if settings.resend_api_key else "NONE",
-        "resend_from_email": settings.resend_from_email,
+        "provider": provider,
+        "api_key_loaded": bool(api_key),
+        "api_key_prefix": (api_key or "")[:8] + "..." if api_key else "NONE",
+        "from_email": from_addr,
+        "recipient": recipient,
         "frontend_base_url": settings.frontend_base_url,
         "test_send": send_email(
             recipient,

@@ -3,10 +3,10 @@
 Every email in the system flows through here so that:
   * the sender is validated up-front (fail closed with a clear message),
   * every send attempt is persisted to `email_deliveries` (never secrets),
-  * Resend errors are categorized (sender_config | rejected | rate_limit |
-    network | unknown) for honest surfacing,
+  * the active provider errors are categorized (sender_config | rejected |
+    rate_limit | network | unknown) for honest surfacing,
   * duplicate alert emails are suppressed via a per-event fingerprint + 1h
-    cooldown, and a per-user daily cap protects the Resend free tier.
+    cooldown, and a per-user daily cap protects the provider free tier.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from .config import settings
 from .db import db
-from .email_client import send_email
+from .email_client import get_provider, send_email
 
 # 10 categories the UI exposes. All default ON; rows in notification_preferences
 # override per user/category.
@@ -38,7 +38,7 @@ SENDER_NOT_CONFIGURED = "Email sender is not configured correctly."
 # "Name may contain spaces <email>"; angle brackets and @ not allowed in the name.
 _NAME_EMAIL = re.compile(r"^[^<>@]+ <[^<>@]+@[^<>@]+>$")
 
-# Daily caps so one burst of events cannot exhaust the Resend free tier.
+# Daily caps so one burst of events cannot exhaust the provider free tier.
 MAX_ALERT_EMAILS_PER_DAY = 5
 MAX_DIGEST_EMAILS_PER_DAY = 1
 DEDUP_WINDOW_MINUTES = 60
@@ -51,12 +51,28 @@ def _now_iso() -> str:
 def sender_problem() -> str | None:
     """Return a fail-closed error string, or None if the sender is usable.
 
-    A usable sender needs: an API key, and a well-formed "Name <email>"
-    sender. The Resend sandbox sender (onboarding@resend.dev) is *allowed*
-    because it still delivers to the account owner (used for /debug/email and
-    test emails), but callers can see the sandbox note via
-    `sender_is_sandbox()`.
+    A usable sender needs an API key, and a well-formed "Name <email>" sender
+    for the ACTIVE provider. The provider is selected via EMAIL_PROVIDER
+    (default: "brevo"). The Brevo sending domain is verified, so a verified
+    sender is required for real delivery; the Resend sandbox sender
+    (onboarding@resend.dev) is allowed because it still delivers to the account
+    owner (used for /debug/email and test emails), but callers can see the
+    sandbox note via `sender_is_sandbox()`.
     """
+    provider = get_provider()
+    if provider == "brevo":
+        if not settings.brevo_api_key:
+            return f"{SENDER_NOT_CONFIGURED} (BREVO_API_KEY is not set)"
+        frm = (settings.brevo_from_email or "").strip()
+        if not frm:
+            return f"{SENDER_NOT_CONFIGURED} (BREVO_FROM_EMAIL is not set)"
+        if not _NAME_EMAIL.match(frm):
+            return (
+                f"{SENDER_NOT_CONFIGURED} (BREVO_FROM_EMAIL must be "
+                f'"Name <email>" — got {frm!r})'
+            )
+        return None
+    # Resend fallback.
     if not settings.resend_api_key:
         return f"{SENDER_NOT_CONFIGURED} (RESEND_API_KEY is not set)"
     frm = (settings.resend_from_email or "").strip()
@@ -71,7 +87,27 @@ def sender_problem() -> str | None:
 
 
 def sender_is_sandbox() -> bool:
+    if get_provider() == "brevo":
+        # Brevo has no sandbox sender; verified-domain senders only.
+        return False
     return "@resend.dev" in (settings.resend_from_email or "")
+
+
+def _sender_warning() -> str | None:
+    """Human-readable note when the active provider uses a sandbox/test sender."""
+    if not sender_is_sandbox():
+        return None
+    if get_provider() == "brevo":
+        return (
+            "Sent via the Brevo sandbox sender (onboarding@brevo.com) — "
+            "it only delivers to the account owner's email. Configure a "
+            "verified BREVO_FROM_EMAIL for general delivery."
+        )
+    return (
+        "Sent via the Resend sandbox sender (onboarding@resend.dev) — "
+        "it only delivers to the account owner's email. Configure a "
+        "verified RESEND_FROM_EMAIL for general delivery."
+    )
 
 
 def resolve_user_email(user_id: str) -> str | None:
@@ -137,7 +173,7 @@ def _insert_delivery(
                 "recipient": recipient,
                 "subject": subject,
                 "status": status,
-                "provider": "resend",
+                "provider": get_provider(),
                 "provider_message_id": provider_message_id,
                 "error_category": error_category,
                 "http_status": http_status,
@@ -192,7 +228,7 @@ def _daily_count(user_id: str | None) -> int:
 
 def _categorize(status_code: int | None, detail: str) -> str:
     lower = (detail or "").lower()
-    if "not configured" in lower or "resend_api_key" in lower:
+    if "not configured" in lower or "brevo_api_key" in lower or "resend_api_key" in lower:
         return "sender_config"
     if status_code == 429 or "rate" in lower or "429" in lower:
         return "rate_limit"
@@ -221,7 +257,8 @@ def send_alert_email(
       {ok, status, provider_message_id?, error_category?, detail?,
        skipped_duplicate?, sender_warning?}
 
-    `ok` is only True when Resend accepted the request (2xx with a message id).
+    `ok` is only True when the active provider accepted the request (2xx with a
+    message id).
     """
     subj = subject or ""
     problem = sender_problem()
@@ -262,7 +299,7 @@ def send_alert_email(
     ok, detail = send_email(recipient, subject, html, text)
 
     if ok:
-        # detail is the Resend message id on success.
+        # detail is the provider message id on success.
         _insert_delivery(
             user_id=user_id, alert_id=alert_id, alert_type=alert_type,
             recipient=recipient, subject=subj, status="sent",
@@ -273,12 +310,9 @@ def send_alert_email(
             "ok": True, "status": "sent", "provider_message_id": detail,
             "detail": detail,
         }
-        if sender_is_sandbox():
-            result["sender_warning"] = (
-                "Sent via the Resend sandbox sender (onboarding@resend.dev) — "
-                "it only delivers to the account owner's email. Configure a "
-                "verified RESEND_FROM_EMAIL for general delivery."
-            )
+        warning = _sender_warning()
+        if warning:
+            result["sender_warning"] = warning
         return result
 
     # Failure path: parse the numeric HTTP code from detail if present.
@@ -318,9 +352,9 @@ def send_transactional_email(
     Returns a dict (same shape as send_alert_email):
       {ok, status, provider_message_id?, error_category?, detail?, sender_warning?}
 
-    `ok` is True only when Resend accepted the request (2xx + message id).
+    `ok` is True only when the active provider accepted the request (2xx + message id).
     The `status` is deliberately "accepted by provider" — we can never claim
-    actual "delivered" because Resend does not return a delivery receipt here.
+    actual "delivered" because the provider does not return a delivery receipt here.
     """
     subj = subject or ""
     problem = sender_problem()
@@ -351,12 +385,9 @@ def send_transactional_email(
             "provider_message_id": detail,
             "detail": detail,
         }
-        if sender_is_sandbox():
-            result["sender_warning"] = (
-                "Sent via the Resend sandbox sender (onboarding@resend.dev) — "
-                "it only delivers to the account owner's email. Configure a "
-                "verified RESEND_FROM_EMAIL for general delivery."
-            )
+        warning = _sender_warning()
+        if warning:
+            result["sender_warning"] = warning
         return result
 
     status_code = None
