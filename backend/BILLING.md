@@ -1,9 +1,9 @@
-# Billing (Stripe) — runbook
+﻿# Billing (Stripe) â€” runbook
 
 Breaklytix already has a complete Stripe Billing integration in code. It is
 **not configured in production**: no `STRIPE_*` variables exist in the Vercel
 `backend` project, so every checkout attempt currently returns `503` with
-"Payments are not available yet". Nothing in this file requires a code change —
+"Payments are not available yet". Nothing in this file requires a code change â€”
 it is the checklist to switch the existing integration on.
 
 Status on 2026-10-29:
@@ -11,11 +11,11 @@ Status on 2026-10-29:
 | Item | Status |
 |---|---|
 | Checkout / portal / webhook routes | Present and deployed (`backend-virid-ten-43.vercel.app`) |
-| Webhook rejects unsigned requests | Verified: `POST /billing/webhooks/stripe/billing` → `400` |
+| Webhook rejects unsigned requests | Verified: `POST /billing/webhooks/stripe/billing` â†’ `400` |
 | Unit tests (entitlement, idempotency, config guards) | 16 passed (`tests/test_billing.py`) |
 | Full backend suite | 313 passed |
 | Live Stripe keys | **NOT CONFIGURED** |
-| Real checkout → payment → webhook end-to-end | **NOT TESTED** |
+| Real checkout â†’ payment â†’ webhook end-to-end | **NOT TESTED** |
 
 ## What the code does
 
@@ -42,7 +42,7 @@ Webhook events handled: `checkout.session.completed`,
 
 ## 1. Create the products and prices
 
-Stripe Dashboard → **Product catalog** → add three products, each with a
+Stripe Dashboard â†’ **Product catalog** â†’ add three products, each with a
 **recurring monthly** price in USD matching the public pricing page:
 
 | Plan | Amount | Reciprocal limit |
@@ -52,11 +52,11 @@ Stripe Dashboard → **Product catalog** → add three products, each with a
 | Enterprise | $10,000 / month | unlimited (`-1`) |
 
 Copy each `price_...` id. Do not create new amounts that differ from
-`/pricing` — the site would then advertise a price Stripe does not charge.
+`/pricing` â€” the site would then advertise a price Stripe does not charge.
 
 ## 2. Set the backend environment variables
 
-Vercel → project **backend** → Settings → Environment Variables → Production
+Vercel â†’ project **backend** â†’ Settings â†’ Environment Variables â†’ Production
 (and Preview if you want to test there):
 
 ```
@@ -74,7 +74,7 @@ Local development: put the same keys in `backend/.env` (gitignored).
 
 ## 3. Register the webhook
 
-Stripe Dashboard → **Developers → Webhooks → Add endpoint**:
+Stripe Dashboard â†’ **Developers â†’ Webhooks â†’ Add endpoint**:
 
 ```
 https://backend-virid-ten-43.vercel.app/billing/webhooks/stripe/billing
@@ -127,15 +127,15 @@ No migration is required for this change set.
 ## 5. Verify (test mode, before live keys)
 
 1. Log in as a normal user, open `/dashboard/billing`.
-2. Click **Upgrade** → Stripe Checkout opens with the correct amount.
+2. Click **Upgrade** â†’ Stripe Checkout opens with the correct amount.
 3. Pay with `4242 4242 4242 4242`.
 4. Stripe redirects to `/dashboard/billing?success=true`.
-5. Stripe CLI shows `checkout.session.completed` → `200`; the DB row for that
+5. Stripe CLI shows `checkout.session.completed` â†’ `200`; the DB row for that
    user has `plan_status=active`, `stripe_subscription_id=sub_...`,
    `monitored_api_limit` = the plan value.
-6. In Stripe, cancel the subscription → `customer.subscription.deleted` → DB
+6. In Stripe, cancel the subscription â†’ `customer.subscription.deleted` â†’ DB
    shows `plan_status=canceled`, limit `0`.
-7. Retry a failed card → `invoice.payment_failed` sets `past_due`; a successful
+7. Retry a failed card â†’ `invoice.payment_failed` sets `past_due`; a successful
    retry (`invoice.paid`) restores `active`.
 
 Nothing above has been run against a real Stripe account yet. Treat the
@@ -160,12 +160,30 @@ integration as **unverified until these seven steps pass in test mode**.
 - **Refunds and taxes** are not implemented in code; use the Stripe Dashboard
   or the Billing Portal.
 - **Stripe availability.** Stripe only onboards businesses in supported
-  countries (https://stripe.com/global). If your entity is not eligible, the
-  code cannot be used as-is; a merchant-of-record provider would need its own
-  adapter. Do not promise customers card payments before the account is
+  countries (https://stripe.com/global). Pakistan is not on that list, so a
+  Pakistan-registered entity cannot complete Stripe onboarding; a foreign
+  entity (US LLC / UK Ltd) with its own tax id and bank account is the only
+  legitimate route, and that is a legal/tax decision, not a code change.
+  Merchant-of-record alternatives that list Pakistan as a supported seller
+  country (Paddle, verified 2026-10-29) would need their own adapter â€” none is
+  implemented. Do not promise customers card payments before the account is
   approved.
 
-## 7. Security notes
+## 7. If Stripe is not an option
+
+Do not put fake keys in production to "make the button work". The options, in
+order of effort:
+
+| Option | What it needs | Status |
+|---|---|---|
+| Stripe + foreign entity | Incorporation, foreign tax id, foreign bank account | Code ready, account **BLOCKED** for a Pakistan-based entity |
+| Paddle (merchant of record) | Paddle seller account + product/price ids; new adapter (checkout, webhook signature `Paddle-Signature`, subscription sync) | Not implemented |
+| Local gateway (e.g. Safepay) | Merchant account + adapter | Not implemented |
+
+Until one of these is approved and configured, checkout correctly returns
+`503` and the pricing page tells the customer to contact support.
+
+## 8. Security notes
 
 - Return URLs are pinned to the configured frontend origin; an authenticated
   user cannot turn Checkout into an open redirect.
