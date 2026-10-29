@@ -1,4 +1,4 @@
-import { SITE_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
+import { SITE_NAME, SITE_URL, SUPPORT_EMAIL, GITHUB_REPO_URL } from "@/lib/site";
 import { jsonLdHtml } from "@/lib/jsonld";
 
 /**
@@ -42,8 +42,10 @@ export function ContactPageJsonLd() {
     url: `${SITE_URL}/contact`,
     mainEntity: {
       "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
       url: `${SITE_URL}/`,
+      sameAs: [GITHUB_REPO_URL],
       contactPoint: [
         {
           "@type": "ContactPoint",

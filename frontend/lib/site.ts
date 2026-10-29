@@ -13,6 +13,18 @@ export const SUPPORT_EMAIL =
   (process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "").trim() || "support@breaklytix.site";
 
 /**
+ * The ONE external profile we can honestly claim as the same entity.
+ *
+ * Organization.sameAs is how search engines connect a brand name to profiles
+ * they already trust. The repository is public, links back to this site, and is
+ * maintained by the same operator — so it is a real `sameAs`. Social handles,
+ * Crunchbase, G2 and similar were deliberately NOT added: none exist yet, and a
+ * fabricated sameAs is worse than an empty one (it teaches the entity graph
+ * that the brand is someone else).
+ */
+export const GITHUB_REPO_URL = "https://github.com/Hashirattari11/breaklytix";
+
+/**
  * Build the per-page `openGraph` block for a public marketing/docs page.
  *
  * Next.js does NOT derive og:url from `alternates.canonical`, and the root
@@ -53,12 +65,12 @@ export function absoluteUrl(path = "/"): string {
  * articles read their own dates from `lib/docs-seo.ts`.
  */
 export const CONTENT_UPDATED: Record<string, string> = {
-  "/": "2026-10-26",
-  "/about": "2026-10-26",
+  "/": "2026-10-29",
+  "/about": "2026-10-29",
   "/providers": "2026-10-21",
-  "/pricing": "2026-10-26",
+  "/pricing": "2026-10-29",
   "/docs": "2026-10-26",
-  "/contact": "2026-10-21",
+  "/contact": "2026-10-29",
   "/privacy": "2026-10-21",
   "/terms": "2026-10-26",
   "/security": "2026-10-26",

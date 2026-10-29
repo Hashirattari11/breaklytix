@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PricingClient from "../../components/PricingClient";
 import { PRICING_FAQ } from "../../lib/pricing-faq";
-import { SITE_URL, SITE_NAME, pageOpenGraph } from "../../lib/site";
+import { SITE_URL, SITE_NAME, GITHUB_REPO_URL, pageOpenGraph } from "../../lib/site";
 import { jsonLdHtml } from "../../lib/jsonld";
 
 export const metadata: Metadata = {
@@ -27,6 +27,7 @@ const PRICING_JSON_LD = {
       name: SITE_NAME,
       url: `${SITE_URL}/`,
       logo: `${SITE_URL}/logo.png`,
+      sameAs: [GITHUB_REPO_URL],
     },
     {
       "@type": "Product",

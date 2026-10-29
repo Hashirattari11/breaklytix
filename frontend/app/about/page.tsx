@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalFooter } from "@/components/LegalLayout";
 import { LogoMark } from "@/components/Logo";
 import Link from "next/link";
-import { LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, pageOpenGraph } from "@/lib/site";
+import { LEGAL_ENTITY, SITE_NAME, SITE_URL, SUPPORT_EMAIL, GITHUB_REPO_URL, pageOpenGraph } from "@/lib/site";
 import { jsonLdHtml } from "@/lib/jsonld";
 
 /**
@@ -45,7 +45,7 @@ const jsonLd = {
       logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
       description: `${SITE_NAME} monitors third-party API changelogs and maps breaking changes to the code that depends on them.`,
       email: SUPPORT_EMAIL,
-      sameAs: [] as string[],
+      sameAs: [GITHUB_REPO_URL],
     },
     {
       "@type": "BreadcrumbList",

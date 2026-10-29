@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoc, docsBySection, relatedDocs, prevNext, type DocBlock } from "@/lib/docs";
 import { DOC_SEO } from "@/lib/docs-seo";
-import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { SITE_URL, SITE_NAME, GITHUB_REPO_URL } from "@/lib/site";
 import { jsonLdHtml } from "@/lib/jsonld";
 import { LogoMark } from "@/components/Logo";
 
@@ -46,12 +46,19 @@ function ArticleJsonLd({ doc }: { doc: { title: string; slug: string; summary: s
     mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/docs/${doc.slug}` },
     dateModified: seo?.updated,
     inLanguage: "en",
-    author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
+    author: {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
+    },
     publisher: {
       "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
       url: `${SITE_URL}/`,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
+      sameAs: [GITHUB_REPO_URL],
     },
   };
   return (

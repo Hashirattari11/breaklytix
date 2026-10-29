@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LandingClient from "../components/LandingClient";
-import { SITE_URL, SITE_DESCRIPTION, pageOpenGraph } from "../lib/site";
+import { SITE_URL, SITE_DESCRIPTION, GITHUB_REPO_URL, pageOpenGraph } from "../lib/site";
 import { jsonLdHtml } from "../lib/jsonld";
 import { LANDING_FAQ } from "../lib/landing-faq";
 
@@ -50,6 +50,11 @@ const jsonLd = {
       name: "Breaklytix",
       url: SITE_URL + "/",
       logo: SITE_URL + "/logo.png",
+      description: SITE_DESCRIPTION,
+      // Only the public repository: it links back to this site, so the claim is
+      // reciprocal and verifiable. Do not pad this with profiles that do not
+      // exist yet.
+      sameAs: [GITHUB_REPO_URL],
     },
     {
       "@type": "WebSite",
