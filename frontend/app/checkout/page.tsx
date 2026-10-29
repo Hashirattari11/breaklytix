@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function CheckoutPage() {
+function CheckoutInner() {
   const params = useSearchParams();
   const txn = params.get("_ptxn");
   const [status, setStatus] = useState<string>("Loading checkout…");
@@ -46,9 +46,7 @@ export default function CheckoutPage() {
     };
     document.body.appendChild(script);
 
-    return () => {
-      // leave the script in place; Paddle is a singleton
-    };
+    return () => {};
   }, [txn]);
 
   return (
@@ -58,5 +56,13 @@ export default function CheckoutPage() {
         <p className="text-slate-600">{status}</p>
       </div>
     </main>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen flex items-center justify-center bg-slate-50"><p>Loading…</p></main>}>
+      <CheckoutInner />
+    </Suspense>
   );
 }
