@@ -43,4 +43,4 @@ Happy to adjust the wording or move it to a different section.
 - [x] No tracking parameters, canonical URL `https://breaklytix.site/`
 - [x] Link returns HTTP 200 (checked 2026-10-29)
 - [x] Author disclosed in the PR body
-- [ ] Fork + push + open PR — **waiting for approval**
+- [x] Fork + push + open PR — PR #236, opened 2026-10-29

@@ -1,4 +1,10 @@
-# Awesome-list PRs — prepared 2026-10-29, NOT opened
+# Awesome-list PRs — checked 2026-10-29
+
+**Status: PR #236 is open** — https://github.com/yosriady/awesome-api-devtools/pull/236
+(1 file, +1 line, author disclosed in the description). Opened 2026-10-29 from
+`Hashirattari11:add-breaklytix` against `master`. Nothing is merged, so there is
+no backlink yet — a link only counts once the maintainer merges it and the entry
+is visible on the served page.
 
 Four candidate lists were checked against their own rules before writing
 anything. Only one has a category where a closed-source, commercial API-change
@@ -32,16 +38,19 @@ the exact maintainers we want to reach later.
 
 - `awesome-api-devtools.patch` — the exact diff, one added line.
 - `awesome-api-devtools-pr.md` — PR title + body, including the author
-  disclosure. Not posted.
+  disclosure. Posted as PR #236.
 
-## Before opening (needs your approval)
+## Opening (done)
 
-1. Fork `yosriady/awesome-api-devtools` under `Hashirattari11` and push the
-   branch `add-breaklytix`.
-2. Open the PR with the body in `awesome-api-devtools-pr.md` (it states that the
-   submitter is the author).
-3. Wait for maintainer response. No follow-up email — GitHub notifications are
-   the channel, and the list has no published editorial inbox.
+Done on 2026-10-29: fork created under `Hashirattari11`, branch `add-breaklytix`
+pushed (commit `32a6bc4`), PR opened with the body above:
+**https://github.com/yosriady/awesome-api-devtools/pull/236**
+
+Next: wait for the maintainer. No follow-up email — GitHub notifications are the
+channel, and the list has no published editorial inbox. If merged, record the
+live URL in `backlink-agent/data/prospects.csv` (`link_url`) so the weekly
+`--check-links` run can verify the href.
+
 
 ## If it is rejected
 
