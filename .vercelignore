@@ -27,6 +27,10 @@ cli/
 db/
 examples/
 bx/
+# backlink-agent keeps crawled third-party HTML, prospect contacts and drafts on
+# this machine; none of that belongs in a deploy bundle. seo/ is research notes.
+backlink-agent/
+seo/
 
 # generated reports / scratch scripts at repo root
 *_REPORT.md
