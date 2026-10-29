@@ -1,0 +1,63 @@
+# backlink-agent configuration
+#
+# Values marked FILL were not provided and are NOT guessed. The agent detects
+# them, warns loudly, and skips the features that depend on them.
+
+my_domain: breaklytix.site
+
+# Derived from the live site crawl on 2026-10-28 (title, headings, /docs topics).
+# Override if you want the prospecting queries aimed somewhere else.
+niche: "developer tools / API change monitoring"
+
+target_countries: [US, UAE, PK]
+
+# FILL: 3-5 real competitors you actually compete with for the same buyer.
+# Left empty on purpose - naming a competitor is a factual claim about your
+# market, and gap analysis without real data would just produce noise.
+# Example shape:
+#   competitor_domains:
+#     - example-competitor.com
+#     - another-one.io
+competitor_domains: []
+
+# Verified to exist (it is the sender on the Brevo transactional setup).
+# Change it if you want outreach on a dedicated mailbox.
+outreach_email: support@breaklytix.site
+
+daily_send_limit: 25
+
+# Safety default. true = actually send from the connected mailbox.
+# Keep it false until drafts have been reviewed.
+AUTO_SEND: false
+
+# ---------------------------------------------------------------------------
+# Optional tuning. Defaults are deliberately slow and polite.
+# ---------------------------------------------------------------------------
+politeness:
+  user_agent: "BreaklytixBacklinkAgent/1.0 (+https://breaklytix.site)"
+  delay_seconds: 2.0          # minimum gap between requests to the same host
+  timeout_seconds: 20
+  max_pages_per_domain: 6     # hard cap per run, per domain
+  retries: 2
+  cache_ttl_hours: 168
+
+scoring:
+  drop_below: 50
+  max_external_links: 120     # above this a page looks like a link list, not a resource
+  thin_content_words: 300
+
+search:
+  # none | serper | brave
+  # "none" is the default because scraping Google/DuckDuckGo result pages
+  # violates their terms. With none, the agent still runs on
+  # data/seeds.txt + your CSV exports + competitor gap.
+  provider: none
+  max_queries_per_run: 25
+  results_per_query: 10
+  api_key_env: SERPER_API_KEY
+
+outreach:
+  sender_name: "Muhammad Hashir Attari"
+  product_name: "Breaklytix"
+  followup_after_days: 4
+  # Guest post / resource pitch angle is generated from the crawled profile.

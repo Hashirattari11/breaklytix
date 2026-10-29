@@ -1,0 +1,11 @@
+# Required
+requests>=2.32.0
+beautifulsoup4>=4.12.0
+PyYAML>=6.0.1
+
+# Optional - the agent degrades gracefully without these
+# anthropic>=0.40.0            # AI email drafting (needs ANTHROPIC_API_KEY)
+# playwright>=1.45.0           # directory_submit.py (needs: playwright install chromium)
+# google-api-python-client>=2.140.0   # Gmail drafts/sending
+# google-auth-oauthlib>=1.2.0
+# pytest>=8.0.0                # tests

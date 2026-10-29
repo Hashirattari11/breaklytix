@@ -73,3 +73,32 @@ frontend/tc_report.txt
 frontend/wrap_out.txt
 frontend/clean_out.txt
 .vercel
+
+# ---- backlink-agent (local state, never committed) ----
+# Crawl cache, generated drafts, prospect data and reports contain third-party
+# page copies and contact details. They stay on this machine.
+backlink-agent/data/cache/
+backlink-agent/data/drafts/
+backlink-agent/data/screenshots/
+backlink-agent/data/reports/
+backlink-agent/data/backlinks/*.csv
+backlink-agent/data/prospects.csv
+backlink-agent/data/prospects_raw.jsonl
+backlink-agent/data/scored.jsonl
+backlink-agent/data/competitor_gap.json
+backlink-agent/data/prospect_run.json
+backlink-agent/data/link_report.json
+backlink-agent/data/link_history.json
+backlink-agent/data/rdap_cache.json
+backlink-agent/data/directory_attempts.jsonl
+backlink-agent/data/site_profile.json
+backlink-agent/data/keywords.json
+backlink-agent/logs/
+backlink-agent/.env
+backlink-agent/.venv/
+
+# Credentials and tokens, wherever they are
+gmail_token.json
+*client_secret*.json
+*token*.json
+

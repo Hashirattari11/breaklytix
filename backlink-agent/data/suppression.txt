@@ -1,0 +1,9 @@
+# Suppression list: anyone who asked not to be contacted again.
+#
+# One entry per line, either a domain (example.com) or an email address.
+# Checked before any draft is created. Lines starting with # are ignored.
+# Append automatically? No - add entries by hand when someone replies "no",
+# so the decision is always a human one.
+
+# example.com
+# editor@example.com

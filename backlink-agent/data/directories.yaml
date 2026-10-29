@@ -1,0 +1,71 @@
+# Directories the agent may fill, after you vet each one yourself.
+#
+# approved: false  -> skipped entirely (this is the default, on purpose)
+# approved: true   -> the agent will open it and fill the fields
+#
+# `fields` maps a logical value to a CSS selector on that site. Selectors are
+# NOT pre-filled, because a guessed selector silently types into the wrong box.
+# Inspect the form once, then fill them in.
+#
+# Logical values available: name, product_name, url, website, tagline,
+# description, long_description, email, category.
+
+- name: SaaSHub
+  submit_url: https://www.saashub.com/services/submit
+  approved: false
+  requires_login: true
+  fields: {}
+  submit_selector: ""
+  notes: >
+    Requires a domain email to verify (support@breaklytix.site). Released
+    products only. Outbound links are mostly nofollow/sponsored - value is
+    referral traffic and brand mention, not link equity.
+
+- name: DevHunt
+  submit_url: https://devhunt.org/login
+  approved: false
+  requires_login: true
+  fields: {}
+  submit_selector: ""
+  notes: >
+    /submit returns 404; submission is behind login. Weekly voting cycle -
+    pick a quiet week. Prepare a logo and one-line pitch first.
+
+- name: AlternativeTo
+  submit_url: https://alternativeto.net/manage/new/
+  approved: false
+  requires_login: true
+  fields: {}
+  submit_selector: ""
+  notes: >
+    Blocked from this machine by bot protection, so the form has not been
+    inspected. Read the submission rules in a browser before enabling.
+
+- name: Toolfinder
+  submit_url: https://toolfinder.com/
+  approved: false
+  requires_login: false
+  fields: {}
+  submit_selector: ""
+  notes: Note the .com TLD. Generic tool directory - low priority.
+
+- name: Uneed
+  submit_url: https://www.uneed.best/
+  approved: false
+  requires_login: true
+  fields: {}
+  submit_selector: ""
+  notes: Indie launch directory. Weak fit for a B2B tool at this price point.
+
+- name: Launching Next
+  submit_url: https://www.launchingnext.com/submit/
+  approved: false
+  requires_login: false
+  fields: {}
+  submit_selector: ""
+  notes: Simple form, low editorial bar, low dev intent.
+
+# Deliberately absent: LibHunt and OpenAlternative (open-source oriented, so a
+# closed-source SaaS does not belong there), Product Hunt and Peerlist
+# (Cloudflare-blocked; launch scheduling needs a human decision), and every
+# article directory / "free backlink list" - those are link farms.

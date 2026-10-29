@@ -1,0 +1,36 @@
+# Seed URLs - pages you already know are worth being listed on.
+#
+# One URL per line. Lines starting with # are ignored. Everything here is scored
+# like any other prospect, so a weak seed is dropped.
+#
+# Curate this file yourself: a seed is a claim that the page is relevant, and
+# the agent cannot verify your judgement of that.
+#
+# Source for the rows below: seo/backlink-candidates-2026-10-28.csv (each URL
+# was fetched and returned 200 on 2026-10-28/29). The agent re-fetches and
+# re-scores every one of them, so a stale reachability claim costs nothing.
+
+# Curated resource lists (PR route, not email - contact_finder marks these
+# "manual_pr" and never emails the code host)
+https://github.com/crazy-canux/awesome-monitoring
+https://github.com/Kikobeats/awesome-api
+https://github.com/yosriady/awesome-api-devtools
+https://github.com/adriannovegil/awesome-observability
+
+# Editorial / submission pages (an editor decides; email is a valid channel)
+https://console.dev/about
+https://changelog.com/news/submit
+https://www.apmdigest.com/
+https://www.cncf.io/blog/
+https://www.infoq.com/
+https://www.freecodecamp.org/news/
+https://thenewstack.io/
+https://hackernoon.com/
+
+# Deliberately NOT seeded, because the correct action is not outreach:
+#   news.ycombinator.com  - Show HN is a post you make, not a pitch
+#   reddit.com            - subreddit rules; account + karma gating
+#   producthunt.com       - scheduled launch, needs /demo asset first
+#   dev.to, hashnode.com  - you publish under your own account, no editor to email
+#   saashub, devhunt, alternativeto, uneed, toolfinder, launchingnext
+#                         - directory forms live in data/directories.yaml

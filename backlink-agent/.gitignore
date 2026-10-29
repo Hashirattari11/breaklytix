@@ -1,0 +1,30 @@
+# Generated output - never commit prospect data or drafts
+data/cache/
+data/drafts/
+data/screenshots/
+data/reports/
+data/prospects.csv
+data/prospects_raw.jsonl
+data/scored.jsonl
+data/competitor_gap.json
+data/prospect_run.json
+data/link_report.json
+data/link_history.json
+data/rdap_cache.json
+data/directory_attempts.jsonl
+data/gmail_token.json
+data/site_profile.json
+data/keywords.json
+*.eml
+
+# Keep the inputs that are part of the project
+!data/seeds.txt
+!data/blocklist.txt
+!data/directories.yaml
+
+# Local env
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

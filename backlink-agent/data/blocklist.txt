@@ -1,0 +1,30 @@
+# Never contact, never score, never add. One domain per line.
+#
+# Add to this instead of arguing with the scorer: if a domain is here it is
+# excluded before any request is made.
+
+# Social platforms that are not a link strategy
+pinterest.com
+quora.com
+slideshare.net
+scoop.it
+tumblr.com
+
+# Article directories / free-for-all link lists
+articleted.com
+sooperarticles.com
+articlebiz.com
+ezinearticles.com
+articlesbase.com
+amazines.com
+ideamarketers.com
+
+# Known paid-link marketplaces
+buyweblinks.com
+backlinksmarket.com
+linkmarket.net
+seoclerks.com
+fiverr.com
+
+# Example: a competitor's brand-farm lookalike that keeps hijacking our name
+# brawlytix.com
