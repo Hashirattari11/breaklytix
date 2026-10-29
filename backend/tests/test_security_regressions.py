@@ -206,11 +206,11 @@ def test_stripe_webhook_removes_claim_when_handler_fails(monkeypatch):
         type="checkout.session.completed",
         to_dict=lambda: {"id": "evt_test_1"},
     )
-    monkeypatch.setattr(
-        billing_service.stripe.Webhook,
-        "construct_event",
-        staticmethod(lambda payload, sig, secret: event),
-    )
+    monkeypatch.setattr(billing_service.stripe.Webhook, "construct_event",
+                        staticmethod(lambda payload, sig, secret: event))
+    # The webhook route now refuses to run at all when the signing secret is
+    # missing; this test is about claim handling, so configure it.
+    monkeypatch.setattr(billing_service.settings, "stripe_webhook_secret", "whsec_test")
 
     actions: list[str] = []
 

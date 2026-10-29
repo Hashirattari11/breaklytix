@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from pydantic import BaseModel
 
 from ..billing import (
+    BillingNotConfigured,
     create_checkout_session,
     create_billing_portal_session,
     process_stripe_webhook,
@@ -95,6 +96,12 @@ def create_checkout(body: CheckoutSessionIn, user_id: str = Depends(get_current_
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except BillingNotConfigured as exc:
+        logger.warning("billing not configured: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Payments are not available yet. Please contact support@breaklytix.site.",
+        )
     except Exception:
         logger.exception("create-checkout-session failed for user %s", user_id)
         raise HTTPException(status_code=502, detail="Billing service error")
@@ -115,6 +122,12 @@ def billing_portal(user_id: str = Depends(get_current_user_id)) -> BillingPortal
         url = create_billing_portal_session(user_id, return_url)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except BillingNotConfigured as exc:
+        logger.warning("billing not configured: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Payments are not available yet. Please contact support@breaklytix.site.",
+        )
     except Exception:
         logger.exception("billing-portal failed for user %s", user_id)
         raise HTTPException(status_code=502, detail="Billing service error")
@@ -183,6 +196,9 @@ async def stripe_billing_webhook(
         result = process_stripe_webhook(payload, stripe_signature)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except BillingNotConfigured as exc:
+        logger.error("billing webhook received but billing is not configured: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc))
     except Exception:
         logger.exception("stripe billing webhook processing failed")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
