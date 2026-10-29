@@ -447,7 +447,7 @@ def _handle_invoice_paid(invoice: stripe.Invoice) -> dict:
 def get_user_plan_info(user_id: str) -> dict | None:
     """Get user's current plan status and usage."""
     user = db().table("users").select(
-        "plan_status, monitored_api_limit, stripe_subscription_id, created_at"
+        "plan_status, monitored_api_limit, stripe_subscription_id, paddle_subscription_id, created_at"
     ).eq("id", user_id).limit(1).execute()
     if not user.data:
         return None
@@ -456,8 +456,9 @@ def get_user_plan_info(user_id: str) -> dict | None:
     # Effective API limit: -1 (unlimited) during the 10-day trial window,
     # otherwise the plan's stored limit.
     stored_limit = user.get("monitored_api_limit", 10)
+    has_subscription = bool(user.get("stripe_subscription_id") or user.get("paddle_subscription_id"))
     if in_unlimited_trial(
-        user.get("created_at"), bool(user.get("stripe_subscription_id"))
+        user.get("created_at"), has_subscription
     ):
         limit = -1
         trial_ends_at = _trial_ends_at(user.get("created_at"))
@@ -483,12 +484,17 @@ def get_user_plan_info(user_id: str) -> dict | None:
         "plan_status": user.get("plan_status", "trial"),
         "monitored_api_limit": limit,
         "monitored_api_count": count,
-        "stripe_subscription_id": user.get("stripe_subscription_id"),
+        "stripe_subscription_id": user.get("stripe_subscription_id") or user.get("paddle_subscription_id"),
         "trial_ends_at": trial_ends_at,
     }
 
 
 def get_subscription_billing_period(user_id: str) -> tuple[str | None, bool]:
+    from .config import settings
+    if (settings.payment_provider or "stripe").lower() == "paddle":
+        from .paddle_billing import get_paddle_subscription_billing_period
+        return get_paddle_subscription_billing_period(user_id)
+
     """Return (current_period_end_iso, cancel_at_period_end) from Stripe.
 
     Honest reporting: when the user has no subscription or Stripe is

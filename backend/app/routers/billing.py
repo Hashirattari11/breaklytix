@@ -16,6 +16,12 @@ from ..billing import (
     get_user_plan_info,
     get_subscription_billing_period,
 )
+from ..paddle_billing import (
+    PaddleNotConfigured,
+    create_paddle_checkout,
+    create_paddle_portal_session,
+    process_paddle_webhook,
+)
 from ..db import db
 from ..deps import get_current_user_id
 from ..schemas import (
@@ -86,17 +92,29 @@ def create_checkout(body: CheckoutSessionIn, user_id: str = Depends(get_current_
     success_url = _validated_return_url(body.success_url, field="success_url")
     cancel_url = _validated_return_url(body.cancel_url, field="cancel_url")
 
+    from ..config import settings
+    provider = (settings.payment_provider or "stripe").lower()
+
     try:
-        session_id, url = create_checkout_session(
-            user_id=user_id,
-            plan=body.plan,
-            success_url=success_url,
-            cancel_url=cancel_url,
-            customer_email=user.data[0]["email"],
-        )
+        if provider == "paddle":
+            session_id, url = create_paddle_checkout(
+                user_id=user_id,
+                plan=body.plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                customer_email=user.data[0]["email"],
+            )
+        else:
+            session_id, url = create_checkout_session(
+                user_id=user_id,
+                plan=body.plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                customer_email=user.data[0]["email"],
+            )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    except BillingNotConfigured as exc:
+    except (BillingNotConfigured, PaddleNotConfigured) as exc:
         logger.warning("billing not configured: %s", exc)
         raise HTTPException(
             status_code=503,
@@ -118,11 +136,17 @@ def billing_portal(user_id: str = Depends(get_current_user_id)) -> BillingPortal
     # Canonical frontend base (not the first CORS origin, which may be localhost).
     return_url = f"{_frontend_base()}/dashboard/billing"
 
+    from ..config import settings
+    provider = (settings.payment_provider or "stripe").lower()
+
     try:
-        url = create_billing_portal_session(user_id, return_url)
+        if provider == "paddle":
+            url = create_paddle_portal_session(user_id, return_url)
+        else:
+            url = create_billing_portal_session(user_id, return_url)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    except BillingNotConfigured as exc:
+    except (BillingNotConfigured, PaddleNotConfigured) as exc:
         logger.warning("billing not configured: %s", exc)
         raise HTTPException(
             status_code=503,
@@ -201,6 +225,33 @@ async def stripe_billing_webhook(
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception:
         logger.exception("stripe billing webhook processing failed")
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Paddle Webhook (no auth - uses Paddle signature)
+# ---------------------------------------------------------------------------
+@router.post("/webhooks/paddle/billing")
+async def paddle_billing_webhook(
+    request: Request,
+    paddle_signature: str | None = Header(default=None, alias="Paddle-Signature"),
+):
+    """Handle Paddle billing webhooks."""
+    if not paddle_signature:
+        raise HTTPException(status_code=400, detail="Missing Paddle-Signature header")
+
+    payload = await request.body()
+    try:
+        result = process_paddle_webhook(payload, paddle_signature)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except PaddleNotConfigured as exc:
+        logger.error("paddle billing webhook received but billing is not configured: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception:
+        logger.exception("paddle billing webhook processing failed")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
 
     return result

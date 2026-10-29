@@ -94,6 +94,19 @@ class Settings(BaseSettings):
         # only if you must use a different sender.
     )
 
+    # ---- Payment provider selection ---------------------------------------
+    # "stripe" (default, preserves existing behaviour) or "paddle".
+    # Set PAYMENT_PROVIDER=paddle once Paddle keys are configured.
+    payment_provider: str = Field(default="stripe", alias="PAYMENT_PROVIDER")
+
+    # ---- Paddle Billing (merchant of record) --------------------------------
+    paddle_api_key: str = Field(default="", alias="PADDLE_API_KEY")
+    paddle_webhook_secret: str = Field(default="", alias="PADDLE_WEBHOOK_SECRET")
+    paddle_environment: str = Field(default="sandbox", alias="PADDLE_ENVIRONMENT")  # sandbox | production
+    paddle_price_starter: str = Field(default="", alias="PADDLE_PRICE_STARTER")      # $500/mo
+    paddle_price_growth: str = Field(default="", alias="PADDLE_PRICE_GROWTH")        # $2,000/mo
+    paddle_price_enterprise: str = Field(default="", alias="PADDLE_PRICE_ENTERPRISE") # $10,000/mo
+
     # ---- Stripe Billing (Phase 3) ------------------------------------------
     stripe_secret_key: str = Field(default="", alias="STRIPE_SECRET_KEY")
     stripe_webhook_secret: str = Field(default="", alias="STRIPE_WEBHOOK_SECRET")

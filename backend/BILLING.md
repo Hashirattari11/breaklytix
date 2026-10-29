@@ -177,7 +177,7 @@ order of effort:
 | Option | What it needs | Status |
 |---|---|---|
 | Stripe + foreign entity | Incorporation, foreign tax id, foreign bank account | Code ready, account **BLOCKED** for a Pakistan-based entity |
-| Paddle (merchant of record) | Paddle seller account + product/price ids; new adapter (checkout, webhook signature `Paddle-Signature`, subscription sync) | Not implemented |
+| Paddle (merchant of record) | Paddle seller account + product/price ids; adapter now implemented (`app/paddle_billing.py`, `PADDLE.md`) | Implemented; configure `PAYMENT_PROVIDER=paddle` + keys |
 | Local gateway (e.g. Safepay) | Merchant account + adapter | Not implemented |
 
 Until one of these is approved and configured, checkout correctly returns
