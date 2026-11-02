@@ -95,10 +95,14 @@ def require_admin(
 # Internal-secret guard for cron-triggered endpoints.
 # ---------------------------------------------------------------------------
 def require_internal_secret(x_internal_secret: str | None = Header(default=None)) -> None:
-    expected = settings.cron_secret
-    if not expected:
+    # Both platform CRON_SECRET and the GitHub Actions INTERNAL_SECRET are
+    # valid: the same /internal/* endpoints are triggered by either scheduler,
+    # and the two values may legitimately differ.
+    candidates = settings.internal_secrets
+    if not candidates:
         # Fail closed: if the server has no secret configured, refuse rather than
         # exposing internal endpoints to the world.
         raise HTTPException(status_code=503, detail="Internal endpoints are not configured")
-    if not x_internal_secret or not secrets.compare_digest(x_internal_secret, expected):
+    presented = x_internal_secret or ""
+    if not any(secrets.compare_digest(presented, candidate) for candidate in candidates):
         raise HTTPException(status_code=401, detail="Bad or missing X-Internal-Secret")

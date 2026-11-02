@@ -23,8 +23,7 @@ jobs:
           echo
 
 # Required repository secrets (Settings → Secrets and variables → Actions):
-#   BACKEND_URL       e.g. https://autofix-api.onrender.com   (no trailing slash)
-#   INTERNAL_SECRET   must match the backend's INTERNAL_SECRET env var
-#
-# Note: Render's free web service sleeps after inactivity; the first curl may
-# take ~30–60s to wake it. curl --fail-with-body surfaces non-2xx as failures.
+#   BACKEND_URL       the deployed backend base URL, no trailing slash
+#   INTERNAL_SECRET   value sent as X-Internal-Secret. The backend accepts
+#                     EITHER its INTERNAL_SECRET env var OR its CRON_SECRET,
+#                     so this secret may match either one.

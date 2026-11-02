@@ -48,7 +48,9 @@ jobs:
 
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   BACKEND_URL       the deployed backend base URL, no trailing slash
-#   INTERNAL_SECRET   must match the backend's INTERNAL_SECRET env var
+#   INTERNAL_SECRET   value sent as X-Internal-Secret. The backend accepts
+#                     EITHER its INTERNAL_SECRET env var OR its CRON_SECRET,
+#                     so this secret may match either one.
 #
 # NOTE: the old vercel.json crons were REMOVED — Vercel Cron only sends
 # GET without headers, but these endpoints require POST + X-Internal-Secret

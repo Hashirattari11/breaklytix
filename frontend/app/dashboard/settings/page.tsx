@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   getNotificationPreferences,
   updateNotificationPreferences,
+  updateDailyStatus,
   sendTestEmail,
   TestEmailResponse,
 } from "../../../lib/api";
@@ -79,6 +80,8 @@ export default function SettingsPage() {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefsSaved, setPrefsSaved] = useState(false);
   const [prefsError, setPrefsError] = useState<string | null>(null);
+  const [dailyStatusOn, setDailyStatusOn] = useState<boolean | null>(null);
+  const [dailyStatusSaving, setDailyStatusSaving] = useState(false);
   const [testState, setTestState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [testResult, setTestResult] = useState<TestEmailResponse | null>(null);
   const [themePref, setThemePref] = useState<ThemePref>("system");
@@ -100,6 +103,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setUser(getUser());
+    setDailyStatusOn(getUser()?.notify_daily_status ?? false);
     loadBilling();
     loadPrefs();
   }, []);
@@ -119,6 +123,22 @@ export default function SettingsPage() {
       setPrefs(res.categories);
     } catch {
       // Left null; the section shows a "could not load" state.
+    }
+  }
+
+  async function handleDailyStatusToggle(next: boolean) {
+    const prev = dailyStatusOn;
+    setDailyStatusOn(next);
+    setDailyStatusSaving(true);
+    try {
+      await updateDailyStatus(next);
+      toast.success(next ? "Daily status email enabled" : "Daily status email disabled");
+    } catch (e) {
+      setDailyStatusOn(prev);
+      const msg = e instanceof Error ? e.message : "Failed to update daily status email";
+      toast.error(msg);
+    } finally {
+      setDailyStatusSaving(false);
     }
   }
 
@@ -311,9 +331,10 @@ export default function SettingsPage() {
             <section className="p-settings-card p-anim-fade-up" key="notifications">
               <h3>Notification preferences</h3>
               <p>
-                Notifications are sent to your account email ({user?.email || "your account"}). Only
-                Breaking change alerts and the Weekly digest currently control email; the other switches are
-                saved preferences, and every alert remains visible in the dashboard.
+                Notifications are sent to your account email ({user?.email || "your account"}). Breaking
+                change alerts, the Weekly digest, and the Daily status email below actually send email;
+                switches marked otherwise only save a preference, and every alert remains visible in the
+                dashboard.
               </p>
 
               {!prefs ? (
@@ -335,11 +356,19 @@ export default function SettingsPage() {
                   </div>
 
                   <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid var(--border)" }}>
-                    <h4 style={{ margin: "0 0 8px" }}>Daily status email</h4>
+                    <h4 style={{ margin: "0 0 4px" }}>Daily status email</h4>
                     <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--muted)" }}>
-                      A daily status email is not currently sent. The recurring summary is the Weekly digest
-                      above, delivered on Mondays at 09:00 UTC.
+                      One summary per day after the scheduled 06:00 UTC scan: per-repo fresh re-scan
+                      results, breaking changes detected today, and code issues. Exactly one email per
+                      UTC day, sent to your account email.
                     </p>
+                    <Switch
+                      checked={!!dailyStatusOn}
+                      onChange={() => handleDailyStatusToggle(!dailyStatusOn)}
+                      disabled={dailyStatusSaving || dailyStatusOn === null}
+                      label="Enable daily status email"
+                      hint="Sent after the daily automated scan, once per day (UTC)"
+                    />
                   </div>
 
                   <div className="p-save-bar" style={{ marginTop: 24 }}>

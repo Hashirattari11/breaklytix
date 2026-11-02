@@ -42,13 +42,33 @@ Implementation: `backend/app/cronlog.py` — `run_cron(job, fn)` wraps
 each endpoint handler (`backend/app/changelog/router.py`). Logging
 failures are non-fatal: the cron job itself still runs.
 
-## Daily scan due-check
+## Daily scan due-check + fresh re-scan + daily status email
 
 `run_daily_scans` (in `backend/app/changelog/scheduler.py`) skips any
 repo whose latest `daily_scan_runs.ran_at` is newer than 24h, so
 repeated cron invocations do not re-scan everything. Per-repo failures
 (token expired, repo deleted, permission revoked) are caught per-repo
 and surfaced in the scan run record — never silently dropped.
+
+Additionally, each daily run:
+
+1. **Fresh GitHub re-scan** — due repos are re-scanned from GitHub live
+   (`app/rescan.py` `rescan_repo_fresh`): tree + blob fetch, detection
+   re-run, `api_detections` upsert with the same caps/conflict keys as the
+   manual scan. Budgeted so the 60s Vercel function survives:
+   `DAILY_RESCAN_MAX_REPOS` (default 5 repos per run),
+   `DAILY_RESCAN_SECONDS_TOTAL` (default 35s), `DAILY_RESCAN_SECONDS_PER_REPO`
+   (default 20s). The quota rotates through the *stalest-scanned* repos
+   first, so every repo gets its turn across daily runs. Repos without a
+   fresh rescan (quota/time/no token) still receive the stored-snippet
+   checks — nothing is dropped.
+2. **Daily status email** — after the repo loop, users with
+   `notify_daily_status = true` (Settings → Notifications) get exactly one
+   summary email per UTC day (`app/status_email.py`): per-repo rescan
+   outcome, breaking changes today, and code issues. Guarded by a
+   `email_deliveries` same-day check + fingerprint dedup; NOT subject to
+   the 5/day burst-alert cap (`enforce_daily_cap=False`).
+3. Impact analysis (unchanged), all inside `/internal/daily-scan`.
 
 ## Manual runs
 

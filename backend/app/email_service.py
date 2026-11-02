@@ -250,6 +250,7 @@ def send_alert_email(
     alert_id: str | None = None,
     fingerprint: str | None = None,
     context: dict | None = None,
+    enforce_daily_cap: bool = True,
 ) -> dict:
     """Send one alert email with logging, dedup and daily caps.
 
@@ -258,7 +259,9 @@ def send_alert_email(
        skipped_duplicate?, sender_warning?}
 
     `ok` is only True when the active provider accepted the request (2xx with a
-    message id).
+    message id). ``enforce_daily_cap=False`` is reserved for the scheduled
+    daily status email, which guards itself with one-per-day logic instead of
+    the burst alert cap.
     """
     subj = subject or ""
     problem = sender_problem()
@@ -278,7 +281,11 @@ def send_alert_email(
         }
 
     # Daily cap (applies to alerts; digest is capped separately via its own path).
-    if alert_type != "digest" and _daily_count(user_id) >= MAX_ALERT_EMAILS_PER_DAY:
+    if (
+        enforce_daily_cap
+        and alert_type != "digest"
+        and _daily_count(user_id) >= MAX_ALERT_EMAILS_PER_DAY
+    ):
         _insert_delivery(
             user_id=user_id, alert_id=alert_id, alert_type=alert_type,
             recipient=recipient, subject=subj, status="failed",

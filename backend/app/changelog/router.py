@@ -76,16 +76,17 @@ async def process_alerts(
 async def daily_scan(
     _guard: None = Depends(require_internal_secret),
 ) -> dict:
-    """Run daily scans for all monitored repos.
-    
-    Checks for breaking changelog changes and code-health issues.
-    Sends exactly one email per repo/day.
-    Called by Vercel Cron daily. Requires internal secret.
+    """Run the scheduled daily pass for monitored repositories.
+
+    Per repo (24h-due): an optional budgeted fresh GitHub re-scan that
+    refreshes stored api_detections, followed by the original stored-changelog
+    and code-health checks; then impact analysis, then the opt-in daily status
+    email (users.notify_daily_status) — exactly one per user per UTC day.
     """
     def _run() -> dict:
-        run_daily_scans()
+        scan_summary = run_daily_scans()
         run_impact_analysis_for_recent_events()
-        return {"status": "ok", "message": "Daily scans + impact analysis completed"}
+        return {"status": "ok", "scan_summary": scan_summary}
 
     return run_cron("daily_scan", _run)
 

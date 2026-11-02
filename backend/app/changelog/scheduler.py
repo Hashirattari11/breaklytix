@@ -41,6 +41,13 @@ TOTAL_BUDGET_SECONDS = int(os.getenv("TOTAL_BUDGET_SECONDS", "45"))
 # Impact analysis runs inside the daily-scan endpoint (60s Vercel budget).
 MAX_IMPACT_EVENTS_PER_RUN = int(__import__("os").getenv("MAX_IMPACT_EVENTS_PER_RUN", "20"))
 
+# Fresh GitHub re-scans (see ../rescan.py) share the /internal/daily-scan
+# Vercel function budget (60s maxDuration). Env-tunable so local sweeps can go
+# deeper; repos outside the quota still receive the stored-snippet checks.
+DAILY_RESCAN_MAX_REPOS = int(os.getenv("DAILY_RESCAN_MAX_REPOS", "5"))
+DAILY_RESCAN_SECONDS_TOTAL = float(os.getenv("DAILY_RESCAN_SECONDS_TOTAL", "35"))
+DAILY_RESCAN_SECONDS_PER_REPO = float(os.getenv("DAILY_RESCAN_SECONDS_PER_REPO", "20"))
+
 # Failures before a provider is marked ERROR (then retried on next ticks).
 MAX_CONSECUTIVE_ERRORS = 3
 
@@ -387,11 +394,45 @@ def log_health(provider_id: str, status: str, duration_ms: int, error: str | Non
 
 
 # ---------------------------------------------------------------------------
-# Daily scans + impact analysis (unchanged behavior; kept for the cron router)
+# Daily scans + impact analysis (kept for the cron router). Since 2026-11 the
+# daily pass also = (a) optional fresh GitHub re-scan per repo (quota/time
+# budgeted, rotates through the stalest-scanned repos), then (b) the original
+# stored-changelog/code-health checks, and (c) the opt-in daily status email
+# (users.notify_daily_status, once per user/UTC day).
 # ---------------------------------------------------------------------------
-def run_daily_scan(repo_id: str) -> dict:
+def _run_daily_rescan(
+    repo: dict, user_id: str | None, rescan: bool, deadline: float | None
+) -> dict:
+    """Best-effort fresh re-scan wrapper. Never raises; returns a compact stat."""
+    if not rescan:
+        return {"status": "stored_only", "reason": "not_requested",
+                "files_scanned": 0, "detections": 0, "new_apis": 0}
+    try:
+        from ..rescan import rescan_repo_fresh
+
+        outcome = rescan_repo_fresh(repo, user_id or "", deadline=deadline)
+    except Exception as exc:  # noqa: BLE001 - rescan failure never fails the run
+        print(f"Error during fresh rescan for repo {repo.get('id')}: {exc}")
+        return {"status": "fallback", "reason": "rescan_exception",
+                "files_scanned": 0, "detections": 0, "new_apis": 0}
+    return {
+        "status": outcome.get("status", "fallback"),
+        "reason": outcome.get("reason") or "",
+        "files_scanned": int(outcome.get("files_scanned") or 0),
+        "detections": int(outcome.get("detections") or 0),
+        "new_apis": int(outcome.get("new_apis") or 0),
+    }
+
+
+def run_daily_scan(
+    repo_id: str,
+    rescan: bool = True,
+    rescan_deadline: float | None = None,
+) -> dict:
     from ..health.code_health import run_code_health_checks
     stats = {
+        "rescan": {"status": "stored_only", "reason": "not_attempted",
+                   "files_scanned": 0, "detections": 0, "new_apis": 0},
         "changelog_check_status": "skipped_no_providers",
         "code_check_status": "clear",
         "changelog_issues_count": 0,
@@ -403,6 +444,8 @@ def run_daily_scan(repo_id: str) -> dict:
             return stats
         repo_data = repo.data[0]
         user_id = repo_data.get("user_id")
+
+        stats["rescan"] = _run_daily_rescan(repo_data, user_id, rescan, rescan_deadline)
 
         connections = db().table("provider_connections").select("provider").eq("user_id", user_id).execute()
         providers = [c["provider"] for c in connections.data] if connections.data else []
@@ -461,11 +504,34 @@ def run_daily_scan(repo_id: str) -> dict:
         return stats
 
 
-def run_daily_scans():
+def run_daily_scans() -> dict:
+    """Run the scheduled daily pass and return a compact run summary.
+
+    Per repo (24h-due only): optional fresh GitHub re-scan (quota/time-budgeted)
+    on top of the original stored-changelog/code-health checks, then the
+    daily_scan_runs row. Afterwards the opt-in daily status email goes out
+    once per user per UTC day (users.notify_daily_status).
+    """
+    summary: dict = {
+        "repos_total": 0,
+        "repos_due": 0,
+        "rescan_attempts": 0,
+        "rescan_ok": 0,
+        "rescan_partial": 0,
+        "rescan_fallback": 0,
+        "emails": {"sent": 0, "skipped": 0, "failed": 0},
+    }
+    reports: dict[str, dict] = {}
     try:
         repos = db().table("repos").select("*").execute()
         if not repos.data:
-            return
+            return summary
+        summary["repos_total"] = len(repos.data)
+        # The rescan quota rotates fairly: repos scanned the longest time ago
+        # come first, so every repo gets its turn across daily runs.
+        repos_ordered = sorted(repos.data, key=lambda r: r.get("last_scanned_at") or "")
+        rescan_deadline = _time.monotonic() + DAILY_RESCAN_SECONDS_TOTAL
+        rescan_quota = DAILY_RESCAN_MAX_REPOS
         from datetime import timedelta
         latest = (
             db().table("daily_scan_runs")
@@ -480,7 +546,7 @@ def run_daily_scans():
             if rid and rid not in latest_by_repo:
                 latest_by_repo[rid] = row.get("ran_at") or ""
         cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-        for repo in repos.data:
+        for repo in repos_ordered:
             repo_id = repo["id"]
             user_id = repo.get("user_id")
             last = latest_by_repo.get(repo_id)
@@ -500,7 +566,47 @@ def run_daily_scans():
             user_email = user_data.get("email")
             if not user_email:
                 continue
-            stats = run_daily_scan(repo_id)
+
+            allow_rescan = True
+            if rescan_quota <= 0:
+                allow_rescan = False
+            elif _time.monotonic() >= rescan_deadline:
+                allow_rescan = False
+            if allow_rescan:
+                rescan_quota -= 1
+                summary["rescan_attempts"] += 1
+            repo_deadline = (
+                min(rescan_deadline, _time.monotonic() + DAILY_RESCAN_SECONDS_PER_REPO)
+                if allow_rescan else None
+            )
+            stats = run_daily_scan(repo_id, rescan=allow_rescan, rescan_deadline=repo_deadline)
+            rescan_stat = stats.get("rescan") or {}
+            if rescan_stat.get("status") == "ok":
+                summary["rescan_ok"] += 1
+            elif rescan_stat.get("status") == "ok_partial":
+                summary["rescan_partial"] += 1
+            elif allow_rescan:
+                summary["rescan_fallback"] += 1
+
+            # Per-user report feeding the daily status email.
+            user_report = reports.setdefault(
+                user_id,
+                {
+                    "email": user_email,
+                    "notify": bool(user_data.get("notify_daily_status", False)),
+                    "repos": [],
+                },
+            )
+            user_report["repos"].append(
+                {
+                    "repo": repo.get("full_name") or repo_id,
+                    "rescan": rescan_stat,
+                    "breaking_today": int(stats.get("changelog_issues_count") or 0),
+                    "code_issues": int(stats.get("code_issues_count") or 0),
+                }
+            )
+            summary["repos_due"] += 1
+
             try:
                 db().table("daily_scan_runs").insert({
                     "repo_id": repo_id,
@@ -512,8 +618,19 @@ def run_daily_scans():
                 }).execute()
             except Exception as e:
                 print(f"Error inserting daily scan run: {e}")
+
+        # Daily status email: one per opted-in user per UTC day (best-effort).
+        try:
+            from ..status_email import send_daily_status_reports
+
+            summary["emails"] = send_daily_status_reports(reports)
+        except Exception as e:
+            print(f"Error sending daily status emails: {e}")
+            summary["emails"] = {"sent": 0, "skipped": 0, "failed": 0}
     except Exception as e:
         print(f"Error running daily scans: {e}")
+        return summary
+    return summary
 
 
 def run_impact_analysis_for_recent_events():

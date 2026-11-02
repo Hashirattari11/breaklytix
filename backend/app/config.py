@@ -66,6 +66,18 @@ class Settings(BaseSettings):
         """
         return os.getenv("CRON_SECRET") or self.internal_secret
 
+    @property
+    def internal_secrets(self) -> list[str]:
+        """Every secret that may authenticate internal/cron endpoints.
+
+        The GitHub Actions workflows send the header from the repository's
+        INTERNAL_SECRET secret, while platform crons send CRON_SECRET. When
+        both are configured they may still be different values, so either
+        match must authenticate. Duplicates are removed.
+        """
+        values = [os.getenv("CRON_SECRET") or "", self.internal_secret or ""]
+        return list(dict.fromkeys(v for v in values if v))
+
     # ---- Slack Integration (Phase 5 §2) -------------------------------------
     slack_client_id: str = Field(default="", alias="SLACK_CLIENT_ID")
     slack_client_secret: str = Field(default="", alias="SLACK_CLIENT_SECRET")
