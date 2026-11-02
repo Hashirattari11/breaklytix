@@ -90,3 +90,40 @@ keywords were NOT found in the homepage HTML — do not invent them.
 - No mass-PR campaigns to other lists in one sitting.
 - No fabricated milestone/star counts.
 - If the PR is closed, do not re-open it or argue; record and move on.
+
+---
+
+## DECISION 2026-11-02 (user delegated: "jo karna ha karo")
+
+**agamm PR: HOLD (Option B).** The milestone gate in CONTRIBUTING.md is unmet
+and the milestone box stays unticked; per the maintainers' own rule the PR
+would be closed. Prepared draft above is ready to submit the day a real
+milestone exists. No dishonesty shortcuts (fake follower counts, fake stars).
+
+**Active PR instead: Kikobeats/awesome-api #113** (opened 2026-11-02):
+
+- Repo: 2,990 stars, not archived. No CONTRIBUTING gate (404 on CONTRIBUTING.md).
+- Diff verified: exactly 1 line added to the `Monitoring & Testing` section
+  (repo last pushed 2024-10 — expect slow review; same as PR #236).
+  PR: https://github.com/Kikobeats/awesome-api/pull/113
+  Fork commit: `1562f3789134afc38cb6a0c65153b102bd992055`
+- Entry as merged into the fork:
+
+  ```markdown
+  * [Breaklytix](https://breaklytix.site/) - API change monitoring and alerts.
+  ```
+
+- Status: **open, NOT merged. No link-back claim until that line appears in
+  Kikobeats/awesome-api main README.**
+
+## DevPages + Neeed (2026-11-02 browser check → BLOCKED)
+
+- devpages.io/submit-a-tool: form is gated behind "Sign in and fill in your
+  listing" — **BLOCKED on account creation, which is a user step** (needs the
+  user's choice of credentials + email verification we cannot receive).
+- neeed.directory/submit: client-side app renders nothing until sign-in
+  (Google or email code to support@) — **BLOCKED the same way**. The free
+  listing's dofollow additionally requires hosting their badge on
+  breaklytix.site, which itself needs a separate user decision.
+- Ready-to-paste form copy for both is in seo/directory-submissions/2026-11-02.md
+  the moment the user signs in, or provides the email codes.
