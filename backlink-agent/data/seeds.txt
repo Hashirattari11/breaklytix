@@ -16,6 +16,8 @@ https://github.com/crazy-canux/awesome-monitoring
 https://github.com/Kikobeats/awesome-api
 https://github.com/yosriady/awesome-api-devtools
 https://github.com/adriannovegil/awesome-observability
+# Added 2026-11-02 (verified: GitHub API - not archived, active; HTTP 200 on repo)
+https://github.com/agamm/awesome-developer-first
 
 # Editorial / submission pages (an editor decides; email is a valid channel)
 https://console.dev/about
@@ -26,6 +28,11 @@ https://www.infoq.com/
 https://www.freecodecamp.org/news/
 https://thenewstack.io/
 https://hackernoon.com/
+
+# Hand-curated directories, added 2026-11-02 (each HTTP 200; submission needs
+# user approval first - never submit a form without it)
+#   https://devpages.io/submit-a-tool  (free review, hand-checked, 698 tools)
+#   https://neeed.directory/submit     (free listing requires hosting their badge)
 
 # Deliberately NOT seeded, because the correct action is not outreach:
 #   news.ycombinator.com  - Show HN is a post you make, not a pitch
