@@ -24,6 +24,7 @@ def _now_iso():
 
 def _make_store():
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    stale_23h = (datetime.now(timezone.utc) - timedelta(hours=23, minutes=30)).isoformat()
     return {
         "repos": [
             {"id": "repo-1", "full_name": "acme/api", "user_id": USER_A,
@@ -32,6 +33,8 @@ def _make_store():
              "default_branch": "main", "last_scanned_at": None},
             {"id": "repo-3", "full_name": "acme/fresh", "user_id": USER_B,
              "default_branch": "main", "last_scanned_at": one_hour_ago},
+            {"id": "repo-4", "full_name": "acme/midstale", "user_id": USER_B,
+             "default_branch": "main", "last_scanned_at": stale_23h},
         ],
         "users": [
             {"id": USER_A, "email": "a@x.test", "notify_daily_status": True},
@@ -156,24 +159,24 @@ def _install_patches(monkeypatch, rescan_outcomes: list[dict] | None):
 
 
 def test_full_run_rescans_due_repos_and_reports_opted_in_user(monkeypatch):
-    arts = _install_patches(monkeypatch, rescan_outcomes=[dict(RESCAN_OK), dict(RESCAN_OK)])
+    arts = _install_patches(monkeypatch, rescan_outcomes=[dict(RESCAN_OK)] * 3)
 
     summary = sched.run_daily_scans()
 
-    # repo-3 was scanned < 24h ago -> skipped; the other two are due.
-    assert summary["repos_total"] == 3
-    assert summary["repos_due"] == 2
-    assert summary["rescan_attempts"] == 2
-    assert summary["rescan_ok"] == 2
+    # repo-3 was scanned < 24h ago -> skipped; repo-4 (23.5h old) is due —
+    # the 23h window guarantees the previous day's repos get re-checked.
+    assert summary["repos_total"] == 4
+    assert summary["repos_due"] == 3
+    assert summary["rescan_attempts"] == 3
+    assert summary["rescan_ok"] == 3
     assert summary["rescan_partial"] == 0
     assert summary["emails"] == {"sent": 1, "skipped": 0, "failed": 0}
-    assert len(arts["rescan_calls"]) == 2
+    assert len(arts["rescan_calls"]) == 3
 
-    # Rotation: never-scanned repo-2 gets its rescan first.
-    assert arts["rescan_calls"][0]["repo"] == "repo-2"
-    assert arts["rescan_calls"][1]["repo"] == "repo-1"
+    # Rotation: never-scanned repo-2 gets its rescan first, stalest last.
+    assert [c["repo"] for c in arts["rescan_calls"]] == ["repo-2", "repo-1", "repo-4"]
 
-    # Per-user report: user-A opted in with both repo rows; skipped repo-3 excluded.
+    # Per-user report: user-A opted in with both repo rows.
     reports = arts["email_reports"][0]
     assert reports[USER_A]["notify"] is True
     assert reports[USER_A]["email"] == "a@x.test"
@@ -183,12 +186,14 @@ def test_full_run_rescans_due_repos_and_reports_opted_in_user(monkeypatch):
     api_row = next(r for r in reports[USER_A]["repos"] if r["repo"] == "acme/api")
     assert api_row["rescan"]["status"] == "ok"
     assert api_row["breaking_today"] == 0
-    # user-B has no report entry (repo-3 skipped before report building)
-    assert USER_B not in reports
+    # user-B had a due repo (midstale) — report exists, notify flag false blocks SEND.
+    assert reports[USER_B]["notify"] is False
+    assert [r["repo"] for r in reports[USER_B]["repos"]] == ["acme/midstale"]
 
-    # daily_scan_runs bookkeeping grew by the two due repos
+    # daily_scan_runs bookkeeping grew by the three due repos
     runs = arts["db"].store["daily_scan_runs"]
-    assert len([r for r in runs if r["repo_id"] in ("repo-1", "repo-2")]) == 2
+    processed = [r["repo_id"] for r in runs if r["repo_id"] != "repo-3"]
+    assert sorted(processed) == ["repo-1", "repo-2", "repo-4"]
 
 
 def test_rescan_quota_gives_stored_only_to_leftover_repos(monkeypatch):
@@ -206,9 +211,10 @@ def test_rescan_quota_gives_stored_only_to_leftover_repos(monkeypatch):
     api_row = next(r for r in reports[USER_A]["repos"] if r["repo"] == "acme/api")
     assert web_row["rescan"]["status"] == "ok"
     assert api_row["rescan"]["status"] == "stored_only"   # quota exhausted, checked from stored data
-    # Stored checks still ran for both repos:
+    # Stored checks still ran for all three due repos:
     runs = arts["db"].store["daily_scan_runs"]
-    assert len([r for r in runs if r["repo_id"] in ("repo-1", "repo-2")]) == 2
+    processed = [r["repo_id"] for r in runs if r["repo_id"] != "repo-3"]
+    assert sorted(processed) == ["repo-1", "repo-2", "repo-4"]
 
 
 def test_run_daily_scan_passes_through_rescan_stat(monkeypatch):
