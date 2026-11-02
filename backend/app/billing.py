@@ -117,7 +117,12 @@ def create_checkout_session(
 
     price_id = plan_price_map().get(plan)
     if not price_id:
-        raise ValueError(f"Plan '{plan}' is not available for purchase")
+        # Missing price configuration is a deployment problem, not a client
+        # error: return 503 so the UI can say "payments unavailable" instead of
+        # surfacing a 400 validation failure.
+        raise BillingNotConfigured(
+            f"No Stripe price is configured for plan '{plan}'. Payments are not available yet."
+        )
 
     _require_stripe()
 

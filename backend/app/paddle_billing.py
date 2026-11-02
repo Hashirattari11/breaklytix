@@ -134,7 +134,11 @@ def create_paddle_checkout(
 
     price_id = paddle_price_map().get(plan)
     if not price_id:
-        raise ValueError(f"Plan '{plan}' is not available for purchase")
+        # Missing price configuration is a deployment problem, not a client
+        # error: return 503 so the UI can say "payments unavailable".
+        raise PaddleNotConfigured(
+            f"No Paddle price is configured for plan '{plan}'. Payments are not available yet."
+        )
 
     if not settings.paddle_api_key:
         raise PaddleNotConfigured("Billing is not configured: PADDLE_API_KEY is missing")

@@ -160,7 +160,7 @@ def test_checkout_raises_billing_not_configured_without_secret(monkeypatch, stri
 
 def test_checkout_rejects_a_plan_without_a_configured_price(monkeypatch, stripe_ready):
     monkeypatch.setattr(billing.settings, "stripe_price_growth", "")
-    with pytest.raises(ValueError, match="not available"):
+    with pytest.raises(billing.BillingNotConfigured, match="No Stripe price is configured"):
         billing.create_checkout_session("user-1", "growth", "https://x.test/ok", "https://x.test/no")
 
 
