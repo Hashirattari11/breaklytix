@@ -222,9 +222,15 @@ def fire_drill_endpoint(
         detections=detections,
     )
     
-    # Persist
-    analysis_id = persist_impact_analysis(analysis)
-    analysis.id = analysis_id
+    # Persist — degrade gracefully if the impact_analyses table is not
+    # migrated yet on this environment (apply migration via Supabase SQL
+    # Editor to enable persistence).
+    analysis_id = None
+    try:
+        analysis_id = persist_impact_analysis(analysis)
+        analysis.id = analysis_id
+    except Exception as exc:  # noqa: BLE001 — fire drill must not 500 on missing table
+        print(f"Fire drill persist skipped for repo={request.repo_id}: {exc}")
     
     return _to_response(analysis)
 

@@ -618,7 +618,14 @@ def get_install_url(client_id: str = Query(...), user_id: str = Depends(get_curr
 
     # Signed, short-lived state — a raw client_id is guessable/tamperable.
     state = _sign_install_state(client_id=client_id, agency_owner_id=user_id)
-    url = _install_url(state)
+    try:
+        url = _install_url(state)
+    except ValueError:
+        raise HTTPException(
+            status_code=503,
+            detail="GitHub App integration is not configured on the server. "
+                   "Set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_APP_SLUG.",
+        )
     return InstallUrlOut(url=url, state=state)
 
 
@@ -654,7 +661,16 @@ def get_public_install_url(token: str = Query(..., min_length=16, max_length=512
         invite_hash=token_hash,
         invite_token=token,
     )
-    url = _install_url(state)
+    try:
+        url = _install_url(state)
+    except ValueError:
+        # GitHub App not configured on the server — surface an honest error
+        # instead of a 500.
+        raise HTTPException(
+            status_code=503,
+            detail="GitHub App integration is not configured on the server. "
+                   "Set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_APP_SLUG.",
+        )
     return InstallUrlOut(url=url, state=state)
 
 

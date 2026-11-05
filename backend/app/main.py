@@ -158,7 +158,8 @@ app.include_router(admin_router)
 app.include_router(health.router)
 app.include_router(notifications.router)
 app.include_router(impact.router)
-app.include_router(digital_twin.router)
+# Digital Twin has no FastAPI router (read APIs only, see app/digital_twin.py)
+# app.include_router(digital_twin.router)
 
 
 @app.get("/", tags=["meta"])
