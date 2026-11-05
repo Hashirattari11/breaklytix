@@ -545,7 +545,12 @@ def run_daily_scans() -> dict:
             rid = row.get("repo_id")
             if rid and rid not in latest_by_repo:
                 latest_by_repo[rid] = row.get("ran_at") or ""
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        # 23h (not 24h): a strictly-24h window lets exactly-on-schedule runs
+        # drift-skip repos whose previous ran_at sits a few seconds inside the
+        # boundary. A 23h window guarantees the previous day's repos are
+        # re-checked on every daily run (double-sends stay guarded by the
+        # once-per-day email check + fingerprint dedup).
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=23)
         for repo in repos_ordered:
             repo_id = repo["id"]
             user_id = repo.get("user_id")

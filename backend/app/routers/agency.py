@@ -179,6 +179,10 @@ def agency_status(
     repository_id: str | None = Query(None),
     user_id: str = Depends(get_current_user_id),
 ):
+    # NOTE: agency_clients has no `repository_id` column (repos link to clients
+    # via repos.agency_client_id). The repository_id query param is accepted
+    # for API compatibility but cannot filter agency_clients — ignore it
+    # rather than crashing on an unknown column.
     user_result = (
         db().table("users")
         .select("is_agency")
@@ -188,26 +192,28 @@ def agency_status(
     )
     is_agency = user_result.data[0].get("is_agency", False) if user_result.data else False
 
-    count_query = (
-        db().table("agency_clients")
-        .select("id", count="exact")
-        .eq("agency_owner_id", user_id)
-    )
-    if repository_id and repository_id.strip():
-        count_query = count_query.eq("repository_id", repository_id)
-    count_result = count_query.execute()
-    client_count = count_result.count or 0
+    try:
+        count_query = (
+            db().table("agency_clients")
+            .select("id", count="exact")
+            .eq("agency_owner_id", user_id)
+        )
+        count_result = count_query.execute()
+        client_count = count_result.count or 0
+    except Exception:
+        client_count = 0
 
-    pending_query = (
-        db().table("agency_clients")
-        .select("id", count="exact")
-        .eq("agency_owner_id", user_id)
-        .eq("status", "pending")
-    )
-    if repository_id and repository_id.strip():
-        pending_query = pending_query.eq("repository_id", repository_id)
-    pending_result = pending_query.execute()
-    pending_count = pending_result.count or 0
+    try:
+        pending_query = (
+            db().table("agency_clients")
+            .select("id", count="exact")
+            .eq("agency_owner_id", user_id)
+            .eq("status", "pending")
+        )
+        pending_result = pending_query.execute()
+        pending_count = pending_result.count or 0
+    except Exception:
+        pending_count = 0
 
     return AgencyStatusOut(
         is_agency=is_agency,
@@ -225,13 +231,13 @@ def list_clients(
     user_id: str = Depends(get_current_user_id),
 ):
     _verify_agency_owner(user_id)
+    # NOTE: agency_clients has no `repository_id` column — accept the param for
+    # API compatibility but do not filter on an unknown column (avoids 500).
     query = (
         db().table("agency_clients")
         .select("id, client_display_name, client_email, status, logo_url, created_at, authorized_at")
         .eq("agency_owner_id", user_id)
     )
-    if repository_id and repository_id.strip():
-        query = query.eq("repository_id", repository_id)
     result = query.order("created_at", desc=True).execute()
     return result.data or []
 
