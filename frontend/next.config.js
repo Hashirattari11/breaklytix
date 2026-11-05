@@ -54,6 +54,12 @@ const nextConfig = {
   // whatever ranking signal the old URLs accumulated.
   async redirects() {
     return [
+      // "Get Started" / "New account" / "Signup" all map to the single GitHub
+      // OAuth flow — Breaklytix has no email/password signup, so creating an
+      // account IS connecting GitHub.
+      { source: "/get-started", destination: "/auth/github", permanent: true },
+      { source: "/newaccount", destination: "/auth/github", permanent: true },
+      { source: "/signup", destination: "/auth/github", permanent: true },
       { source: "/docs/privacy-policy", destination: "/privacy", permanent: true },
       { source: "/docs/terms-of-service", destination: "/terms", permanent: true },
       { source: "/docs/github-connection", destination: "/docs/sign-in", permanent: true },
