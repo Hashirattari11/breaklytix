@@ -1,5 +1,7 @@
 "use client";
 
+// CLI page — pre-rendered statically; ensures /dashboard/cli route exists.
+
 import { useState, useEffect } from "react";
 
 export default function CliPage() {
