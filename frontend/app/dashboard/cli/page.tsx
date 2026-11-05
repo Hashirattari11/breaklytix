@@ -18,7 +18,13 @@ export default function CliPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+        Loading CLI preview…
+      </div>
+    );
+  }
 
   const commands = [
     { cmd: "git clone https://github.com/Hashirattari11/breaklytix.git", label: "Get the source", desc: "The CLI is currently installed from the project repository" },
