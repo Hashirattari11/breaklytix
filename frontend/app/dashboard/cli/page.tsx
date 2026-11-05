@@ -1,6 +1,7 @@
 "use client";
 
-// CLI page — pre-rendered statically; ensures /dashboard/cli route exists.
+// CLI page — server-rendered on demand so /dashboard/cli always resolves.
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 
