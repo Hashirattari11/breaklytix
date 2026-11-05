@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from .config import settings
 from .detection import is_scannable_path, scan_file
 from .db import db
+from .redact import redact_snippet
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +134,7 @@ def rescan_repo_fresh(repo: dict, user_id: str, *, deadline: float | None = None
                     "api_name": d.api_name,
                     "file_path": d.file_path,
                     "line_number": d.line_number,
-                    "matched_snippet": d.matched_snippet,
+                    "matched_snippet": redact_snippet(d.matched_snippet),
                     "symbols": ",".join(d.symbols) if d.symbols else None,
                 }
             )

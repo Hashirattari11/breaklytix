@@ -25,6 +25,7 @@ from ..github_client import (
     list_user_repos,
 )
 from ..detection import is_scannable_path
+from ..redact import redact_snippet
 from ..schemas import (
     ApiFootprintGroup,
     DetectionOut,
@@ -470,7 +471,7 @@ def scan_repo(repo_id: str, user_id: str = Depends(get_current_user_id)) -> Scan
                     "api_name": d.api_name,
                     "file_path": d.file_path,
                     "line_number": d.line_number,
-                    "matched_snippet": d.matched_snippet,
+                    "matched_snippet": redact_snippet(d.matched_snippet),
                     "symbols": ",".join(d.symbols) if d.symbols else None,
                 }
             )

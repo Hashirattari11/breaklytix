@@ -28,7 +28,7 @@ const apiSrc = ` ${apiOrigin}`;
 const scriptSrc =
   process.env.NODE_ENV === "development"
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self' 'unsafe-inline'";
+    : "script-src 'self' 'unsafe-inline' https://cdn.paddle.com";
 
 // Marketing / documentation routes that render the same HTML for everyone.
 // Login, auth, dashboard and admin are deliberately absent — they are private.
@@ -93,7 +93,7 @@ const nextConfig = {
               // this resolves ZAP's "CSP: Wildcard Directive" (Medium).
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              "connect-src 'self'" + apiSrc + " https://api.github.com https://github.com" + localApiSrc,
+              "connect-src 'self'" + apiSrc + " https://api.github.com https://github.com" + localApiSrc + " https://api.paddle.com",
               "frame-src 'self'",
               "base-uri 'self'",
               "form-action 'self'",
