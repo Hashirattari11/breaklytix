@@ -1,9 +1,7 @@
-"use client";
+import { useState, useEffect } from "react";
 
 // CLI page — server-rendered on demand so /dashboard/cli always resolves.
 export const dynamic = "force-dynamic";
-
-import { useState, useEffect } from "react";
 
 export default function CliPage() {
   const [mounted, setMounted] = useState(false);
@@ -33,7 +31,7 @@ export default function CliPage() {
     { cmd: "breaklytix login", label: "Authenticate", desc: "Paste an API key generated in Settings → API Keys" },
     { cmd: "breaklytix scan", label: "Scan repository", desc: "Scan the current git repository for API usage" },
     { cmd: "breaklytix scan --dir ./path/to/project", label: "Scan a directory", desc: "Scan any local folder without a git repository" },
-    { cmd: "breaklytix status", label: "Check status", desc: "List alerts returned by the Breaklytix API" },
+    { cmd: "breaklytix status", label: "Check status", desc: "List alerts returned by the API" },
     { cmd: "breaklytix watch", label: "Watch mode", desc: "Re-scan the current directory every 30 seconds" },
   ];
 
@@ -80,7 +78,6 @@ export default function CliPage() {
       `}} />
 
       <div className="cli-page">
-        {/* Hero */}
         <div className="cli-hero" style={{ animation: "fadeInUp 0.6s ease" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, background: "var(--green-bg)", color: "var(--green)", fontSize: 12, fontWeight: 600, marginBottom: 16 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} />
@@ -90,7 +87,6 @@ export default function CliPage() {
           <p>Scan your local codebase for third-party API usage and check alerts from your terminal. There is no published npm package yet, so install it from the project source below.</p>
         </div>
 
-        {/* Install Terminal */}
         <div className="cli-terminal" style={{ animation: "fadeInUp 0.6s ease 0.1s both" }}>
           <div className="cli-terminal-header">
             <span className="cli-terminal-dot" style={{ background: "#ff5f57" }} />
@@ -113,7 +109,6 @@ export default function CliPage() {
           </div>
         </div>
 
-        {/* Requirements */}
         <div className="cli-section" style={{ animation: "fadeInUp 0.6s ease 0.2s both" }}>
           <h2>Requirements</h2>
           <div className="cli-platform-grid">
@@ -135,7 +130,6 @@ export default function CliPage() {
           </div>
         </div>
 
-        {/* Local Scan */}
         <div className="cli-section" style={{ animation: "fadeInUp 0.6s ease 0.3s both" }}>
           <h2>Scan Local Directory</h2>
           <p style={{ fontSize: 14, color: "var(--muted)", margin: "0 0 12px" }}>
@@ -149,7 +143,6 @@ export default function CliPage() {
           </p>
         </div>
 
-        {/* Features */}
         <div className="cli-section" style={{ animation: "fadeInUp 0.6s ease 0.4s both" }}>
           <h2>CLI Features</h2>
           <div className="cli-feature-grid">
@@ -169,7 +162,6 @@ export default function CliPage() {
           </div>
         </div>
 
-        {/* Quick Start */}
         <div className="cli-section" style={{ animation: "fadeInUp 0.6s ease 0.5s both" }}>
           <h2>Quick Start Guide</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -186,7 +178,7 @@ export default function CliPage() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{s.title}</div>
-                  <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{s.desc}</div>
+                  <div style={{ fontSize: 13, color: var(--muted), lineHeight: 1.5 }}>{s.desc}</div>
                 </div>
               </div>
             ))}
