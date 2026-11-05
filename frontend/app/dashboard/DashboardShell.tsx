@@ -117,7 +117,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           router.replace("/legal-acceptance");
         }
       })
-      .catch(() => {});
+      .catch((e) => {
+        // 401 here means the session just expired server-side -> clear client
+        // state (api layer already did) and route to login.
+        if ((e as { status?: number } | null)?.status === 401) {
+          router.replace("/login");
+        }
+      });
     return () => { cancelled = true; };
   }, [router]);
 
