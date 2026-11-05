@@ -152,7 +152,7 @@ def list_github_repos(user_id: str = Depends(get_current_user_id)) -> list[GitHu
                 detail="Your GitHub connection has expired. Please reconnect your account.",
             )
         logger.exception("Unexpected error listing GitHub repos for user=%s", user_id)
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(redact_snippet(str(exc))))
     return [GitHubRepoOut(**r) for r in repos]
 
 
@@ -349,7 +349,7 @@ def connect_repo(body: RepoConnectIn, user_id: str = Depends(get_current_user_id
     try:
         gh = get_repo(token, body.full_name)
     except GitHubError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(redact_snippet(str(exc))))
 
     row = {
         "user_id": user_id,
@@ -445,7 +445,7 @@ def scan_repo(repo_id: str, user_id: str = Depends(get_current_user_id)) -> Scan
             finished_at=datetime.now(timezone.utc).isoformat(),
             error_message=str(exc),
         )
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(redact_snippet(str(exc))))
     logger.info("[API HEALTH] GitHub access verified for %s — tree entries: %d", full_name, len(tree))
 
     # Keep only scannable, reasonably-sized source files, capped for free-tier safety.
@@ -527,16 +527,22 @@ def scan_repo(repo_id: str, user_id: str = Depends(get_current_user_id)) -> Scan
     # Upsert (never delete — deleting would cascade and wipe alert history).
     if detections:
         # Batch to keep request bodies modest.
-        for i in range(0, len(detections), 500):
-            db().table("api_detections").upsert(
-                detections[i : i + 500],
-                on_conflict="repo_id,api_name,file_path,line_number",
-            ).execute()
+        try:
+            for i in range(0, len(detections), 500):
+                db().table("api_detections").upsert(
+                    detections[i : i + 500],
+                    on_conflict="repo_id,api_name,file_path,line_number",
+                ).execute()
+        except Exception as exc:
+            logger.warning("[API HEALTH] api_detections upsert failed for repo=%s: %s", repo_id, exc)
 
         # Bump plan usage only for the headroom the plan actually covers
         # (guarded by monitored_to_add computed above). Never on failure.
-        if monitored_to_add > 0:
-            increment_api_count(user_id, monitored_to_add)
+        try:
+            if monitored_to_add > 0:
+                increment_api_count(user_id, monitored_to_add)
+        except Exception as exc:
+            logger.warning("[API HEALTH] plan usage increment failed for repo=%s: %s", repo_id, exc)
 
     # Health bridge: detections -> reliability_issues -> alerts, and
     # detections + real manifests -> health checks/scores (same pipeline as

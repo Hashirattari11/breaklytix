@@ -179,7 +179,7 @@ export async function request<T = any>(path: string, options: RequestInit = {}):
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, cache: "no-store" });
 
   if (res.status === 401) {
     clearSession();

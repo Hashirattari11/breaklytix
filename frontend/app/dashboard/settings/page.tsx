@@ -144,6 +144,7 @@ export default function SettingsPage() {
 
   async function handleSavePrefs() {
     if (!prefs) return;
+    const prev = prefs;
     setSavingPrefs(true);
     setPrefsSaved(false);
     setPrefsError(null);
@@ -154,6 +155,7 @@ export default function SettingsPage() {
       toast.success("Notification preferences saved");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to save preferences";
+      setPrefs(prev);
       setPrefsError(msg);
       toast.error(msg);
     } finally {

@@ -98,8 +98,16 @@ export default function PricingPage() {
       );
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Failed to create checkout session");
+        let detail = "Failed to create checkout session";
+        try {
+          const err = await res.json();
+          if (err && typeof err === "object" && typeof err.detail === "string" && err.detail) {
+            detail = err.detail;
+          }
+        } catch {
+          /* non-JSON error body */
+        }
+        throw new Error(detail);
       }
 
       const data = await res.json();
