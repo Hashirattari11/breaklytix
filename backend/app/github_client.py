@@ -115,21 +115,35 @@ def exchange_code_for_token(code: str, redirect_uri: str | None = None) -> str:
 
 
 def get_authenticated_user(token: str) -> dict:
-    """Return {id, login, email}. Falls back to /user/emails for a primary email."""
+    """Return {id, login, email}. Falls back to /user/emails for a primary email.
+
+    Email resolution is deliberately fail-soft: a missing email on /user or an
+    empty/failed /user/emails list must surface as `email=None` (which the auth
+    router turns into a clear, actionable 400) rather than an unhandled error.
+    """
     with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as client:
         resp = client.get(f"{GITHUB_API}/user")
         if resp.status_code != 200:
             raise GitHubError(f"Failed to fetch user ({resp.status_code}): {resp.text}")
         user = resp.json()
-        email = user.get("email")
+        email = user.get("email") or None
+
         if not email:
-            em = client.get(f"{GITHUB_API}/user/emails")
-            if em.status_code == 200:
-                emails = em.json()
-                primary = next(
-                    (e for e in emails if e.get("primary") and e.get("verified")), None
-                )
-                email = (primary or (emails[0] if emails else {})).get("email")
+            # Fall back to /user/emails (read via user:email scope) and pick the
+            # primary *verified* address; otherwise use the first known address.
+            try:
+                em = client.get(f"{GITHUB_API}/user/emails")
+                if em.status_code == 200:
+                    raw = em.json()
+                    emails = raw if isinstance(raw, list) else []
+                    verified_primary = next(
+                        (e for e in emails if e.get("primary") and e.get("verified")), None
+                    )
+                    fallback = verified_primary or (emails[0] if emails else None)
+                    email = (fallback or {}).get("email") or None
+            except Exception:  # noqa: BLE001 - email lookup must not mask auth errors
+                email = None
+
     return {
         "github_id": str(user["id"]),
         "github_login": user.get("login"),
