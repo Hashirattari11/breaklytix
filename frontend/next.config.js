@@ -92,12 +92,12 @@ const nextConfig = {
               "default-src 'self'",
               scriptSrc,
               "style-src 'self' 'unsafe-inline'",
-              // No external images exist anywhere in the app (only /logo.png,
-              // verified: no <img> with a dynamic src, no next/image, no url()
-              // to a remote host). The `https:` wildcard only widened the
-              // surface for an attacker-controlled image URL, so it is gone —
-              // this resolves ZAP's "CSP: Wildcard Directive" (Medium).
-              "img-src 'self' data: blob:",
+              // The only external image is the Launchstag listing badge
+              // (static https://launchstag.com/badge-dark.svg). Everything else
+              // is local, so the old `https:` wildcard stays removed — this
+              // resolves ZAP's "CSP: Wildcard Directive" (Medium) while still
+              // allowing the one explicitly allow-listed host.
+              "img-src 'self' data: blob: https://launchstag.com",
               "font-src 'self' data:",
               "connect-src 'self'" + apiSrc + " https://api.github.com https://github.com" + localApiSrc + " https://api.paddle.com",
               "frame-src 'self'",

@@ -12,6 +12,12 @@ export const SITE_DESCRIPTION =
 export const SUPPORT_EMAIL =
   (process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "").trim() || "support@breaklytix.site";
 
+// Launchstag directory listing. The badge links back to the listing page and is
+// rendered in the public footers; the SVG host is allow-listed in the CSP
+// (see next.config.js `img-src`).
+export const LAUNCHSTAG_URL = "https://launchstag.com";
+export const LAUNCHSTAG_BADGE_SRC = "https://launchstag.com/badge-dark.svg";
+
 /**
  * Build the per-page `openGraph` block for a public marketing/docs page.
  *
@@ -53,7 +59,7 @@ export function absoluteUrl(path = "/"): string {
  * articles read their own dates from `lib/docs-seo.ts`.
  */
 export const CONTENT_UPDATED: Record<string, string> = {
-  "/": "2026-10-26",
+  "/": "2026-11-10",
   "/about": "2026-10-26",
   "/providers": "2026-10-21",
   "/pricing": "2026-10-26",

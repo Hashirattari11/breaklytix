@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 import { LogoMark } from "./Logo";
+import LaunchstagBadge from "./LaunchstagBadge";
 
 // Shared legal-link list (footer on all public marketing pages).
 export const LEGAL_LINKS = [
@@ -49,6 +50,7 @@ export function LegalFooter() {
         </div>
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.</p>
+          <LaunchstagBadge style={{ marginTop: 16 }} />
         </div>
       </div>
     </footer>

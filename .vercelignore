@@ -22,11 +22,15 @@
 # Vercel project state (must not be bundled)
 .vercel/
 
-# unrelated CLI / data trees
-cli/
-db/
-examples/
-bx/
+# unrelated CLI / data trees at the REPO ROOT only.
+# These MUST stay root-anchored (leading "/"): an unanchored `cli/` also matched
+# `frontend/app/dashboard/cli/`, so Vercel silently dropped that route from the
+# upload and the deployed site returned 404 for /dashboard/cli even though the
+# local build contained it.
+/cli/
+/db/
+/examples/
+/bx/
 
 # generated reports / scratch scripts at repo root
 *_REPORT.md
