@@ -8,6 +8,10 @@ import { LAUNCHSTAG_URL, LAUNCHSTAG_BADGE_SRC } from "@/lib/site";
  * Plain anchor + <img> (not next/image) because the asset is a fixed-size
  * third-party SVG served by Launchstag. `rel="noopener"` only — the listing
  * asks for a dofollow link, so `nofollow` is intentionally absent.
+ *
+ * Deliberately NOT `loading="lazy"`: a below-the-fold lazy image is never
+ * requested until the visitor scrolls to the footer, so directory verifiers
+ * (and Lighthouse "image not loaded") see a 0x0 image. The asset is ~1.4 KB.
  */
 export default function LaunchstagBadge({ style }: { style?: React.CSSProperties }) {
   return (
@@ -23,7 +27,6 @@ export default function LaunchstagBadge({ style }: { style?: React.CSSProperties
         alt="Featured on Launchstag"
         width={198}
         height={62}
-        loading="lazy"
         decoding="async"
         style={{ display: "block", height: 62, width: 198 }}
       />
