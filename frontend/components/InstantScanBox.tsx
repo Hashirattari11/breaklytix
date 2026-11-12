@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { startInstantScan } from "../lib/instant-scan";
 import { track } from "../lib/analytics";
 
-const SAMPLE_REPO = "https://github.com/stripe-samples/accept-a-payment";
+const SAMPLE_REPO = "https://github.com/openai/openai-quickstart-node";
 
 const STEPS = [
   "Fetching files",
