@@ -252,6 +252,10 @@ export default async function ScanResultPage({ params }: PageProps) {
             {scanned ? ` · ${scanned}` : ""}
             {typeof result.duration_ms === "number" ? ` · ${(result.duration_ms / 1000).toFixed(1)}s` : ""}
           </p>
+          <p style={{ margin: "10px 0 0", fontSize: 13.5, color: "var(--muted)" }}>
+            Scanned: {result.repo}
+            {scanned ? `, ${scanned}` : ""}
+          </p>
           {result.partial ? (
             <p
               role="status"

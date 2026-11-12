@@ -10,11 +10,12 @@ import html
 import logging
 import re
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from ..db import db
+from ..deps import get_current_user_id
 from ..email_client import send_email
 from ..instant_scan import (
     InvalidRepoUrl,
@@ -23,6 +24,7 @@ from ..instant_scan import (
     ScanRateLimited,
     get_scan,
     latest_scan_for_repo,
+    link_scan_to_user,
     parse_repo_url,
     record_event,
     run_instant_scan,
@@ -33,7 +35,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["instant-scan"])
 
 _EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[A-Za-z]{2,}$")
-_ALLOWED_CLIENT_EVENTS = {"share_clicked", "badge_copied"}
+_ALLOWED_CLIENT_EVENTS = {"share_clicked", "badge_copied", "email_submitted", "github_signup_clicked", "github_signup_completed"}
 
 
 class InstantScanIn(BaseModel):
@@ -139,6 +141,20 @@ def client_event(body: ClientEventIn, request: Request) -> dict:
         props=_clean_event_props(body.props),
     )
     return {"ok": True}
+
+
+@router.post("/api/instant-scan/{scan_id}/connect")
+def connect_instant_scan(scan_id: str, user_id: str = Depends(get_current_user_id)) -> dict:
+    """Sign-up continuation for a public instant scan.
+
+    Called right after the visitor's GitHub sign-in: links the scan to the user,
+    adds the scanned public repo to their monitored repos and arms daily
+    monitoring. Response never contains secrets or file contents.
+    """
+    result = link_scan_to_user(scan_id, user_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Scan not found.")
+    return result
 
 
 @router.get("/api/instant-scan/{scan_id}")

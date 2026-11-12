@@ -110,3 +110,32 @@ def test_badge_handles_dotted_repo_name(client, monkeypatch):
 def test_badge_rejects_invalid_owner(client):
     res = client.get("/badge/-bad/api.svg")
     assert res.status_code == 404
+
+
+def test_connect_instant_scan_requires_a_session(client):
+    res = client.post("/api/instant-scan/abc/connect")
+    assert res.status_code == 401
+
+
+def test_connect_instant_scan_links_the_signed_in_user(client, monkeypatch):
+    seen = {}
+
+    def _fake_link(scan_id, user_id):
+        seen["scan_id"] = scan_id
+        seen["user_id"] = user_id
+        return {"ok": True, "scan_id": scan_id, "repo_full_name": "acme/api", "repo_id": "repo-1", "monitored": True}
+
+    monkeypatch.setattr(router_module, "link_scan_to_user", _fake_link)
+    client.app.dependency_overrides[router_module.get_current_user_id] = lambda: "user-1"
+
+    res = client.post("/api/instant-scan/scan-1/connect")
+    assert res.status_code == 200
+    assert res.json()["repo_id"] == "repo-1"
+    assert seen == {"scan_id": "scan-1", "user_id": "user-1"}
+
+
+def test_connect_instant_scan_404s_for_missing_scan(client, monkeypatch):
+    monkeypatch.setattr(router_module, "link_scan_to_user", lambda *a, **k: None)
+    client.app.dependency_overrides[router_module.get_current_user_id] = lambda: "user-1"
+    res = client.post("/api/instant-scan/missing/connect")
+    assert res.status_code == 404

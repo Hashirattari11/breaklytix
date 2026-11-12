@@ -211,6 +211,9 @@ def admin_funnel() -> dict:
         "email_captured": _count_where("instant_scan_events", event="email_captured"),
         "share_clicked": _count_where("instant_scan_events", event="share_clicked"),
         "badge_copied": _count_where("instant_scan_events", event="badge_copied"),
+        "email_submitted": _count_where("instant_scan_events", event="email_submitted"),
+        "github_signup_clicked": _count_where("instant_scan_events", event="github_signup_clicked"),
+        "github_signup_completed": _count_where("instant_scan_events", event="github_signup_completed"),
     }
 
     def rate(numerator: int, denominator: int) -> float:

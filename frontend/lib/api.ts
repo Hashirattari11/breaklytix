@@ -17,6 +17,11 @@ export const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || "";
 // `read:user`/`user:email` cover identity.
 export const GITHUB_SCOPES = "read:user user:email repo";
 
+// Minimal scopes for the post-scan "Continue with GitHub" funnel step. The
+// anonymous public repo scan already ran, so only identity is required here;
+// private-repo access (`repo`) is requested later, opt-in.
+export const GITHUB_SIGNUP_SCOPES = "read:user user:email";
+
 export type Repo = {
   id: string;
   github_repo_id: string;
@@ -207,11 +212,15 @@ export async function request<T = any>(path: string, options: RequestInit = {}):
 export const apiFetch = request;
 
 // ---- Auth ------------------------------------------------------------------
-export function buildGithubAuthUrl(redirectUri: string, state: string): string {
+export function buildGithubAuthUrl(
+  redirectUri: string,
+  state: string,
+  scopes: string = GITHUB_SCOPES
+): string {
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     redirect_uri: redirectUri,
-    scope: GITHUB_SCOPES,
+    scope: scopes,
     state,
     allow_signup: "true",
   });
@@ -220,13 +229,28 @@ export function buildGithubAuthUrl(redirectUri: string, state: string): string {
 
 export function githubCallback(
   code: string,
-  redirectUri: string
+  redirectUri: string,
+  scanId?: string | null
 ): Promise<{ token: string; user: User }> {
   return request("/auth/github/callback", {
     method: "POST",
-    body: JSON.stringify({ code, redirect_uri: redirectUri }),
+    body: JSON.stringify({ code, redirect_uri: redirectUri, ...(scanId ? { scan_id: scanId } : {}) }),
   });
 }
+
+// ---- Instant scan sign-up continuation (post-scan CTA) -----------------------
+export type InstantScanConnectResult = {
+  ok: boolean;
+  scan_id: string;
+  repo_full_name: string;
+  repo_id: string | null;
+  monitored: boolean;
+};
+
+export const connectInstantScanRepo = (scanId: string): Promise<InstantScanConnectResult> =>
+  request<InstantScanConnectResult>(`/api/instant-scan/${encodeURIComponent(scanId)}/connect`, {
+    method: "POST",
+  });
 
 // ---- Legal consent (master pass §2) ---------------------------------------
 export function getConsentStatus(): Promise<User> {

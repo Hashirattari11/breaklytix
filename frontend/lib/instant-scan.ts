@@ -131,9 +131,9 @@ export async function captureScanEmail(scanId: string, email: string): Promise<{
   return (await res.json()) as { ok: boolean; email_sent: boolean };
 }
 
-/** Fire-and-forget funnel event (share / badge copy). Never blocks the UI. */
+/** Fire-and-forget funnel event (share / badge copy / sign-up). Never blocks the UI. */
 export function recordScanEvent(
-  event: "share_clicked" | "badge_copied",
+  event: "share_clicked" | "badge_copied" | "email_submitted" | "github_signup_clicked" | "github_signup_completed",
   scanId?: string,
   repoFullName?: string,
   props?: Record<string, string | number | boolean>,

@@ -182,8 +182,10 @@ export default function InstantScanBox() {
       <button
         type="button"
         onClick={() => {
+          // Fill-only: the user must press "Scan free" themselves. Never
+          // auto-submit, never override what they typed.
           setUrl(SAMPLE_REPO);
-          void runScan(SAMPLE_REPO);
+          setError(null);
         }}
         disabled={busy}
         style={{

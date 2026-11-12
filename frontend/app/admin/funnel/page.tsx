@@ -55,6 +55,9 @@ export default function AdminFunnelPage() {
         <StatCard label="Emails captured" value={counts.email_captured} tone="green" />
         <StatCard label="Share clicks" value={counts.share_clicked} tone="accent" />
         <StatCard label="Badge copies" value={counts.badge_copied} tone="accent" />
+        <StatCard label="Email submit CTA" value={counts.email_submitted ?? 0} tone="accent" />
+        <StatCard label="GitHub sign-up clicks" value={counts.github_signup_clicked ?? 0} tone="accent" />
+        <StatCard label="GitHub sign-ups completed" value={counts.github_signup_completed ?? 0} tone="green" />
         <StatCard label="Leads" value={data.total_leads} tone="green" />
       </div>
 

@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { githubCallback } from "../lib/api";
+import { githubCallback, connectInstantScanRepo } from "../lib/api";
 import { storeSession } from "../lib/auth";
+import { track } from "../lib/analytics";
 import { SITE_URL } from "../lib/site";
 
 const ALLOWED_NEXT = ["/admin", "/dashboard"];
@@ -66,6 +67,16 @@ export default function AuthCallbackClient() {
       return;
     }
 
+    // Post-scan sign-up continuation: if the visitor arrived via the scan
+    // result CTA, bind the scan to this new account and arm monitoring.
+    let scanId: string | null = null;
+    try {
+      scanId = sessionStorage.getItem("autofix_oauth_scan_id");
+      sessionStorage.removeItem("autofix_oauth_scan_id");
+    } catch {
+      scanId = null;
+    }
+
     (async () => {
       try {
         // Must match the redirect_uri sent to GitHub's authorize endpoint
@@ -73,7 +84,7 @@ export default function AuthCallbackClient() {
         // exchange fails. Localhost flows keep their own origin.
         const isLocal = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
         const redirectUri = (isLocal ? window.location.origin : SITE_URL) + "/auth/callback";
-        const { token, user } = await githubCallback(code, redirectUri);
+        const { token, user } = await githubCallback(code, redirectUri, scanId);
         storeSession(token, user);
         // Establish the httpOnly cookie used by the server-side /admin gate.
         // The backend just validated this token; the route re-checks it before
@@ -87,6 +98,22 @@ export default function AuthCallbackClient() {
         } catch {
           /* gate will re-validate on the next /login visit */
         }
+
+        if (scanId) {
+          // Post-scan sign-up continuation: link scan -> user, add scanned repo
+          // to monitored repos, then land on the dashboard.
+          try {
+            const connect = await connectInstantScanRepo(scanId);
+            if (connect?.ok) {
+              track("github_signup_completed");
+              router.replace(takePostLoginPath());
+              return;
+            }
+          } catch {
+            /* fall through to the normal post-login redirect */
+          }
+        }
+
         if (user.consent_required) {
           router.replace("/legal-acceptance");
         } else {

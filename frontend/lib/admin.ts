@@ -59,6 +59,9 @@ export type AdminFunnel = {
     email_captured: number;
     share_clicked: number;
     badge_copied: number;
+    email_submitted?: number;
+    github_signup_clicked?: number;
+    github_signup_completed?: number;
   };
   conversion_rates: {
     started_to_completed: number;

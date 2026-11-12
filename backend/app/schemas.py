@@ -12,6 +12,9 @@ class GitHubCallbackIn(BaseModel):
     redirect_uri: str | None = Field(
         default=None, description="Must match the redirect_uri used to start OAuth"
     )
+    scan_id: str | None = Field(
+        default=None, max_length=64, description="Instant scan to link to the signed-up user (post-scan sign-up flow)"
+    )
 
 
 class UserOut(BaseModel):

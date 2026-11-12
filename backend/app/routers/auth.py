@@ -9,6 +9,7 @@ from ..crypto import get_cipher
 from ..db import db, fetch_one
 from ..deps import get_current_user_id, issue_session_token, require_internal_secret
 from ..github_client import GitHubError, exchange_code_for_token, get_authenticated_user
+from ..instant_scan import link_scan_to_user
 from ..schemas import AuthOut, GitHubCallbackIn, UserOut
 from .consent import _user_out
 
@@ -112,6 +113,16 @@ def github_callback(body: GitHubCallbackIn) -> AuthOut:
     user = res.data[0]
     if user.get("is_suspended"):
         raise HTTPException(status_code=403, detail="Account suspended")
+
+    # Post-scan sign-up continuation: when the visitor arrived via the
+    # /scan/[id] CTA ("Continue with GitHub"), link the scan to this user and
+    # arm monitoring for the scanned repo. Anonymous scans stay unlinked.
+    linked_scan: dict | None = None
+    if body.scan_id:
+        try:
+            linked_scan = link_scan_to_user(body.scan_id, str(user["id"]))
+        except Exception:  # noqa: BLE001 — never fail the session on a link hiccup
+            logger.warning("GitHub callback: could not link scan %s to user", body.scan_id)
 
     return AuthOut(
         token=issue_session_token(user["id"]),

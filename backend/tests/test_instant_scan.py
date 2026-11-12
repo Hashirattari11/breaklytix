@@ -469,6 +469,46 @@ def test_scan_public_repo_explains_unmatched_notices(monkeypatch):
     assert "none mentioned the endpoints" in result["no_risk_message"]
 
 
+def test_parse_repo_url_normalizes_owner_and_repo_case():
+    """GitHub names are case-insensitive -> one canonical (lowercase) cache key."""
+    assert parse_repo_url("https://github.com/OpenAI/OpenAI-Quickstart-Node.GIT/") == "openai/openai-quickstart-node"
+    assert parse_repo_url("http://www.GitHub.com/Acme/Payments.git") == "acme/payments"
+
+
+def test_scan_two_different_repos_are_distinct_and_repeat_is_cached(monkeypatch):
+    """Two different repos must never share a scan result; repeats must hit cache."""
+    store: dict[str, dict] = {}
+
+    def fake_find(repo: str):
+        return store.get(repo)
+
+    monkeypatch.setattr(instant_scan, "find_cached_scan", fake_find)
+
+    def fake_persist(repo: str, result: dict, **kwargs):
+        scan_id = f"scan-{repo.replace('/', '-')}"
+        store[repo] = {"id": scan_id, "result": result, "created_at": "2026-11-12T00:00:00Z"}
+        return scan_id
+
+    monkeypatch.setattr(instant_scan, "persist_scan", fake_persist)
+    monkeypatch.setattr(instant_scan, "scan_public_repo", lambda repo: {"repo": repo, "summary": {"provider_count": 1, "integration_count": 1, "possible_risk_count": 0}})
+    monkeypatch.setattr(
+        instant_scan,
+        "_scan_slots",
+        type("FakeSlots", (), {"acquire": lambda self, blocking=False: True, "release": lambda self: None})(),
+    )
+    monkeypatch.setattr(instant_scan, "count_recent_scans", lambda ip_hash: 0)
+
+    first = run_instant_scan("https://github.com/acme/api", ip="1.2.3.4")
+    second = run_instant_scan("https://github.com/acme/payments", ip="1.2.3.5")
+    third = run_instant_scan("https://github.com/acme/api", ip="1.2.3.6")
+
+    assert first["cached"] is False and first["scan_id"] == "scan-acme-api"
+    assert second["cached"] is False and second["scan_id"] == "scan-acme-payments"
+    assert second["result"]["repo"] == "acme/payments"
+    assert third["cached"] is True and third["scan_id"] == first["scan_id"]
+    assert third["result"] == first["result"]
+
+
 def test_run_instant_scan_cache_hit_skips_network(monkeypatch):
     cached_payload = {
         "repo": "acme/api",
@@ -514,3 +554,54 @@ def test_run_instant_scan_persists_and_returns_id(monkeypatch):
     assert payload["cached"] is False
     assert payload["scan_id"] == "scan-test-id"
     assert SECRET not in json.dumps(payload)
+
+
+# ---------------------------------------------------------------------------
+# Post-scan sign-up continuation: link scan -> user + arm monitoring
+# ---------------------------------------------------------------------------
+class _RecordingDB:
+    def __init__(self):
+        self.calls = []
+
+    def table(self, name):
+        recorder = self
+
+        class _Query:
+            def update(self, row):
+                recorder.calls.append(("update", name, dict(row)))
+                return self
+
+            def upsert(self, row, on_conflict=None):
+                recorder.calls.append(("upsert", name, dict(row)))
+                return self
+
+            def eq(self, *args, **kwargs):
+                return self
+
+            def execute(self):
+                return _Resp([{"id": "repo-1"}])
+
+        return _Query()
+
+
+def test_link_scan_to_user_arms_monitoring(monkeypatch):
+    recorder = _RecordingDB()
+    monkeypatch.setattr(
+        instant_scan, "get_scan", lambda scan_id: {"id": scan_id, "repo_full_name": "acme/api"}
+    )
+    monkeypatch.setattr(
+        instant_scan, "fetch_one", lambda table, filters: {"id": "user-1", "github_access_token": ""}
+    )
+    monkeypatch.setattr(instant_scan, "db", lambda: recorder)
+
+    out = instant_scan.link_scan_to_user("scan-1", "user-1")
+
+    assert out["ok"] is True
+    assert out["repo_full_name"] == "acme/api"
+    assert ("update", "instant_scans", {"user_id": "user-1"}) in recorder.calls
+    assert any(c[0] == "update" and c[1] == "users" and c[2].get("notify_daily_status") for c in recorder.calls)
+
+
+def test_link_scan_to_user_returns_none_for_missing_scan(monkeypatch):
+    monkeypatch.setattr(instant_scan, "get_scan", lambda scan_id: None)
+    assert instant_scan.link_scan_to_user("missing", "user-1") is None

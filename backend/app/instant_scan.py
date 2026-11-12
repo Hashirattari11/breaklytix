@@ -31,7 +31,8 @@ from urllib.parse import urlsplit
 
 from .changelog.matching import match_event_to_detection
 from .config import settings
-from .db import db
+from .crypto import get_cipher
+from .db import db, fetch_one
 from .detection import scan_file
 from .github_client import GitHubError, get_blob_text, get_repo, list_repo_tree
 from .redact import redact_snippet
@@ -111,7 +112,10 @@ def parse_repo_url(raw: str) -> str:
         raise InvalidRepoUrl("That GitHub owner/repository name is not valid.")
     if repo in (".", "..") or owner in (".", ".."):
         raise InvalidRepoUrl("That GitHub repository path is not valid.")
-    return f"{owner}/{repo}"
+    # GitHub repo names are case-insensitive — normalise to one canonical key
+    # so the 24h per-repo cache can never drift on casing (Owner/Repo vs
+    # owner/repo) and every scan of the same repo hits the same entry.
+    return f"{owner.lower()}/{repo.lower()}"
 
 
 # ---------------------------------------------------------------------------
@@ -782,6 +786,11 @@ def run_instant_scan(raw_url: str, *, ip: str) -> dict:
 
     cached = find_cached_scan(repo_full_name)
     if cached:
+        logger.info(
+            "instant scan: cache_hit repo=%s scan_id=%s",
+            repo_full_name,
+            cached.get("id"),
+        )
         return {
             "scan_id": cached["id"],
             "cached": True,
@@ -801,6 +810,12 @@ def run_instant_scan(raw_url: str, *, ip: str) -> dict:
         _scan_slots.release()
 
     scan_id = persist_scan(repo_full_name, result, ip_hash=ip_hash)
+    logger.info(
+        "instant scan: completed repo=%s scan_id=%s duration_ms=%s cached=False",
+        repo_full_name,
+        scan_id,
+        result.get("duration_ms"),
+    )
     return {"scan_id": scan_id, "cached": False, "cached_at": None, "result": result}
 
 
@@ -835,6 +850,72 @@ def get_scan(scan_id: str) -> dict | None:
         "email_captured": bool(item.get("email")),
         "partial": bool(item.get("partial")),
         "result": payload,
+    }
+
+
+def link_scan_to_user(scan_id: str, user_id: str) -> dict | None:
+    """Link an anonymous instant scan to a signed-up user and mark monitoring on.
+
+    - Sets ``instant_scans.user_id`` so the funnel can attribute a scan to the
+      account that acted on it.
+    - Adds the scanned public repo to the user's monitored ``repos`` rows (this
+      is what arms the daily monitoring pipeline for that repo).
+    - Turns the user's daily-status notification on.
+
+    Returns ``None`` when the scan does not exist (the caller should 404).
+    """
+    scan = get_scan(scan_id)
+    if not scan:
+        return None
+    repo_full_name = scan.get("repo_full_name") or ""
+    if not repo_full_name:
+        return None
+
+    try:
+        db().table("instant_scans").update({"user_id": user_id}).eq("id", scan_id).execute()
+    except Exception:  # noqa: BLE001 — attribution must never break the connect flow
+        logger.warning("instant scan: could not link scan %s to user", scan_id)
+
+    user = fetch_one("users", {"id": user_id}) or {}
+    token = ""
+    raw_token = user.get("github_access_token") if isinstance(user, dict) else None
+    if isinstance(raw_token, str) and raw_token:
+        try:
+            token = get_cipher().decrypt(raw_token)
+        except Exception:  # noqa: BLE001
+            token = ""
+
+    repo_id: str | None = None
+    gh_repo = None
+    if token:
+        try:
+            gh_repo = get_repo(token, repo_full_name)
+        except Exception:  # noqa: BLE001
+            gh_repo = None
+    if gh_repo:
+        row = {
+            "user_id": user_id,
+            "github_repo_id": str(gh_repo.get("github_repo_id") or ""),
+            "full_name": gh_repo.get("full_name") or repo_full_name,
+            "default_branch": gh_repo.get("default_branch") or "main",
+        }
+        try:
+            res = db().table("repos").upsert(row, on_conflict="user_id,github_repo_id").execute()
+            repo_id = (res.data or [{}])[0].get("id") if res.data else None
+        except Exception:  # noqa: BLE001
+            logger.warning("instant scan: could not add scanned repo %s to monitored repos", repo_full_name)
+
+    try:
+        db().table("users").update({"notify_daily_status": True}).eq("id", user_id).execute()
+    except Exception:  # noqa: BLE001
+        logger.warning("instant scan: could not set daily status for user %s", user_id)
+
+    return {
+        "ok": True,
+        "scan_id": scan_id,
+        "repo_full_name": repo_full_name,
+        "repo_id": repo_id,
+        "monitored": True,
     }
 
 

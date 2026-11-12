@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import type { CSSProperties } from "react";
-import { captureScanEmail, recordScanEvent, type ScanResult } from "../../../lib/instant-scan";
+import { recordScanEvent, type ScanResult } from "../../../lib/instant-scan";
+import ScanSignupClient from "./ScanSignupClient";
 import { track } from "../../../lib/analytics";
 
 const AGENCY_EMAIL = "hashirattari73@gmail.com";
@@ -32,9 +33,6 @@ export default function ScanResultClient({
   result: ScanResult;
   badgeSnippet: string;
 }) {
-  const [email, setEmail] = useState("");
-  const [emailState, setEmailState] = useState<"idle" | "saving" | "done" | "error">("idle");
-  const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState<"link" | "badge" | null>(null);
 
   async function copyText(value: string, kind: "link" | "badge") {
@@ -44,7 +42,6 @@ export default function ScanResultClient({
       window.setTimeout(() => setCopied(null), 2200);
     } catch {
       setCopied(null);
-      setEmailMessage("Copy failed. Select the text and copy it manually.");
     }
     if (kind === "badge") {
       track("badge_copied");
@@ -52,97 +49,10 @@ export default function ScanResultClient({
     }
   }
 
-  async function onSubmitEmail(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (emailState === "saving" || emailState === "done") return;
-    const value = email.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/.test(value)) {
-      setEmailState("error");
-      setEmailMessage("Enter a valid email address.");
-      return;
-    }
-    setEmailState("saving");
-    setEmailMessage(null);
-    try {
-      const res = await captureScanEmail(scanId, value);
-      setEmailState("done");
-      track("email_captured");
-      setEmailMessage(
-        res.email_sent
-          ? "You're on the list. Check your inbox for a confirmation."
-          : "Saved. We couldn't send the confirmation email right now, but your address is on the list.",
-      );
-    } catch (err) {
-      setEmailState("error");
-      setEmailMessage(err instanceof Error ? err.message : "Could not save your email. Try again.");
-    }
-  }
-
   return (
     <>
-      {/* Email capture — AFTER the result, never before */}
-      <section
-        aria-labelledby="monitor-title"
-        style={{
-          marginTop: 28,
-          padding: 24,
-          borderRadius: 16,
-          border: "1px solid var(--border)",
-          background: "linear-gradient(135deg, rgba(99,91,255,0.08), rgba(6,182,212,0.06))",
-        }}
-      >
-        <h2 id="monitor-title" style={{ margin: "0 0 8px", fontSize: 21, fontWeight: 800 }}>
-          Want daily monitoring + email alerts when a provider changes something that affects this repo?
-        </h2>
-        <p style={{ margin: "0 0 16px", color: "var(--muted)", fontSize: 14.5, lineHeight: 1.6 }}>
-          We&apos;ll re-scan this repository daily and email you when an official provider notice may affect it.
-        </p>
-        {emailState === "done" ? (
-          <p role="status" style={{ margin: 0, color: "var(--green, #0a7d3d)", fontWeight: 600, fontSize: 14.5 }}>
-            {emailMessage}
-          </p>
-        ) : (
-          <form onSubmit={onSubmitEmail} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <label htmlFor="scan-email" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
-              Email address
-            </label>
-            <input
-              id="scan-email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailState === "error") setEmailState("idle");
-              }}
-              disabled={emailState === "saving"}
-              style={{
-                flex: "1 1 260px",
-                minWidth: 0,
-                height: 46,
-                padding: "0 14px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-                color: "var(--text)",
-                fontSize: 15,
-              }}
-            />
-            <button type="submit" disabled={emailState === "saving"} style={{ ...buttonBase, background: "var(--accent)", color: "white", border: "none", minWidth: 150 }}>
-              {emailState === "saving" ? "Saving…" : "Get daily alerts"}
-            </button>
-          </form>
-        )}
-        {emailMessage && emailState !== "done" ? (
-          <p role="alert" style={{ margin: "10px 0 0", color: "#b91c1c", fontSize: 13.5 }}>
-            {emailMessage}
-          </p>
-        ) : null}
-        <p style={{ margin: "12px 0 0", fontSize: 13, color: "var(--muted)" }}>
-          Free beta. No credit card.
-        </p>
-      </section>
+      {/* Post-scan sign-up / daily-monitoring CTA — replaces the old email-only prompt. */}
+      <ScanSignupClient scanId={scanId} result={result} />
 
       {/* README badge */}
       <section
