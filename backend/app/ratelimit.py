@@ -17,11 +17,14 @@ import threading
 import time
 from collections import defaultdict, deque
 
-# (path prefix, max requests, window seconds). Keep the list small and
+# (path prefix, max requests, window seconds, methods). Keep the list small and
 # focused on UNAUTHENTICATED endpoints an attacker can hammer:
-#  - /auth/*  : OAuth code exchange (each hit costs a GitHub API round-trip)
-_RATE_RULES: list[tuple[str, int, int]] = [
-    ("/auth/", 20, 60),
+#  - /auth/*           : OAuth code exchange (each hit costs a GitHub round-trip)
+#  - /api/instant-scan : anonymous public-repo scans (the engine enforces the
+#                        stricter 5-scans/IP/hour limit; this is the blunt cap)
+_RATE_RULES: list[tuple[str, int, int, tuple[str, ...] | None]] = [
+    ("/auth/", 20, 60, None),
+    ("/api/instant-scan", 20, 3600, ("POST",)),
 ]
 
 _MAX_TRACKED_KEYS = 20_000
@@ -30,16 +33,25 @@ _MAX_TRACKED_KEYS = 20_000
 class RateLimitMiddleware:
     """Sliding-window per-client rate limit for sensitive path prefixes."""
 
-    def __init__(self, app, rules: list[tuple[str, int, int]] | None = None):
+    def __init__(self, app, rules: list[tuple] | None = None):
         self.app = app
-        self._rules = rules if rules is not None else _RATE_RULES
+        self._rules = [self._normalize(rule) for rule in (rules or _RATE_RULES)]
         self._lock = threading.Lock()
         self._hits: dict[tuple[str, str], deque[float]] = defaultdict(deque)
 
-    def _check(self, ip: str, path: str, now: float) -> tuple[bool, int]:
+    @staticmethod
+    def _normalize(rule: tuple) -> tuple[str, int, int, tuple[str, ...] | None]:
+        """Accept legacy 3-tuples and method-aware 4-tuples."""
+        prefix, limit, window = rule[0], rule[1], rule[2]
+        methods = rule[3] if len(rule) > 3 else None
+        return prefix, limit, window, methods
+
+    def _check(self, ip: str, path: str, method: str, now: float) -> tuple[bool, int]:
         """Return (allowed, retry_after_seconds). Caller applies the rule."""
-        for prefix, limit, window in self._rules:
+        for prefix, limit, window, methods in self._rules:
             if path.startswith(prefix):
+                if methods is not None and method.upper() not in methods:
+                    continue
                 key = (ip, prefix)
                 with self._lock:
                     dq = self._hits[key]
@@ -68,7 +80,10 @@ class RateLimitMiddleware:
 
         path = scope.get("path", "")
         allowed, retry = self._check(
-            (scope.get("client") or ("unknown", 0))[0], path, time.monotonic()
+            (scope.get("client") or ("unknown", 0))[0],
+            path,
+            scope.get("method", "GET"),
+            time.monotonic(),
         )
         if not allowed:
             body = b'{"detail": "Too many requests. Please slow down and retry shortly."}'

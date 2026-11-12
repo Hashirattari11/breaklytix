@@ -52,6 +52,25 @@ export type AdminHealthResponse = {
   rows: HealthRow[];
 };
 
+export type AdminFunnel = {
+  counts: {
+    scan_started: number;
+    scan_completed: number;
+    email_captured: number;
+    share_clicked: number;
+    badge_copied: number;
+  };
+  conversion_rates: {
+    started_to_completed: number;
+    completed_to_email: number;
+    completed_to_share: number;
+    completed_to_badge: number;
+  };
+  total_scans: number;
+  total_leads: number;
+  cached_results_served: number;
+};
+
 export type AdminUser = {
   id: string;
   email: string;
@@ -95,6 +114,8 @@ export const rejectAlert = (id: string) =>
   request<ApproveRejectResponse>(`/admin/alerts/${id}/reject`, { method: "POST" });
 
 export const getAdminHealth = () => request<AdminHealthResponse>("/admin/health");
+
+export const getAdminFunnel = () => request<AdminFunnel>("/admin/funnel");
 
 export const getAdminUsers = (search?: string, status?: "active" | "suspended") => {
   const params = new URLSearchParams();

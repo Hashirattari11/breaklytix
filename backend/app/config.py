@@ -204,6 +204,27 @@ class Settings(BaseSettings):
     max_files_scanned: int = Field(default=1500, alias="MAX_FILES_SCANNED")
     max_file_bytes: int = Field(default=400_000, alias="MAX_FILE_BYTES")
 
+    # ---- Instant Repo Scan (anonymous public-repo scanner) -----------------
+    # Read-only token used ONLY to raise the GitHub API rate limit for
+    # anonymous scans. It is never returned to a client, logged, or stored.
+    # When unset, unauthenticated GitHub requests are used (60 req/hour) and
+    # scans may fail with a friendly "try again" message.
+    github_scan_token: str = Field(default="", alias="GITHUB_SCAN_TOKEN")
+    # Hard caps for the anonymous scanner: deliberately much smaller than the
+    # authenticated scan so one viral repo cannot exhaust the shared quota.
+    instant_scan_max_files: int = Field(default=400, alias="INSTANT_SCAN_MAX_FILES")
+    instant_scan_max_file_bytes: int = Field(
+        default=200_000, alias="INSTANT_SCAN_MAX_FILE_BYTES"
+    )
+    instant_scan_timeout_seconds: int = Field(
+        default=25, alias="INSTANT_SCAN_TIMEOUT_SECONDS"
+    )
+    instant_scan_rate_limit: int = Field(default=5, alias="INSTANT_SCAN_RATE_LIMIT")
+    instant_scan_cache_hours: int = Field(default=24, alias="INSTANT_SCAN_CACHE_HOURS")
+    # Salt for hashing visitor IPs. Only the hash is stored. Falls back to the
+    # JWT secret so a missing value never causes raw IPs to be persisted.
+    instant_scan_ip_salt: str = Field(default="", alias="INSTANT_SCAN_IP_SALT")
+
     # ---- CLI local-scan sandbox --------------------------------------------
     # Root directory that POST /cli/local-scan may read from. Empty => a
     # dedicated temp dir is used. Paths outside this root are rejected.

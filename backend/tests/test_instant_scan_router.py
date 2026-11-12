@@ -1,0 +1,84 @@
+"""HTTP-level tests for the public Instant Repo Scan router.
+
+These use a tiny standalone FastAPI app (no DB, no GitHub) so they assert the
+public contract: status codes, friendly messages, badge SVG, and that no
+secret value can appear in a response.
+"""
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.routers import instant_scan as router_module
+
+
+@pytest.fixture()
+def client():
+    app = FastAPI()
+    app.include_router(router_module.router)
+    return TestClient(app)
+
+
+def test_bad_repo_url_is_rejected_before_any_scan(client, monkeypatch):
+    monkeypatch.setattr(
+        router_module,
+        "run_instant_scan",
+        lambda *a, **k: pytest.fail("scan must not run for an invalid URL"),
+    )
+    res = client.post("/api/instant-scan", json={"repo_url": "https://gitlab.com/a/b"})
+    assert res.status_code == 400
+    assert "github.com" in res.json()["detail"]
+
+
+def test_unknown_client_event_is_rejected(client):
+    res = client.post("/api/instant-scan/events", json={"event": "drop_tables"})
+    assert res.status_code == 400
+
+
+def test_email_validation_rejects_garbage(client, monkeypatch):
+    monkeypatch.setattr(
+        router_module, "get_scan", lambda scan_id: pytest.fail("must not hit DB")
+    )
+    res = client.post("/api/instant-scan/abc/email", json={"email": "not-an-email"})
+    assert res.status_code == 400
+
+
+def test_badge_reports_not_scanned(client, monkeypatch):
+    monkeypatch.setattr(router_module, "latest_scan_for_repo", lambda repo: None)
+    res = client.get("/badge/acme/api.svg")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("image/svg+xml")
+    assert "not scanned" in res.text
+    assert "API watch" in res.text
+
+
+def test_badge_summarises_latest_scan(client, monkeypatch):
+    monkeypatch.setattr(
+        router_module,
+        "latest_scan_for_repo",
+        lambda repo: {
+            "id": "scan-1",
+            "result": {"summary": {"provider_count": 2, "possible_risk_count": 1}},
+        },
+    )
+    res = client.get("/badge/acme/api.svg")
+    assert res.status_code == 200
+    assert "2 APIs" in res.text
+    assert "1 risk" in res.text
+
+
+def test_badge_handles_dotted_repo_name(client, monkeypatch):
+    seen = {}
+
+    def fake_latest(repo):
+        seen["repo"] = repo
+        return None
+
+    monkeypatch.setattr(router_module, "latest_scan_for_repo", fake_latest)
+    res = client.get("/badge/vercel/next.js.svg")
+    assert res.status_code == 200
+    assert seen["repo"] == "vercel/next.js"
+
+
+def test_badge_rejects_invalid_owner(client):
+    res = client.get("/badge/-bad/api.svg")
+    assert res.status_code == 404

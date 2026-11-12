@@ -2073,3 +2073,21 @@ button:active { transform: scale(0.98); }
 @media (max-width: 768px) {
   .lp-card { padding: 30px 22px; }
 }
+
+/* ---------------------------------------------------------------------------
+   Instant Repo Scan hero layout
+   The hero is a two-column grid on desktop; below 900px it stacks so the
+   scan box, headline and demo never squeeze into unreadable columns.
+--------------------------------------------------------------------------- */
+.lp-hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .lp-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}

@@ -22,7 +22,12 @@ export type AnalyticsEvent =
   | "repository_connected"
   | "repository_scan_started"
   | "repository_scan_completed"
-  | "first_impact_found";
+  | "first_impact_found"
+  | "scan_started"
+  | "scan_completed"
+  | "email_captured"
+  | "share_clicked"
+  | "badge_copied";
 
 declare global {
   interface Window {

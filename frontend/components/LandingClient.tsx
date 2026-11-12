@@ -10,6 +10,7 @@ import type { ProviderCategory } from "../lib/providers/types";
 import { LEGAL_LINKS } from "./LegalLayout";
 import { LogoMark } from "./Logo";
 import LaunchstagBadge from "./LaunchstagBadge";
+import InstantScanBox from "./InstantScanBox";
 import { SUPPORT_EMAIL } from "../lib/site";
 import { LANDING_FAQ } from "../lib/landing-faq";
 
@@ -731,33 +732,34 @@ export default function LandingPage() {
         {/* ═══════ HERO ═══════ */}
         <section className="lp-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", padding: "120px 24px 80px" }} aria-labelledby="hero-title">
           <div className="lp-hero-bg" />
-          <div className="container" style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1.05fr 1fr", gap: 56, alignItems: "center" }} ref={hero.ref}>
+          <div className="container lp-hero-grid" style={{ position: "relative", zIndex: 1 }} ref={hero.ref}>
             <div style={{ opacity: hero.visible ? 1 : 0, transform: hero.visible ? "translateY(0)" : "translateY(32px)", transition: "all 0.7s ease" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, background: "rgba(99,91,255,0.15)", border: "1px solid rgba(99,91,255,0.3)", color: "#a78bfa", fontSize: 13, fontWeight: 600, marginBottom: 24 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", animation: "pulse 2s infinite" }} />
                 Early access is open
               </div>
               <h1 id="hero-title" style={{ fontSize: "clamp(34px, 4.6vw, 52px)", fontWeight: 800, lineHeight: 1.12, margin: "0 0 22px", letterSpacing: "-0.02em", color: "white" }}>
-                Know what API changes will <span style={{ background: "linear-gradient(135deg, #a78bfa, #06b6d4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>break your code</span> before they break production.
+                Is your code using an API that&apos;s <span style={{ background: "linear-gradient(135deg, #a78bfa, #06b6d4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>about to change</span>?
               </h1>
               <p style={{ fontSize: 18, lineHeight: 1.7, color: "rgba(255,255,255,0.68)", margin: "0 0 30px", maxWidth: 540 }}>
-                Breaklytix monitors your third-party API dependencies and maps provider changes directly to the <strong style={{ color: "white" }}>repositories, files, and code usage</strong> they could affect — with risk, confidence, and what to fix.
+                Paste a public GitHub repo and see which third-party APIs it uses — and whether any official provider notice may affect it. No account needed.
               </p>
-              <div className="lp-hero-cta" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
+              <InstantScanBox />
+              <div className="lp-hero-cta" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start", marginTop: 22 }}>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
                   <GithubCta
-                    className="btn btn-primary btn-lg lp-glow-btn"
-                    style={{ fontSize: 16, padding: "16px 30px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }}
+                    className="btn btn-lg"
+                    style={{ fontSize: 15, padding: "14px 24px", background: "rgba(255,255,255,0.07)", color: "white", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12 }}
                     event="hero_cta_click"
                   >
-                    Scan My Repository — Free
+                    Connect GitHub for daily monitoring
                   </GithubCta>
-                  <Link href="#how-it-works" className="btn btn-lg" style={{ fontSize: 15, padding: "16px 26px", background: "rgba(255,255,255,0.07)", color: "white", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12 }} onClick={() => track("see_how_click")}>
+                  <Link href="#how-it-works" className="btn btn-lg" style={{ fontSize: 15, padding: "14px 24px", background: "transparent", color: "rgba(255,255,255,0.8)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12 }} onClick={() => track("see_how_click")}>
                     See How It Works
                   </Link>
                 </div>
                 <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.5)", margin: "4px 0 0" }}>
-                  No credit card required&nbsp;•&nbsp;Connect GitHub&nbsp;•&nbsp;Scan your first repository free
+                  Free instant scan&nbsp;•&nbsp;No credit card&nbsp;•&nbsp;Connect GitHub only when you want alerts
                 </p>
               </div>
             </div>

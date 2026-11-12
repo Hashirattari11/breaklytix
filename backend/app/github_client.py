@@ -72,12 +72,17 @@ def call_with_token_fallback(
 
 
 def _headers(token: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {token}",
+    headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": API_VERSION,
         "User-Agent": "AutoFixAPI/1.0",
     }
+    # Anonymous requests (no token configured) must NOT send an empty
+    # `Authorization: Bearer ` header — GitHub rejects it as bad credentials.
+    # This keeps the shared client usable for the public instant scanner.
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
 
 
 # ---------------------------------------------------------------------------

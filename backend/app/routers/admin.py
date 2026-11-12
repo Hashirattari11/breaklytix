@@ -160,6 +160,42 @@ def admin_overview() -> dict:
     }
 
 
+@router.get("/funnel")
+def admin_funnel() -> dict:
+    """Instant Repo Scan funnel: event counts + conversion rates.
+
+    Admin-only (the router-level ``require_admin`` dependency applies). Counts
+    are all-time and come from the first-party ``instant_scan_events`` table.
+    """
+    counts = {
+        "scan_started": _count_where("instant_scan_events", event="scan_started"),
+        "scan_completed": _count_where("instant_scan_events", event="scan_completed"),
+        "email_captured": _count_where("instant_scan_events", event="email_captured"),
+        "share_clicked": _count_where("instant_scan_events", event="share_clicked"),
+        "badge_copied": _count_where("instant_scan_events", event="badge_copied"),
+    }
+
+    def rate(numerator: int, denominator: int) -> float:
+        if denominator <= 0:
+            return 0.0
+        return round((numerator / denominator) * 100, 1)
+
+    return {
+        "counts": counts,
+        "conversion_rates": {
+            "started_to_completed": rate(counts["scan_completed"], counts["scan_started"]),
+            "completed_to_email": rate(counts["email_captured"], counts["scan_completed"]),
+            "completed_to_share": rate(counts["share_clicked"], counts["scan_completed"]),
+            "completed_to_badge": rate(counts["badge_copied"], counts["scan_completed"]),
+        },
+        "total_scans": _count("instant_scans"),
+        "total_leads": _count_where("leads", source="instant_scan"),
+        "cached_results_served": max(
+            0, counts["scan_started"] - counts["scan_completed"]
+        ),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Pending alert approval queue (real, non-test alerts awaiting approval)
 # ---------------------------------------------------------------------------
