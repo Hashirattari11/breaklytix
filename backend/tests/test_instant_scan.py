@@ -238,6 +238,30 @@ def test_match_risks_uses_official_event_and_may_affect_wording():
     assert "will break" not in risk["wording"].lower()
 
 
+def test_match_risks_ignores_provider_only_notice():
+    """A notice with no endpoint/SDK/symbol/value overlap is not a risk."""
+    providers = [{"api_name": "clerk"}]
+    detections = [
+        {
+            "api_name": "clerk",
+            "file_path": "app/page.tsx",
+            "matched_snippet": "<SignIn />",
+            "symbols": [],
+        }
+    ]
+    events = [
+        {
+            "id": "evt-3",
+            "api_name": "clerk",
+            "change_type": "BEHAVIOR_CHANGE",
+            "description": "Application Logs now group sign-ins",
+            "source_url": "https://clerk.com/changelog/example",
+            "detected_at": "2026-11-06T00:00:00+00:00",
+        }
+    ]
+    assert match_risks(providers, detections, events) == []
+
+
 def test_match_risks_ignores_non_risk_change_types():
     providers = [{"api_name": "stripe"}]
     detections = [
@@ -415,6 +439,34 @@ def test_scan_public_repo_end_to_end_never_leaks_secret(monkeypatch):
                         "API usage reference in",
                     )
                 )
+
+
+def test_scan_public_repo_explains_unmatched_notices(monkeypatch):
+    """When notices exist but nothing overlaps, say so instead of claiming none."""
+    _patch_github(monkeypatch)
+    _patch_db(monkeypatch)
+    monkeypatch.setattr(
+        instant_scan,
+        "_fetch_events",
+        lambda providers: [
+            {
+                "id": "evt-generic",
+                "api_name": "stripe",
+                "change_type": "BEHAVIOR_CHANGE",
+                "description": "Dashboard now groups payments differently",
+                "source_url": "https://stripe.com/changelog/example",
+                "detected_at": "2026-10-01T00:00:00+00:00",
+            }
+        ],
+    )
+    # Isolate the summary wording: no notice overlaps this fixture's evidence.
+    monkeypatch.setattr(instant_scan, "match_risks", lambda *a, **k: [])
+
+    result = instant_scan.scan_public_repo("acme/api")
+
+    assert result["summary"]["possible_risk_count"] == 0
+    assert result["risks"] == []
+    assert "none mentioned the endpoints" in result["no_risk_message"]
 
 
 def test_run_instant_scan_cache_hit_skips_network(monkeypatch):

@@ -379,6 +379,12 @@ def match_risks(
         if not matches:
             continue
         top = max(matches, key=lambda m: _CONFIDENCE_ORDER.get(m.confidence, 0))
+        # Provider-only overlap is not evidence that the notice affects this
+        # repo. Without an endpoint, SDK, symbol or value match, every recent
+        # notice for a detected provider would surface as a "possible risk" —
+        # noisy, and it would overstate what the scan actually found.
+        if not [field for field in (top.matched_fields or []) if field != "provider"]:
+            continue
         event_key = str(event.get("id") or f"{api}:{event.get('content_hash')}")
         candidate = {
             "api_name": api,
@@ -705,11 +711,15 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
 
     partial = bool(cap_partial or timed_out)
     duration_ms = int((time.monotonic() - started) * 1000)
-    no_risk_message = (
-        "No recent official breaking-change notice found for your detected providers."
-        if not risks
-        else None
-    )
+    if risks:
+        no_risk_message = None
+    elif events:
+        no_risk_message = (
+            "We found recent official provider notices, but none mentioned the endpoints, "
+            "SDKs, or symbols visible in this repository."
+        )
+    else:
+        no_risk_message = "No recent official breaking-change notice found for your detected providers."
 
     result = {
         "repo": repo_full_name,

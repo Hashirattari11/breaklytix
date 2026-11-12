@@ -7,28 +7,6 @@ import { track } from "../../../lib/analytics";
 
 const AGENCY_EMAIL = "hashirattari73@gmail.com";
 
-function confidenceStyle(confidence: string): CSSProperties {
-  if (confidence === "high") {
-    return { background: "rgba(239,68,68,0.12)", color: "#b91c1c", border: "1px solid rgba(239,68,68,0.3)" };
-  }
-  if (confidence === "medium") {
-    return { background: "rgba(245,158,11,0.12)", color: "#b45309", border: "1px solid rgba(245,158,11,0.3)" };
-  }
-  return { background: "rgba(107,114,128,0.12)", color: "#4b5563", border: "1px solid rgba(107,114,128,0.25)" };
-}
-
-const pill: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "3px 10px",
-  borderRadius: 999,
-  fontSize: 12,
-  fontWeight: 700,
-  textTransform: "capitalize",
-  lineHeight: 1.6,
-};
-
 const buttonBase: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -252,5 +230,3 @@ export default function ScanResultClient({
     </>
   );
 }
-
-export { confidenceStyle, pill };

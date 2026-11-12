@@ -11,7 +11,8 @@ import {
   type ScanProvider,
   type ScanRisk,
 } from "@/lib/instant-scan";
-import ScanResultClient, { confidenceStyle, pill } from "./ScanResultClient";
+import ScanResultClient from "./ScanResultClient";
+import { confidenceStyle, pill } from "./scanStyles";
 
 export const dynamic = "force-dynamic";
 
