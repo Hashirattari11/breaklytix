@@ -3,6 +3,8 @@
 // Deliberately independent of lib/api.ts: that module attaches the dashboard
 // session token, while these endpoints are anonymous and must never send one.
 
+import { SITE_URL } from "./site";
+
 export const SCAN_API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend-virid-ten-43.vercel.app";
 
@@ -150,12 +152,12 @@ export function recordScanEvent(
 
 export function badgeSvgUrl(repoFullName: string): string {
   const [owner, repo] = repoFullName.split("/");
-  return `${SCAN_API_BASE}/badge/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}.svg`;
+  return `${SITE_URL}/badge/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}.svg`;
 }
 
 export function badgeMarkdown(repoFullName: string, scanId: string): string {
   const image = badgeSvgUrl(repoFullName);
-  return `[![API watch | Breaklytix](${image})](https://breaklytix.site/scan/${scanId})`;
+  return `[![API watch | Breaklytix](${image})](${SITE_URL}/scan/${scanId})`;
 }
 
 export function shareText(result: ScanResult): string {

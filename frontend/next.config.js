@@ -81,6 +81,19 @@ const nextConfig = {
       { source: "/docs/faq", destination: "/docs/troubleshooting", permanent: true },
     ];
   },
+  // README badges are embedded on third-party sites, so they must live on the
+  // canonical marketing domain rather than exposing the backend host. The
+  // backend renders the SVG; Vercel proxies it (and caches at the edge).
+  // `:file` captures the whole `owner/repo.svg` segment so the `.svg` suffix is
+  // not parsed as a rewrite delimiter.
+  async rewrites() {
+    return [
+      {
+        source: "/badge/:owner/:file",
+        destination: `${apiOrigin}/badge/:owner/:file`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
