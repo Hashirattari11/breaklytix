@@ -7,12 +7,12 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 import {
   badgeMarkdown,
   getInstantScan,
-  shareText,
   type ScanProvider,
   type ScanRisk,
 } from "@/lib/instant-scan";
 import ScanResultClient from "./ScanResultClient";
 import { confidenceStyle, pill } from "./scanStyles";
+import ShareBlock from "./ShareBlock";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +56,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     m ? ` and ${m} possible ${plural(m, "risk")}` : " with no recent official breaking-change notice"
   }.`;
   const url = `${SITE_URL}/scan/${id}`;
+  const imageUrl = `${SITE_URL}/scan/${id}/opengraph-image`;
   return {
     title,
     description,
@@ -68,8 +69,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: SITE_NAME,
       title,
       description,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${repo} API scan — Breaklytix`,
+        },
+      ],
     },
-    twitter: { card: "summary_large_image" },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
+    },
   };
 }
 
@@ -254,6 +268,8 @@ export default async function ScanResultPage({ params }: PageProps) {
               Partial scan: {result.partial_reason || "this repository is large, so the most relevant files were scanned first."}
             </p>
           ) : null}
+
+          <ShareBlock scanId={scan.id} result={result} variant="top" />
         </section>
 
         <section aria-labelledby="providers-title" style={{ marginTop: 30 }}>
@@ -313,11 +329,12 @@ export default async function ScanResultPage({ params }: PageProps) {
           )}
         </section>
 
+        <ShareBlock scanId={scan.id} result={result} variant="bottom" />
+
         <ScanResultClient
           scanId={scan.id}
           result={result}
           badgeSnippet={badgeMarkdown(result.repo, scan.id)}
-          shareCopy={shareText(result)}
         />
 
         <p style={{ marginTop: 24, color: "var(--muted)", fontSize: 12.5, lineHeight: 1.6 }}>

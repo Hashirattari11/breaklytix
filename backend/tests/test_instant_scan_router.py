@@ -34,6 +34,34 @@ def test_unknown_client_event_is_rejected(client):
     assert res.status_code == 400
 
 
+def test_share_event_forwards_platform_and_risk_flag(client, monkeypatch):
+    seen = {}
+
+    def _fake_record_event(event, **kwargs):
+        seen["event"] = event
+        seen.update(kwargs)
+
+    monkeypatch.setattr(router_module, "record_event", _fake_record_event)
+    res = client.post(
+        "/api/instant-scan/events",
+        json={
+            "event": "share_clicked",
+            "scan_id": "scan-1",
+            "repo_full_name": "acme/api",
+            "props": {"platform": "x", "has_risks": True},
+        },
+    )
+    assert res.status_code == 200
+    assert seen["event"] == "share_clicked"
+    assert seen["props"] == {"platform": "x", "has_risks": "true"}
+
+
+def test_share_event_rejects_oversized_props(client):
+    big_props = {f"key{i}": "value" for i in range(20)}
+    res = client.post("/api/instant-scan/events", json={"event": "share_clicked", "props": big_props})
+    assert res.status_code == 422
+
+
 def test_email_validation_rejects_garbage(client, monkeypatch):
     monkeypatch.setattr(
         router_module, "get_scan", lambda scan_id: pytest.fail("must not hit DB")

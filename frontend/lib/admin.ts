@@ -69,6 +69,15 @@ export type AdminFunnel = {
   total_scans: number;
   total_leads: number;
   cached_results_served: number;
+  share_breakdown?: {
+    by_platform: {
+      x: number;
+      linkedin: number;
+      copy: number;
+    };
+    with_risks: number;
+    without_risks: number;
+  };
 };
 
 export type AdminUser = {

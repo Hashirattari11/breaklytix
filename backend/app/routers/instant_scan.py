@@ -48,6 +48,31 @@ class ClientEventIn(BaseModel):
     event: str = Field(min_length=1, max_length=40)
     scan_id: str | None = Field(default=None, max_length=64)
     repo_full_name: str | None = Field(default=None, max_length=200)
+    props: dict[str, str | int | float | bool] | None = Field(default=None, max_length=12)
+
+
+def _clean_event_props(raw: dict[str, str | int | float | bool] | None) -> dict[str, str]:
+    """Sanitize the free-form property bag before it is persisted."""
+    cleaned: dict[str, str] = {}
+    if not raw:
+        return cleaned
+    for key, value in raw.items():
+        if not isinstance(key, str):
+            continue
+        name = key.strip().lower()[:32]
+        if not name:
+            continue
+        if isinstance(value, bool):
+            normalized = "true" if value else "false"
+        elif isinstance(value, (int, float)):
+            normalized = str(int(value))
+        elif isinstance(value, str):
+            normalized = value.strip()[:200]
+        else:
+            continue
+        if normalized:
+            cleaned[name] = normalized
+    return cleaned
 
 
 def _client_ip(request: Request) -> str:
@@ -111,6 +136,7 @@ def client_event(body: ClientEventIn, request: Request) -> dict:
         scan_id=body.scan_id,
         repo_full_name=body.repo_full_name,
         ip=_client_ip(request),
+        props=_clean_event_props(body.props),
     )
     return {"ok": True}
 

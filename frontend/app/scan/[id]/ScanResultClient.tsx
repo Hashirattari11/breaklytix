@@ -27,12 +27,10 @@ export default function ScanResultClient({
   scanId,
   result,
   badgeSnippet,
-  shareCopy,
 }: {
   scanId: string;
   result: ScanResult;
   badgeSnippet: string;
-  shareCopy: string;
 }) {
   const [email, setEmail] = useState("");
   const [emailState, setEmailState] = useState<"idle" | "saving" | "done" | "error">("idle");
@@ -52,13 +50,6 @@ export default function ScanResultClient({
       track("badge_copied");
       recordScanEvent("badge_copied", scanId, result.repo);
     }
-  }
-
-  function shareOnX() {
-    track("share_clicked", { channel: "x" });
-    recordScanEvent("share_clicked", scanId, result.repo);
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareCopy)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   async function onSubmitEmail(event: FormEvent<HTMLFormElement>) {
@@ -153,9 +144,9 @@ export default function ScanResultClient({
         </p>
       </section>
 
-      {/* Share + README badge */}
+      {/* README badge */}
       <section
-        aria-labelledby="share-title"
+        aria-labelledby="badge-title"
         style={{
           marginTop: 20,
           padding: 24,
@@ -164,19 +155,11 @@ export default function ScanResultClient({
           background: "var(--surface)",
         }}
       >
-        <h2 id="share-title" style={{ margin: "0 0 14px", fontSize: 18, fontWeight: 800 }}>
-          Share this result
+        <h2 id="badge-title" style={{ margin: "0 0 14px", fontSize: 18, fontWeight: 800 }}>
+          README badge
         </h2>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button type="button" onClick={shareOnX} style={{ ...buttonBase, background: "#111827", color: "white", border: "none" }}>
-            Share on X
-          </button>
-          <button type="button" onClick={() => void copyText(`https://breaklytix.site/scan/${scanId}`, "link")} style={buttonBase}>
-            {copied === "link" ? "Copied ✓" : "Copy link"}
-          </button>
-        </div>
 
-        <h3 style={{ margin: "22px 0 8px", fontSize: 15, fontWeight: 700 }}>README badge</h3>
+        <h3 style={{ margin: "22px 0 8px", fontSize: 15, fontWeight: 700 }}>Add the badge to your README</h3>
         <p style={{ margin: "0 0 10px", color: "var(--muted)", fontSize: 13.5, lineHeight: 1.6 }}>
           Add a live &ldquo;API watch&rdquo; badge to your repository README. It always reflects the latest cached scan.
         </p>

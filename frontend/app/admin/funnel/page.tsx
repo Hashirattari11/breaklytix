@@ -58,9 +58,47 @@ export default function AdminFunnelPage() {
         <StatCard label="Leads" value={data.total_leads} tone="green" />
       </div>
 
+      {data.share_breakdown ? (
+        <section style={{ marginTop: 28 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 12px" }}>Share clicks</h2>
+          <div
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              overflow: "hidden",
+              background: "var(--surface)",
+            }}
+          >
+            {[
+              ["X (web intent)", data.share_breakdown.by_platform.x],
+              ["LinkedIn", data.share_breakdown.by_platform.linkedin],
+              ["Copy post", data.share_breakdown.by_platform.copy],
+            ].map(([label, value], index) => (
+              <div
+                key={String(label)}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "14px 18px",
+                  borderTop: index === 0 ? "none" : "1px solid var(--border)",
+                }}
+              >
+                <span style={{ fontSize: 14.5 }}>{label}</span>
+                <strong style={{ fontSize: 15 }}>{value}</strong>
+              </div>
+            ))}
+          </div>
+          <p style={{ margin: "12px 0 0", color: "var(--muted)", fontSize: 13 }}>
+            Shares with a detected possible risk: <strong>{data.share_breakdown.with_risks}</strong> · shares
+            without (informational): <strong>{data.share_breakdown.without_risks}</strong>
+          </p>
+        </section>
+      ) : null}
+
       <section style={{ marginTop: 28 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 12px" }}>Conversion rates</h2>
-        <div
+        <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 12px" }}>Conversion rates</h2>        <div
           style={{
             border: "1px solid var(--border)",
             borderRadius: 14,

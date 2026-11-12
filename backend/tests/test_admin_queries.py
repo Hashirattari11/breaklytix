@@ -150,3 +150,16 @@ def test_admin_overview_uses_exact_counts(fake_db):
         assert any(op[0] == "eq" for op in ops), "each count must be filtered"
     assert overview["total_users"] == 7
     assert overview["total_repos"] == 3
+
+
+# ---------------------------------------------------------------------------
+# /admin/funnel — share click breakdown via JSONB props
+# ---------------------------------------------------------------------------
+def test_admin_funnel_share_breakdown_is_shape_correct(fake_db):
+    fake_db()
+    funnel = admin_mod.admin_funnel()
+    breakdown = funnel.get("share_breakdown")
+    assert breakdown is not None, "funnel response must include a share breakdown"
+    assert set(breakdown["by_platform"]) == {"x", "linkedin", "copy"}
+    assert isinstance(breakdown["with_risks"], int)
+    assert isinstance(breakdown["without_risks"], int)

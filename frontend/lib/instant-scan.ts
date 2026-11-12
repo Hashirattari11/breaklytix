@@ -136,12 +136,13 @@ export function recordScanEvent(
   event: "share_clicked" | "badge_copied",
   scanId?: string,
   repoFullName?: string,
+  props?: Record<string, string | number | boolean>,
 ): void {
   try {
     void fetch(`${SCAN_API_BASE}/api/instant-scan/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event, scan_id: scanId, repo_full_name: repoFullName }),
+      body: JSON.stringify({ event, scan_id: scanId, repo_full_name: repoFullName, props }),
       cache: "no-store",
       keepalive: true,
     });
@@ -158,10 +159,4 @@ export function badgeSvgUrl(repoFullName: string): string {
 export function badgeMarkdown(repoFullName: string, scanId: string): string {
   const image = badgeSvgUrl(repoFullName);
   return `[![API watch | Breaklytix](${image})](${SITE_URL}/scan/${scanId})`;
-}
-
-export function shareText(result: ScanResult): string {
-  const n = result.summary.provider_count;
-  const m = result.summary.possible_risk_count;
-  return `I scanned my repo with Breaklytix: ${n} API${n === 1 ? "" : "s"} detected, ${m} possible risk${m === 1 ? "" : "s"}. Scan yours free: breaklytix.site`;
 }

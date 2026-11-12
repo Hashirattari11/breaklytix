@@ -60,6 +60,44 @@ def _count_where(table: str, **filters: Any) -> int:
         return 0
 
 
+def _count_json_field(table: str, event: str, key: str, value: str) -> int:
+    """Count events rows where a JSONB ``props`` field equals a string value."""
+    try:
+        res = (
+            db()
+            .table(table)
+            .select("id", count="exact")
+            .eq("event", event)
+            .eq(f"props->>{key}", value)
+            .execute()
+        )
+        if res.count is not None:
+            return res.count
+    except Exception:
+        pass
+    # Fallback: bounded scan of stored props for platforms we report on.
+    try:
+        rows = (
+            db()
+            .table(table)
+            .select("props")
+            .eq("event", event)
+            .limit(5000)
+            .execute()
+            .data
+            or []
+        )
+        needle = str(value).lower()
+        return sum(
+            1
+            for row in rows
+            if isinstance(row, dict)
+            and str((row.get("props") or {}).get(key) or "").lower() == needle
+        )
+    except Exception:
+        return 0
+
+
 def _in_chunks(items: list[str], size: int = 100) -> list[list[str]]:
     """Split an id list so PostgREST `in_(...)` filter URLs stay bounded."""
     return [items[i : i + size] for i in range(0, len(items), size)]
@@ -193,6 +231,15 @@ def admin_funnel() -> dict:
         "cached_results_served": max(
             0, counts["scan_started"] - counts["scan_completed"]
         ),
+        "share_breakdown": {
+            "by_platform": {
+                "x": _count_json_field("instant_scan_events", "share_clicked", "platform", "x"),
+                "linkedin": _count_json_field("instant_scan_events", "share_clicked", "platform", "linkedin"),
+                "copy": _count_json_field("instant_scan_events", "share_clicked", "platform", "copy"),
+            },
+            "with_risks": _count_json_field("instant_scan_events", "share_clicked", "has_risks", "true"),
+            "without_risks": _count_json_field("instant_scan_events", "share_clicked", "has_risks", "false"),
+        },
     }
 
 
