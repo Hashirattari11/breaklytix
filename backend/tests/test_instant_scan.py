@@ -379,7 +379,9 @@ def _patch_github(monkeypatch):
         lambda token, full: {"full_name": full, "default_branch": "main", "private": False},
     )
     monkeypatch.setattr(instant_scan, "list_repo_tree", lambda token, full, branch: (list(TREE), False))
-    monkeypatch.setattr(instant_scan, "get_blob_text", lambda token, full, sha: BLOBS.get(sha))
+    monkeypatch.setattr(
+        instant_scan, "get_blob_text", lambda token, full, sha, client=None: BLOBS.get(sha)
+    )
 
 
 def _patch_db(monkeypatch, rows=None):

@@ -36,7 +36,7 @@ from .db import db, fetch_one
 from .detection import scan_file
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
-from .github_client import GitHubError, get_blob_text, get_repo, list_repo_tree
+from .github_client import GitHubError, get_blob_text, get_repo, list_repo_tree, make_client
 from .redact import redact_snippet
 from .signatures import get_provider_category, status_for_api
 
@@ -683,27 +683,27 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
     files_scanned = 0
     timed_out = False
 
-    def _fetch_one(entry: dict) -> tuple[dict, str | None]:
-        try:
-            text = get_blob_text(token, repo_full_name, entry["sha"])
-        except GitHubError:
-            return entry, None
-        return entry, text
-
     if candidates:
-        # Fetch in parallel to speed up large repos while respecting the deadline.
-        max_workers = min(8, len(candidates))
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(_fetch_one, entry) for entry in candidates]
-            for fut in as_completed(futures):
-                if time.monotonic() >= deadline:
-                    timed_out = True
-                    break
+        # One pooled client for every worker: avoids a TLS handshake per file.
+        client = make_client(token)
+
+        def _fetch_one(entry: dict) -> tuple[dict, str | None]:
+            if time.monotonic() >= deadline:
+                return entry, None
+            try:
+                text = get_blob_text(token, repo_full_name, entry["sha"], client=client)
+            except GitHubError:
+                return entry, None
+            return entry, text
+
+        executor = ThreadPoolExecutor(max_workers=min(10, len(candidates)))
+        futures = [executor.submit(_fetch_one, entry) for entry in candidates]
+        try:
+            for fut in as_completed(
+                futures, timeout=max(0.1, deadline - time.monotonic())
+            ):
                 try:
-                    entry, text = fut.result(timeout=max(0.1, deadline - time.monotonic()))
-                except FuturesTimeoutError:
-                    timed_out = True
-                    break
+                    entry, text = fut.result(timeout=0)
                 except Exception:
                     continue
                 if not text:
@@ -729,6 +729,15 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
                             "evidence": evidence_for_line(det["file_path"], det["matched_snippet"]),
                         }
                     )
+        except FuturesTimeoutError:
+            timed_out = True
+        finally:
+            # Do NOT wait for queued fetches after the deadline: waiting here
+            # was the reason large repos ran far past the scan budget.
+            for pending in futures:
+                pending.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            client.close()
     partial = bool(cap_partial or timed_out or truncated)
 
     providers = aggregate_providers(detections)

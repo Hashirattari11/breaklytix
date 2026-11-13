@@ -226,10 +226,37 @@ def list_repo_tree(token: str, full_name: str, branch: str) -> tuple[list[dict],
     return entries, truncated
 
 
-def get_blob_text(token: str, full_name: str, sha: str) -> str | None:
-    """Fetch a blob by sha and return decoded UTF-8 text (None if binary)."""
-    with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as client:
+def make_client(token: str = "") -> httpx.Client:
+    """Create a pooled client for bulk calls (blobs, trees).
+
+    Reusing one client across parallel workers avoids a TLS handshake per file,
+    which is the difference between scanning a large repo in ~5s vs 30s+.
+    The returned client is thread-safe and must be closed by the caller.
+    """
+    return httpx.Client(
+        timeout=TIMEOUT,
+        headers=_headers(token),
+        limits=httpx.Limits(max_connections=16, max_keepalive_connections=16),
+    )
+
+
+def get_blob_text(
+    token: str,
+    full_name: str,
+    sha: str,
+    *,
+    client: httpx.Client | None = None,
+) -> str | None:
+    """Fetch a blob by sha and return decoded UTF-8 text (None if binary).
+
+    Pass ``client`` (from :func:`make_client`) to reuse connections when
+    fetching many blobs.
+    """
+    if client is not None:
         resp = client.get(f"{GITHUB_API}/repos/{full_name}/git/blobs/{sha}")
+    else:
+        with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as own_client:
+            resp = own_client.get(f"{GITHUB_API}/repos/{full_name}/git/blobs/{sha}")
     if resp.status_code != 200:
         raise GitHubError(f"Failed to fetch blob ({resp.status_code}): {resp.text}")
     data = resp.json()
