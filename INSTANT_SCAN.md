@@ -36,7 +36,7 @@ All optional except where noted. Defaults in `backend/app/config.py`.
 | `INSTANT_SCAN_TOTAL_BUDGET_SECONDS` | `90` | Total budget across resumed worker invocations. |
 | `INSTANT_SCAN_STALE_SECONDS` | `45` | A queued/scanning row older than this is resumed on poll. |
 | `INSTANT_SCAN_CONCURRENCY` | `2` | Concurrent scan workers per instance. |
-| `INSTANT_SCAN_RATE_LIMIT` | `5` | Scans per hashed IP per hour (DB-authoritative). |
+| `INSTANT_SCAN_RATE_LIMIT` | `0` | Scans per hashed IP per hour. `0` = **unlimited** (default). |
 | `INSTANT_SCAN_CACHE_HOURS` | `24` | Per-repo result cache window. |
 | `INSTANT_SCAN_IP_SALT` | *(falls back to `JWT_SECRET`)* | Salt for the SHA-256 IP hash. Only the hash is stored. |
 

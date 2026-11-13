@@ -612,8 +612,8 @@ def test_run_instant_scan_enforces_ip_rate_limit_when_configured(monkeypatch):
     assert exc.value.retry_after > 0
 
 
-def test_run_instant_scan_rate_limit_default_is_five(monkeypatch):
-    assert instant_scan.settings.instant_scan_rate_limit == 5
+def test_run_instant_scan_rate_limit_default_is_unlimited(monkeypatch):
+    assert instant_scan.settings.instant_scan_rate_limit == 0
 
 
 def test_run_instant_scan_persists_and_returns_id(monkeypatch):

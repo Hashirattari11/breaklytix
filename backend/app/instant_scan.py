@@ -14,8 +14,9 @@ Design constraints (security + abuse):
     (90 s total across resumed workers). Big repos are scanned in relevance
     order (manifests, config, src/app/lib/api/server/backend) and the result is
     explicitly marked ``partial``.
-  * 5 scans per IP per hour (hashed IP only), 2 concurrent scans, and a 24 h
-    per-repository result cache keyed by repo + default-branch commit SHA.
+  * Unlimited scans per visitor (no hourly per-IP cap by default), 2 concurrent
+    scans, and a 24 h per-repository result cache keyed by repo + default-branch
+    commit SHA.
 
 The public POST returns a queued scan id immediately; a daemon worker performs
 the scan and the frontend polls ``GET /api/scan-status/{id}``.

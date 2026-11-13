@@ -236,8 +236,9 @@ class Settings(BaseSettings):
     instant_scan_stale_seconds: int = Field(
         default=45, alias="INSTANT_SCAN_STALE_SECONDS"
     )
-    # 5 scans per hashed IP per hour (DB-authoritative) + 2 concurrent workers.
-    instant_scan_rate_limit: int = Field(default=5, alias="INSTANT_SCAN_RATE_LIMIT")
+    # 0 (default) = unlimited scans per visitor. Set a positive value to
+    # re-enable an hourly per-IP cap.
+    instant_scan_rate_limit: int = Field(default=0, alias="INSTANT_SCAN_RATE_LIMIT")
     instant_scan_concurrency: int = Field(default=2, alias="INSTANT_SCAN_CONCURRENCY")
     instant_scan_cache_hours: int = Field(default=24, alias="INSTANT_SCAN_CACHE_HOURS")
     # Salt for hashing visitor IPs. Only the hash is stored. Falls back to the
