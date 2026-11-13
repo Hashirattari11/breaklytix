@@ -1,22 +1,24 @@
-"""Anonymous "Instant Repo Scan" engine.
+﻿"""Anonymous "Instant Repo Scan" engine.
 
 Design constraints (security + abuse):
   * PUBLIC repositories only. No OAuth, no user tokens. A single server-side
     read-only token (``GITHUB_SCAN_TOKEN``) is used only to raise the GitHub
     API rate limit; it is never returned to a client.
-  * Never clones a repository. Files come from the GitHub tree + blob APIs.
+  * Never clones a repository. Files come from the GitHub tarball archive
+    (streamed, capped at 50 MB) and are extracted in memory.
   * Secret VALUES are never read, returned, logged, or stored. Evidence is
     limited to environment-variable NAMES, package names, import patterns,
     file paths and line numbers, and every snippet still passes through
     :func:`redact_snippet` as a second line of defence.
-  * Hard caps: 400 files, 200 KB per file, 25 s total scan budget. Big repos
-    are scanned in relevance order (manifests, src/app/lib/api) and the result
-    is explicitly marked ``partial``.
+  * Hard caps: 3000 files, 300 KB per file, 50 MB archive, 55 s per invocation
+    (90 s total across resumed workers). Big repos are scanned in relevance
+    order (manifests, config, src/app/lib/api/server/backend) and the result is
+    explicitly marked ``partial``.
   * 5 scans per IP per hour (hashed IP only), 2 concurrent scans, and a 24 h
-    per-repository result cache.
+    per-repository result cache keyed by repo + default-branch commit SHA.
 
-The module is intentionally synchronous: FastAPI runs these functions in its
-threadpool, and the existing GitHub client is synchronous.
+The public POST returns a queued scan id immediately; a daemon worker performs
+the scan and the frontend polls ``GET /api/scan-status/{id}``.
 """
 from __future__ import annotations
 
@@ -26,6 +28,7 @@ import logging
 import re
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
@@ -34,9 +37,25 @@ from .config import settings
 from .crypto import get_cipher
 from .db import db, fetch_one
 from .detection import scan_file
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
-from .github_client import GitHubError, get_blob_text, get_repo, list_repo_tree, make_client
+from .github_client import (
+    GitHubArchiveTooLarge,
+    GitHubError,
+    download_repo_archive,
+    get_branch_sha,
+    get_repo,
+)
+from .instant_scan_archive import ArchiveExtractionError, ExtractedRepo, extract_archive
+from .instant_scan_files import (
+    MANIFEST_FILES,
+    classify_file,
+    detect_service_roots,
+    file_rank,
+    is_safe_scan_file,
+    normalize_archive_path,
+    select_scan_files,
+    service_for_path,
+)
 from .redact import redact_snippet
 from .signatures import get_provider_category, status_for_api
 
@@ -74,7 +93,7 @@ def parse_repo_url(raw: str) -> str:
     Accepts ``github.com/owner/repo`` with an optional ``https://`` scheme,
     optional ``www.``, optional trailing ``/`` and optional ``.git`` suffix.
     Rejects every other host, embedded credentials, ports, query strings,
-    fragments, and path traversal — this blocks SSRF and open-redirect tricks.
+    fragments, and path traversal â€” this blocks SSRF and open-redirect tricks.
     """
     value = (raw or "").strip()
     if not value:
@@ -114,91 +133,10 @@ def parse_repo_url(raw: str) -> str:
         raise InvalidRepoUrl("That GitHub owner/repository name is not valid.")
     if repo in (".", "..") or owner in (".", ".."):
         raise InvalidRepoUrl("That GitHub repository path is not valid.")
-    # GitHub repo names are case-insensitive — normalise to one canonical key
+    # GitHub repo names are case-insensitive â€” normalise to one canonical key
     # so the 24h per-repo cache can never drift on casing (Owner/Repo vs
     # owner/repo) and every scan of the same repo hits the same entry.
     return f"{owner.lower()}/{repo.lower()}"
-
-
-# ---------------------------------------------------------------------------
-# File selection (public scanner is stricter than the authenticated scanner)
-# ---------------------------------------------------------------------------
-_ALLOWED_EXTENSIONS = {
-    ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".rb", ".php", ".cs",
-    # Example env files only — a real `.env` never reaches this set because
-    # its extension is `.env`, which is deliberately absent.
-    ".example",
-}
-_ALLOWED_EXACT_FILES = {"package.json", "requirements.txt"}
-_EXCLUDED_BASENAMES = {
-    ".env", ".env.local", ".env.production", ".env.staging", ".env.development",
-    ".env.test", "credentials.json", "service-account.json",
-}
-_EXCLUDED_SUFFIXES = (".pem", ".key", ".p12", ".pfx", ".jks", ".keystore")
-_EXCLUDED_DIR_FRAGMENTS = (
-    "node_modules/", "vendor/", "dist/", "build/", ".git/", ".next/", "out/",
-    "venv/", ".venv/", "__pycache__/", "site-packages/", "coverage/",
-)
-_PRIORITY_DIRS = ("src/", "app/", "lib/", "api/")
-
-
-def is_safe_scan_file(path: str) -> bool:
-    """True only for source/example files the anonymous scanner may read."""
-    normalized = "/" + path.strip().lstrip("/").lower()
-    if any(frag in normalized for frag in _EXCLUDED_DIR_FRAGMENTS):
-        return False
-    basename = normalized.rsplit("/", 1)[-1]
-    if basename in _EXCLUDED_BASENAMES:
-        return False
-    if basename.endswith(_EXCLUDED_SUFFIXES):
-        return False
-    if basename in _ALLOWED_EXACT_FILES:
-        return True
-    dot = basename.rfind(".")
-    if dot == -1:
-        return False
-    return basename[dot:] in _ALLOWED_EXTENSIONS
-
-
-def _file_rank(path: str) -> int:
-    lowered = path.lower()
-    basename = lowered.rsplit("/", 1)[-1]
-    if basename in _ALLOWED_EXACT_FILES:
-        return 0
-    segments = lowered.split("/")
-    if any(seg in _PRIORITY_DIRS for seg in segments[:-1]) or lowered.startswith(_PRIORITY_DIRS):
-        return 1
-    return 2
-
-
-def select_scan_files(
-    tree: list[dict],
-    *,
-    max_files: int | None = None,
-    max_file_bytes: int | None = None,
-) -> tuple[list[dict], bool]:
-    """Filter + order a GitHub tree. Returns ``(files, partial)``.
-
-    ``partial`` is True when scannable files were dropped because of a cap.
-    """
-    cap_files = settings.instant_scan_max_files if max_files is None else max_files
-    cap_bytes = (
-        settings.instant_scan_max_file_bytes if max_file_bytes is None else max_file_bytes
-    )
-    candidates: list[dict] = []
-    for entry in tree or []:
-        path = str(entry.get("path") or "")
-        size = int(entry.get("size") or 0)
-        if not path or size <= 0 or size > cap_bytes:
-            continue
-        if not is_safe_scan_file(path):
-            continue
-        candidates.append({"path": path, "sha": entry.get("sha"), "size": size})
-
-    # Stable relevance order: manifests first, then src/app/lib/api, then rest.
-    candidates.sort(key=lambda e: (_file_rank(e["path"]), e["path"]))
-    partial = len(candidates) > cap_files
-    return candidates[:cap_files], partial
 
 
 # ---------------------------------------------------------------------------
@@ -323,13 +261,15 @@ def aggregate_providers(detections: list[dict]) -> list[dict]:
             group["_has_env_or_package"] = True
         files = group["_files"]
         bucket = files.setdefault(
-            det.get("file_path", ""), {"path": det.get("file_path", ""), "lines": [], "evidence": []}
+            det.get("file_path", ""), {"path": det.get("file_path", ""), "lines": [], "evidence": [], "service": None}
         )
         line = det.get("line_number")
         if isinstance(line, int) and line not in bucket["lines"]:
             bucket["lines"].append(line)
         if evidence and evidence not in bucket["evidence"]:
             bucket["evidence"].append(evidence)
+        if not bucket.get("service"):
+            bucket["service"] = det.get("service")
 
     providers: list[dict] = []
     for group in grouped.values():
@@ -341,11 +281,13 @@ def aggregate_providers(detections: list[dict]) -> list[dict]:
         for f in files:
             f["lines"] = sorted(f["lines"])[:20]
             f["evidence"] = f["evidence"][:10]
+        services = sorted({f.get("service") for f in files if f.get("service")})
         providers.append(
             {
                 **group,
                 "file_count": len(files),
                 "confidence": _confidence_for(group["evidence_count"], has_env_or_package),
+                "services": services,
                 "files": files[:8],
             }
         )
@@ -363,7 +305,7 @@ def match_risks(
     """Match recent official provider events to the detected usage.
 
     Confidence follows the existing Phase B rules in
-    :mod:`app.changelog.matching`. Wording is always "may affect" — a notice
+    :mod:`app.changelog.matching`. Wording is always "may affect" â€” a notice
     is never reported as a confirmed break.
     """
     by_api: dict[str, list[dict]] = {}
@@ -387,7 +329,7 @@ def match_risks(
         top = max(matches, key=lambda m: _CONFIDENCE_ORDER.get(m.confidence, 0))
         # Provider-only overlap is not evidence that the notice affects this
         # repo. Without an endpoint, SDK, symbol or value match, every recent
-        # notice for a detected provider would surface as a "possible risk" —
+        # notice for a detected provider would surface as a "possible risk" â€”
         # noisy, and it would overstate what the scan actually found.
         if not [field for field in (top.matched_fields or []) if field != "provider"]:
             continue
@@ -422,7 +364,7 @@ def extract_repo_packages(detections: list[dict]) -> list[str]:
     packages: list[str] = []
     for det in detections:
         path = (det.get("file_path") or "").lower()
-        if path.rsplit("/", 1)[-1] not in _ALLOWED_EXACT_FILES:
+        if path.rsplit("/", 1)[-1] not in MANIFEST_FILES:
             continue
         snippet = det.get("matched_snippet") or ""
         for match in re.finditer(r"""["']([@A-Za-z0-9][A-Za-z0-9._/-]*)["']\s*:""", snippet):
@@ -558,8 +500,10 @@ def manifest_detections(path: str, text: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Bounds only concurrent scans (memory/CPU), never how many scans a visitor may
 # run. Extra requests wait for a slot instead of getting a 429.
-_scan_slots = threading.BoundedSemaphore(4)
+_scan_slots = threading.BoundedSemaphore(max(1, settings.instant_scan_concurrency))
 _SCAN_QUEUE_TIMEOUT_SECONDS = 15.0
+_active_scans: set[str] = set()
+_active_lock = threading.Lock()
 
 
 def hash_ip(ip: str) -> str:
@@ -596,20 +540,31 @@ def count_recent_scans(ip_hash: str) -> int:
         if res.count is not None:
             return int(res.count)
         return len(res.data or [])
-    except Exception:  # noqa: BLE001 — never fail closed on a counter read
+    except Exception:  # noqa: BLE001 â€” never fail closed on a counter read
         logger.warning("instant scan: rate-limit counter unavailable")
         return 0
 
 
-def find_cached_scan(repo_full_name: str) -> dict | None:
+def find_cached_scan(repo_full_name: str, commit_sha: str | None = None) -> dict | None:
+    """Return the newest completed scan for ``repo_full_name`` at ``commit_sha``.
+
+    The commit SHA is part of the cache key: a repository that changed since the
+    last scan must never receive the old result. When ``commit_sha`` is omitted
+    the lookup falls back to any commit (legacy behaviour, used by tests).
+    """
     try:
-        rows = (
+        query = (
             db()
             .table("instant_scans")
             .select("id, repo_full_name, result_json, created_at")
             .eq("repo_full_name", repo_full_name)
+            .eq("status", "completed")
             .gte("created_at", _cache_cutoff_iso())
-            .order("created_at", desc=True)
+        )
+        if commit_sha:
+            query = query.eq("commit_sha", commit_sha)
+        rows = (
+            query.order("created_at", desc=True)
             .limit(1)
             .execute()
         ).data or []
@@ -644,7 +599,7 @@ def _fetch_events(providers: list[str]) -> list[dict]:
             .limit(300)
             .execute()
         ).data or []
-    except Exception:  # noqa: BLE001 — risk matching is best-effort, not fatal
+    except Exception:  # noqa: BLE001 â€” risk matching is best-effort, not fatal
         logger.warning("instant scan: changelog lookup failed")
         return []
 
@@ -652,8 +607,19 @@ def _fetch_events(providers: list[str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Scan orchestration
 # ---------------------------------------------------------------------------
-def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> dict:
-    """Fetch, scan and summarise one public repo. Raises typed errors."""
+def scan_public_repo(
+    repo_full_name: str,
+    *,
+    commit_sha: str | None = None,
+    deadline: float | None = None,
+    progress: Callable[[str, str], None] | None = None,
+    archive_bytes: bytes | None = None,
+) -> dict:
+    """Fetch a public repo as a tarball, scan it and summarise the result.
+
+    ``archive_bytes`` is accepted for tests/resume; production downloads the
+    tarball via :func:`app.github_client.download_repo_archive`.
+    """
     started = time.monotonic()
     if deadline is None:
         deadline = started + settings.instant_scan_timeout_seconds
@@ -669,88 +635,106 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
         raise RepoUnavailable("This scanner only works with public repositories.")
 
     # GitHub answers 301 for renamed/moved repos; get_repo follows the redirect
-    # and returns the canonical name. Use it for tree/blob calls (one fewer
-    # redirect per file) and for display, while the cache key stays the
-    # requested normalized owner/repo so repeat scans of an alias still hit.
+    # and returns the canonical name.
     canonical_name = str(repo_meta.get("full_name") or repo_full_name)
     branch = repo_meta.get("default_branch") or "main"
-    try:
-        tree, truncated = list_repo_tree(token, canonical_name, branch)
-    except GitHubError as exc:
-        msg = str(exc)
-        if "403" in msg or "rate limit" in msg.lower():
+    if not commit_sha:
+        try:
+            commit_sha = get_branch_sha(token, canonical_name, branch)
+        except GitHubError as exc:
             raise RepoUnavailable(
-                "GitHub rate limit reached. Add GITHUB_SCAN_TOKEN or try again in a few minutes."
+                "We could not read that repository. It may be private, renamed, or unavailable."
             ) from exc
+
+    if progress:
+        progress("downloading_repo", "Downloading repository archiveâ€¦")
+    if archive_bytes is None:
+        try:
+            archive_bytes = download_repo_archive(
+                token,
+                canonical_name,
+                branch,
+                max_bytes=settings.instant_scan_max_archive_bytes,
+            )
+        except GitHubArchiveTooLarge as exc:
+            raise RepoUnavailable(str(exc)) from exc
+        except GitHubError as exc:
+            msg = str(exc)
+            if "403" in msg or "rate limit" in msg.lower():
+                raise RepoUnavailable(
+                    "GitHub rate limit reached. Add GITHUB_SCAN_TOKEN or try again in a few minutes."
+                ) from exc
+            raise RepoUnavailable(
+                "GitHub could not provide this repository's archive. It may be empty, very large, or rate-limited."
+            ) from exc
+
+    if progress:
+        progress("extracting_repo", "Extracting filesâ€¦")
+    try:
+        extracted = extract_archive(archive_bytes)
+    except ArchiveExtractionError as exc:
         raise RepoUnavailable(
-            "GitHub did not return this repository's file tree. It may be empty, very large, or rate-limited."
+            "We could not read this repository's file archive. It may be empty or in an unsupported format."
         ) from exc
 
-    candidates, cap_partial = select_scan_files(tree)
+    if progress:
+        progress("detecting_integrations", "Detecting integrationsâ€¦")
+    return scan_extracted_repo(
+        repo_full_name,
+        canonical_name=canonical_name,
+        branch=branch,
+        commit_sha=commit_sha,
+        extracted=extracted,
+        started=started,
+        deadline=deadline,
+        progress=progress,
+    )
+
+
+def scan_extracted_repo(
+    repo_full_name: str,
+    *,
+    canonical_name: str,
+    branch: str,
+    commit_sha: str,
+    extracted: ExtractedRepo,
+    started: float,
+    deadline: float | None = None,
+    progress: Callable[[str, str], None] | None = None,
+) -> dict:
+    """Scan an extracted archive and build the safe public result payload."""
     detections: list[dict] = []
     files_scanned = 0
     timed_out = False
+    service_roots = extracted.service_roots
 
-    if candidates:
-        # One pooled client for every worker: avoids a TLS handshake per file.
-        client = make_client(token)
-
-        def _fetch_one(entry: dict) -> tuple[dict, str | None]:
-            if time.monotonic() >= deadline:
-                return entry, None
-            try:
-                text = get_blob_text(token, canonical_name, entry["sha"], client=client)
-            except GitHubError:
-                return entry, None
-            return entry, text
-
-        executor = ThreadPoolExecutor(max_workers=min(10, len(candidates)))
-        futures = [executor.submit(_fetch_one, entry) for entry in candidates]
-        try:
-            for fut in as_completed(
-                futures, timeout=max(0.1, deadline - time.monotonic())
-            ):
-                # Time can run out while parsing already-fetched files too.
-                if time.monotonic() >= deadline:
-                    timed_out = True
-                    break
-                try:
-                    entry, text = fut.result(timeout=0)
-                except Exception:
-                    continue
-                if not text:
-                    continue
-                files_scanned += 1
-                raw_detections = [
-                    {
-                        "api_name": det.api_name,
-                        "file_path": det.file_path,
-                        "line_number": det.line_number,
-                        "matched_snippet": redact_snippet(det.matched_snippet),
-                        "symbols": det.symbols,
-                    }
-                    for det in scan_file(entry["path"], text)
-                ]
-                basename = entry["path"].rsplit("/", 1)[-1].lower()
-                if basename in _ALLOWED_EXACT_FILES:
-                    raw_detections.extend(manifest_detections(entry["path"], text))
-                for det in raw_detections:
-                    detections.append(
-                        {
-                            **det,
-                            "evidence": evidence_for_line(det["file_path"], det["matched_snippet"]),
-                        }
-                    )
-        except FuturesTimeoutError:
+    for path, text in extracted.files.items():
+        if deadline is not None and time.monotonic() >= deadline:
             timed_out = True
-        finally:
-            # Do NOT wait for queued fetches after the deadline: waiting here
-            # was the reason large repos ran far past the scan budget.
-            for pending in futures:
-                pending.cancel()
-            executor.shutdown(wait=False, cancel_futures=True)
-            client.close()
-    partial = bool(cap_partial or timed_out or truncated)
+            break
+        files_scanned += 1
+        raw_detections = [
+            {
+                "api_name": det.api_name,
+                "file_path": det.file_path,
+                "line_number": det.line_number,
+                "matched_snippet": redact_snippet(det.matched_snippet),
+                "symbols": det.symbols,
+            }
+            for det in scan_file(path, text)
+        ]
+        basename = path.rsplit("/", 1)[-1].lower()
+        if basename in MANIFEST_FILES:
+            raw_detections.extend(manifest_detections(path, text))
+        service = service_for_path(path, service_roots)
+        for det in raw_detections:
+            detections.append(
+                {
+                    **det,
+                    "service": service or None,
+                    "evidence": evidence_for_line(det["file_path"], det["matched_snippet"]),
+                }
+            )
 
     providers = aggregate_providers(detections)
     repo_packages = extract_repo_packages(detections)
@@ -768,35 +752,201 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
     else:
         no_risk_message = "No recent official breaking-change notice found for your detected providers."
 
+    code_files = int(extracted.files_by_type.get("code") or 0)
+    docs_files = int(extracted.files_by_type.get("docs") or 0)
+    if providers:
+        no_integrations_message = None
+    else:
+        no_integrations_message = (
+            f"No third-party API integrations found in {code_files} code "
+            f"file{'s' if code_files != 1 else ''} ({docs_files} docs/markdown "
+            "files skipped). This repo looks like documentation or does not "
+            "call external APIs."
+        )
+
+    partial = bool(extracted.truncated or timed_out)
     partial_reason = None
     if partial:
-        if truncated:
-            partial_reason = "Very large repository: GitHub returned a truncated file tree; scanned the most relevant files found."
+        if extracted.truncated:
+            reasons = "; ".join(row["description"] for row in extracted.skipped) or (
+                "file caps reached"
+            )
+            partial_reason = f"Large repository: {reasons}."
         elif timed_out:
-            partial_reason = "Large repository: scan time limit reached; scanned the most relevant files first."
+            partial_reason = "Scan time limit reached; scanned the most relevant files first."
         else:
             partial_reason = "Large repository: scanned the most relevant files first (file cap)."
 
-    result = {
+    service_counts: dict[str, int] = {}
+    for path in extracted.files:
+        service = service_for_path(path, service_roots)
+        if service:
+            service_counts[service] = service_counts.get(service, 0) + 1
+
+    return {
         "repo": canonical_name,
         "repo_url": f"https://github.com/{canonical_name}",
         "default_branch": branch,
+        "commit_sha": commit_sha or None,
         "scanned_at": _iso(),
         "duration_ms": duration_ms,
         "partial": partial,
         "partial_reason": partial_reason,
-        "files_considered": len(candidates),
+        "files_considered": int(extracted.total_safe_files),
         "files_scanned": files_scanned,
+        "files_by_type": extracted.files_by_type,
+        "files_skipped": extracted.skipped,
+        "services": [
+            {
+                "path": prefix,
+                "name": service_roots[prefix],
+                "file_count": service_counts.get(prefix, 0),
+            }
+            for prefix in sorted(service_roots)
+        ],
         "providers": providers,
         "risks": risks,
         "summary": {
             "provider_count": len(providers),
             "integration_count": len(detections),
             "possible_risk_count": len(risks),
+            "code_files": code_files,
+            "config_files": int(extracted.files_by_type.get("config") or 0),
+            "docs_files": docs_files,
+            "other_files": int(extracted.files_by_type.get("other") or 0),
+            "skipped_count": sum(int(row.get("count") or 0) for row in extracted.skipped),
         },
         "no_risk_message": no_risk_message,
+        "no_integrations_message": no_integrations_message,
     }
-    return result
+
+
+# ---------------------------------------------------------------------------
+# Scan rows: queue, progress, partial results
+# ---------------------------------------------------------------------------
+def _get_scan_row(scan_id: str) -> dict | None:
+    try:
+        rows = (
+            db().table("instant_scans").select("*").eq("id", scan_id).limit(1).execute().data
+            or []
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("instant scan: could not read scan row %s", scan_id)
+        return None
+    return rows[0] if rows else None
+
+
+def create_scan_row(repo_full_name: str, ip_hash: str, commit_sha: str | None = None) -> str:
+    payload = {
+        "repo_full_name": repo_full_name,
+        "ip_hash": ip_hash,
+        "status": "queued",
+        "progress_step": "queued",
+        "progress_message": "Waiting for a workerâ€¦",
+        "started_at": _iso(),
+    }
+    if commit_sha:
+        payload["commit_sha"] = commit_sha
+    try:
+        res = db().table("instant_scans").insert(payload).execute()
+        rows = res.data or []
+        if rows and rows[0].get("id"):
+            return str(rows[0]["id"])
+    except Exception:  # noqa: BLE001
+        logger.warning("instant scan: could not create scan row for %s", repo_full_name)
+    return hashlib.sha256(f"{repo_full_name}:{_iso()}".encode("utf-8")).hexdigest()[:32]
+
+
+def update_scan_progress(
+    scan_id: str, status: str, step: str, message: str, **fields
+) -> None:
+    payload = {
+        "status": status,
+        "progress_step": step,
+        "progress_message": message,
+        "updated_at": _iso(),
+        **fields,
+    }
+    try:
+        db().table("instant_scans").update(payload).eq("id", scan_id).execute()
+    except Exception:  # noqa: BLE001
+        logger.warning("instant scan: could not update progress for %s", scan_id)
+
+
+def persist_scan_result(scan_id: str, result: dict) -> None:
+    update_scan_progress(
+        scan_id,
+        "completed",
+        "completed",
+        "Scan complete",
+        result_json=result,
+        partial=bool(result.get("partial")),
+        duration_ms=int(result.get("duration_ms") or 0),
+        commit_sha=result.get("commit_sha"),
+        files_by_type=result.get("files_by_type"),
+        files_skipped=result.get("files_skipped"),
+        finished_at=_iso(),
+        error_message=None,
+    )
+
+
+def fail_scan(
+    scan_id: str,
+    message: str,
+    *,
+    extracted: ExtractedRepo | None = None,
+    repo: str = "",
+    branch: str | None = None,
+    commit_sha: str | None = None,
+) -> None:
+    files_by_type = (
+        extracted.files_by_type
+        if extracted
+        else {"code": 0, "config": 0, "docs": 0, "other": 0}
+    )
+    files_skipped = extracted.skipped if extracted else []
+    result = {
+        "repo": repo,
+        "repo_url": f"https://github.com/{repo}" if repo else "",
+        "default_branch": branch,
+        "commit_sha": commit_sha,
+        "scanned_at": _iso(),
+        "duration_ms": 0,
+        "partial": True,
+        "partial_reason": "The scan could not be completed. Partial results are shown.",
+        "files_considered": int(extracted.total_safe_files) if extracted else 0,
+        "files_scanned": 0,
+        "files_by_type": files_by_type,
+        "files_skipped": files_skipped,
+        "services": [],
+        "providers": [],
+        "risks": [],
+        "summary": {
+            "provider_count": 0,
+            "integration_count": 0,
+            "possible_risk_count": 0,
+            "code_files": int(files_by_type.get("code") or 0),
+            "config_files": int(files_by_type.get("config") or 0),
+            "docs_files": int(files_by_type.get("docs") or 0),
+            "other_files": int(files_by_type.get("other") or 0),
+            "skipped_count": sum(int(row.get("count") or 0) for row in files_skipped),
+        },
+        "no_risk_message": None,
+        "no_integrations_message": None,
+        "error_message": message,
+    }
+    update_scan_progress(
+        scan_id,
+        "failed",
+        "failed",
+        message,
+        result_json=result,
+        partial=True,
+        error_message=message,
+        files_by_type=files_by_type,
+        files_skipped=files_skipped,
+        finished_at=_iso(),
+    )
 
 
 def persist_scan(
@@ -806,14 +956,21 @@ def persist_scan(
     ip_hash: str,
     email: str | None = None,
 ) -> str:
-    """Store the safe result JSON and return the new scan id."""
+    """Store a completed scan row (legacy synchronous path + tests)."""
     payload = {
         "repo_full_name": repo_full_name,
         "result_json": result,
         "ip_hash": ip_hash,
         "email": email,
+        "status": "completed",
+        "progress_step": "completed",
+        "progress_message": "Scan complete",
         "partial": bool(result.get("partial")),
         "duration_ms": int(result.get("duration_ms") or 0),
+        "commit_sha": result.get("commit_sha"),
+        "files_by_type": result.get("files_by_type"),
+        "files_skipped": result.get("files_skipped"),
+        "finished_at": _iso(),
     }
     try:
         res = db().table("instant_scans").insert(payload).execute()
@@ -827,12 +984,242 @@ def persist_scan(
     return hashlib.sha256(f"{repo_full_name}:{_iso()}".encode("utf-8")).hexdigest()[:32]
 
 
-def run_instant_scan(raw_url: str, *, ip: str) -> dict:
-    """Validate, cache-check and scan. Returns the API payload.
+# ---------------------------------------------------------------------------
+# Background worker (daemon thread + self-healing resume)
+# ---------------------------------------------------------------------------
+def _worker_progress(scan_id: str, step: str, message: str) -> None:
+    update_scan_progress(scan_id, "scanning", step, message)
 
-    Scans are unlimited per visitor. An hourly per-IP cap only applies when
-    ``INSTANT_SCAN_RATE_LIMIT`` is explicitly set to a positive number.
-    """
+
+def _parse_iso(value: object) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _execute_scan(scan_id: str) -> None:
+    row = _get_scan_row(scan_id)
+    if not row:
+        return
+    repo_full_name = str(row.get("repo_full_name") or "")
+    commit_sha = str(row.get("commit_sha") or "")
+    token = settings.github_scan_token or ""
+    extracted: ExtractedRepo | None = None
+    canonical_name = repo_full_name
+    branch = "main"
+    acquired = False
+    try:
+        acquired = _scan_slots.acquire(timeout=settings.instant_scan_timeout_seconds)
+        if not acquired:
+            update_scan_progress(scan_id, "queued", "queued", "Waiting for a free workerâ€¦")
+            return
+        _worker_progress(scan_id, "resolving_repo", "Resolving repositoryâ€¦")
+        try:
+            repo_meta = get_repo(token, repo_full_name)
+        except GitHubError as exc:
+            raise RepoUnavailable(
+                "We could not read that repository. It may be private, renamed, or unavailable."
+            ) from exc
+        if repo_meta.get("private"):
+            raise RepoUnavailable("This scanner only works with public repositories.")
+        canonical_name = str(repo_meta.get("full_name") or repo_full_name)
+        branch = repo_meta.get("default_branch") or "main"
+        if not commit_sha:
+            commit_sha = get_branch_sha(token, canonical_name, branch)
+        update_scan_progress(
+            scan_id, "scanning", "resolving_repo", "Repository resolved.", commit_sha=commit_sha
+        )
+
+        cached = find_cached_scan(repo_full_name, commit_sha)
+        if cached:
+            persist_scan_result(scan_id, {**cached["result"], "commit_sha": commit_sha})
+            logger.info("instant scan: cache_hit repo=%s scan_id=%s", repo_full_name, scan_id)
+            return
+
+        # Total budget across resumed invocations.
+        row_started = _parse_iso(row.get("started_at"))
+        if row_started:
+            elapsed_total = (_utcnow() - row_started).total_seconds()
+            remaining = settings.instant_scan_total_budget_seconds - elapsed_total
+            if remaining <= 0:
+                raise RepoUnavailable("The scan exceeded its total time budget. Please retry.")
+        else:
+            remaining = settings.instant_scan_total_budget_seconds
+        started = time.monotonic()
+        deadline = started + max(1.0, min(settings.instant_scan_timeout_seconds, remaining))
+
+        _worker_progress(scan_id, "downloading_repo", "Downloading repository archiveâ€¦")
+        archive_bytes = download_repo_archive(
+            token, canonical_name, branch, max_bytes=settings.instant_scan_max_archive_bytes
+        )
+        _worker_progress(scan_id, "extracting_repo", "Extracting filesâ€¦")
+        extracted = extract_archive(archive_bytes)
+        _worker_progress(scan_id, "detecting_integrations", "Detecting integrationsâ€¦")
+        result = scan_extracted_repo(
+            repo_full_name,
+            canonical_name=canonical_name,
+            branch=branch,
+            commit_sha=commit_sha,
+            extracted=extracted,
+            started=started,
+            deadline=deadline,
+            progress=lambda step, msg: _worker_progress(scan_id, step, msg),
+        )
+        persist_scan_result(scan_id, result)
+        logger.info(
+            "instant scan: completed repo=%s scan_id=%s duration_ms=%s",
+            repo_full_name,
+            scan_id,
+            result.get("duration_ms"),
+        )
+    except RepoUnavailable as exc:
+        fail_scan(
+            scan_id, str(exc), extracted=extracted, repo=canonical_name,
+            branch=branch, commit_sha=commit_sha,
+        )
+    except GitHubArchiveTooLarge as exc:
+        fail_scan(
+            scan_id, str(exc), extracted=extracted, repo=canonical_name,
+            branch=branch, commit_sha=commit_sha,
+        )
+    except ArchiveExtractionError:
+        fail_scan(
+            scan_id,
+            "We could not read this repository's file archive. It may be empty or in an unsupported format.",
+            extracted=extracted, repo=canonical_name, branch=branch, commit_sha=commit_sha,
+        )
+    except Exception:  # noqa: BLE001 â€” a worker must never crash the instance
+        logger.exception("instant scan: worker failed for %s", scan_id)
+        fail_scan(
+            scan_id, "The scan failed unexpectedly. Please retry.",
+            extracted=extracted, repo=canonical_name, branch=branch, commit_sha=commit_sha,
+        )
+    finally:
+        if acquired:
+            _scan_slots.release()
+
+
+def _run_worker(scan_id: str) -> None:
+    try:
+        _execute_scan(scan_id)
+    finally:
+        with _active_lock:
+            _active_scans.discard(scan_id)
+
+
+def start_scan_worker(scan_id: str) -> None:
+    """Start the background worker once per scan (idempotent per process)."""
+    with _active_lock:
+        if scan_id in _active_scans:
+            return
+        _active_scans.add(scan_id)
+    threading.Thread(
+        target=_run_worker,
+        args=(scan_id,),
+        daemon=True,
+        name=f"instant-scan-{scan_id[:8]}",
+    ).start()
+
+
+def _is_stale(updated_at: object) -> bool:
+    parsed = _parse_iso(updated_at)
+    if not parsed:
+        return False
+    return (_utcnow() - parsed).total_seconds() > settings.instant_scan_stale_seconds
+
+
+def _public_status(row: dict) -> dict:
+    status = str(row.get("status") or "queued")
+    payload = row.get("result_json")
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except json.JSONDecodeError:
+            payload = None
+    return {
+        "scan_id": row.get("id"),
+        "repo_full_name": row.get("repo_full_name"),
+        "status": status,
+        "progress_step": row.get("progress_step"),
+        "progress_message": row.get("progress_message"),
+        "commit_sha": row.get("commit_sha"),
+        "partial": bool(row.get("partial")),
+        "duration_ms": row.get("duration_ms"),
+        "files_by_type": row.get("files_by_type"),
+        "files_skipped": row.get("files_skipped"),
+        "error_message": row.get("error_message"),
+        "created_at": row.get("created_at"),
+        "finished_at": row.get("finished_at"),
+        "result": payload if isinstance(payload, dict) else None,
+    }
+
+
+def get_scan_status(scan_id: str) -> dict | None:
+    """Public status read. Resumes a stale queued/scanning row on the next poll."""
+    row = _get_scan_row(scan_id)
+    if not row:
+        return None
+    status = str(row.get("status") or "queued")
+    updated_at = row.get("updated_at") or row.get("created_at")
+    if status in ("queued", "scanning") and _is_stale(updated_at):
+        logger.info("instant scan: resuming stale scan %s", scan_id)
+        start_scan_worker(scan_id)
+        row = _get_scan_row(scan_id) or row
+    return _public_status(row)
+
+
+def create_instant_scan_job(raw_url: str, *, ip: str) -> dict:
+    """Validate, resolve the commit, check the cache and queue a background scan."""
+    repo_full_name = parse_repo_url(raw_url)
+    ip_hash = hash_ip(ip)
+    token = settings.github_scan_token or ""
+    try:
+        repo_meta = get_repo(token, repo_full_name)
+    except GitHubError as exc:
+        raise RepoUnavailable(
+            "We could not read that repository. It may be private, renamed, or unavailable."
+        ) from exc
+    if repo_meta.get("private"):
+        raise RepoUnavailable("This scanner only works with public repositories.")
+
+    canonical_name = str(repo_meta.get("full_name") or repo_full_name)
+    branch = repo_meta.get("default_branch") or "main"
+    commit_sha = get_branch_sha(token, canonical_name, branch)
+
+    cached = find_cached_scan(repo_full_name, commit_sha)
+    if cached:
+        logger.info(
+            "instant scan: cache_hit repo=%s scan_id=%s", repo_full_name, cached.get("id")
+        )
+        return {
+            "scan_id": cached["id"],
+            "cached": True,
+            "status": "completed",
+            "cached_at": cached.get("created_at"),
+            "result": cached["result"],
+        }
+
+    limit = settings.instant_scan_rate_limit
+    if limit > 0 and count_recent_scans(ip_hash) >= limit:
+        raise ScanRateLimited(retry_after=3600)
+
+    scan_id = create_scan_row(repo_full_name, ip_hash, commit_sha=commit_sha)
+    start_scan_worker(scan_id)
+    logger.info("instant scan: queued repo=%s scan_id=%s", repo_full_name, scan_id)
+    return {
+        "scan_id": scan_id,
+        "cached": False,
+        "status": "queued",
+        "cached_at": None,
+        "result": None,
+    }
+
+
+def run_instant_scan(raw_url: str, *, ip: str) -> dict:
+    """Synchronous scan (tests + fallback). The public router uses the queued job."""
     repo_full_name = parse_repo_url(raw_url)
     ip_hash = hash_ip(ip)
 
@@ -854,7 +1241,6 @@ def run_instant_scan(raw_url: str, *, ip: str) -> dict:
     if limit > 0 and count_recent_scans(ip_hash) >= limit:
         raise ScanRateLimited(retry_after=3600)
 
-    # Wait briefly for a free slot so a burst queues instead of 429-ing.
     if not _scan_slots.acquire(timeout=_SCAN_QUEUE_TIMEOUT_SECONDS):
         raise ScanBusy("The scanner is busy right now. Please retry in a few seconds.")
     try:
@@ -871,23 +1257,11 @@ def run_instant_scan(raw_url: str, *, ip: str) -> dict:
     )
     return {"scan_id": scan_id, "cached": False, "cached_at": None, "result": result}
 
-
 def get_scan(scan_id: str) -> dict | None:
     """Public read of one stored scan (safe result JSON only)."""
-    try:
-        row = (
-            db()
-            .table("instant_scans")
-            .select("id, repo_full_name, result_json, created_at, email, partial")
-            .eq("id", scan_id)
-            .limit(1)
-            .execute()
-        ).data or []
-    except Exception:  # noqa: BLE001
+    item = _get_scan_row(scan_id)
+    if not item:
         return None
-    if not row:
-        return None
-    item = row[0]
     payload = item.get("result_json")
     if isinstance(payload, str):
         try:
@@ -896,14 +1270,9 @@ def get_scan(scan_id: str) -> dict | None:
             return None
     if not isinstance(payload, dict):
         return None
-    return {
-        "id": item["id"],
-        "repo_full_name": item.get("repo_full_name"),
-        "created_at": item.get("created_at"),
-        "email_captured": bool(item.get("email")),
-        "partial": bool(item.get("partial")),
-        "result": payload,
-    }
+    status = _public_status(item)
+    status["email_captured"] = bool(item.get("email"))
+    return status
 
 
 def link_scan_to_user(scan_id: str, user_id: str) -> dict | None:
@@ -926,7 +1295,7 @@ def link_scan_to_user(scan_id: str, user_id: str) -> dict | None:
 
     try:
         db().table("instant_scans").update({"user_id": user_id}).eq("id", scan_id).execute()
-    except Exception:  # noqa: BLE001 — attribution must never break the connect flow
+    except Exception:  # noqa: BLE001 â€” attribution must never break the connect flow
         logger.warning("instant scan: could not link scan %s to user", scan_id)
 
     user = fetch_one("users", {"id": user_id}) or {}

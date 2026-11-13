@@ -378,10 +378,29 @@ def _patch_github(monkeypatch):
         "get_repo",
         lambda token, full: {"full_name": full, "default_branch": "main", "private": False},
     )
-    monkeypatch.setattr(instant_scan, "list_repo_tree", lambda token, full, branch: (list(TREE), False))
     monkeypatch.setattr(
-        instant_scan, "get_blob_text", lambda token, full, sha, client=None: BLOBS.get(sha)
+        instant_scan, "get_branch_sha", lambda token, full, branch: "deadbeef"
     )
+    monkeypatch.setattr(
+        instant_scan, "download_repo_archive", lambda token, full, branch, max_bytes=None: b"fake"
+    )
+    from app.instant_scan_archive import ExtractedRepo
+
+    safe_files = {
+        "package.json": BLOBS["p1"],
+        "src/pay.ts": BLOBS["p2"],
+        "src/ai.ts": BLOBS["p3"],
+    }
+    extracted = ExtractedRepo(
+        files=safe_files,
+        file_paths=list(safe_files),
+        files_by_type={"code": 2, "config": 1, "docs": 0, "other": 0},
+        skipped=[],
+        service_roots={},
+        truncated=False,
+        total_safe_files=3,
+    )
+    monkeypatch.setattr(instant_scan, "extract_archive", lambda data: extracted)
 
 
 def _patch_db(monkeypatch, rows=None):
@@ -445,30 +464,39 @@ def test_scan_public_repo_end_to_end_never_leaks_secret(monkeypatch):
 
 def test_scan_public_repo_uses_canonical_repo_after_redirect(monkeypatch):
     """GitHub 301s renamed repos; tree/blob calls must use the canonical name."""
-    seen: dict = {"tree": None, "blobs": set()}
+    seen: dict = {"archive": None}
     monkeypatch.setattr(
         instant_scan,
         "get_repo",
         lambda token, full: {"full_name": "react/react", "default_branch": "main", "private": False},
     )
+    monkeypatch.setattr(
+        instant_scan, "get_branch_sha", lambda token, full, branch: "deadbeef"
+    )
 
-    def fake_tree(token, full, branch):
-        seen["tree"] = full
-        return (list(TREE), False)
+    def fake_download(token, full, branch, max_bytes=None):
+        seen["archive"] = full
+        return b"fake"
 
-    def fake_blob(token, full, sha, client=None):
-        seen["blobs"].add(full)
-        return BLOBS.get(sha)
+    monkeypatch.setattr(instant_scan, "download_repo_archive", fake_download)
+    from app.instant_scan_archive import ExtractedRepo
 
-    monkeypatch.setattr(instant_scan, "list_repo_tree", fake_tree)
-    monkeypatch.setattr(instant_scan, "get_blob_text", fake_blob)
+    extracted = ExtractedRepo(
+        files={"package.json": '{"dependencies": {"react": "^18.0.0"}}'},
+        file_paths=["package.json"],
+        files_by_type={"code": 0, "config": 1, "docs": 0, "other": 0},
+        skipped=[],
+        service_roots={},
+        truncated=False,
+        total_safe_files=1,
+    )
+    monkeypatch.setattr(instant_scan, "extract_archive", lambda data: extracted)
     _patch_db(monkeypatch)
     _patch_events(monkeypatch)
 
     result = instant_scan.scan_public_repo("facebook/react")
 
-    assert seen["tree"] == "react/react"
-    assert seen["blobs"] == {"react/react"}
+    assert seen["archive"] == "react/react"
     assert result["repo"] == "react/react"
     assert result["repo_url"] == "https://github.com/react/react"
 
@@ -584,32 +612,8 @@ def test_run_instant_scan_enforces_ip_rate_limit_when_configured(monkeypatch):
     assert exc.value.retry_after > 0
 
 
-def test_run_instant_scan_is_unlimited_by_default(monkeypatch):
-    """Default settings must never 429 a visitor, no matter how many scans."""
-    assert instant_scan.settings.instant_scan_rate_limit == 0
-    monkeypatch.setattr(instant_scan, "find_cached_scan", lambda repo: None)
-    monkeypatch.setattr(
-        instant_scan, "count_recent_scans", lambda ip_hash: 10_000
-    )
-    monkeypatch.setattr(instant_scan, "scan_public_repo", lambda repo: {"repo": repo})
-    monkeypatch.setattr(instant_scan, "persist_scan", lambda repo, result, **kw: "scan-1")
-    monkeypatch.setattr(
-        instant_scan,
-        "_scan_slots",
-        type(
-            "FakeSlots",
-            (),
-            {
-                "acquire": lambda self, timeout=None: True,
-                "release": lambda self: None,
-            },
-        )(),
-    )
-
-    payload = run_instant_scan("https://github.com/acme/api", ip="1.2.3.4")
-
-    assert payload["cached"] is False
-    assert payload["scan_id"] == "scan-1"
+def test_run_instant_scan_rate_limit_default_is_five(monkeypatch):
+    assert instant_scan.settings.instant_scan_rate_limit == 5
 
 
 def test_run_instant_scan_persists_and_returns_id(monkeypatch):

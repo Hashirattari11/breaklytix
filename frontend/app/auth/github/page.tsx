@@ -13,8 +13,9 @@ import { SITE_URL } from "../../../lib/site";
  * Optional query params (used by the post-scan "Continue with GitHub" CTA):
  *   ?scan=<scanId>   — the instant scan being continued; the callback stores it
  *                      in session storage and links the scan to the new user.
- *   ?scopes=<scopes> — OAuth scopes to request (default: the post-scan minimal
- *                      set "read:user user:email"; the full set adds `repo`).
+ *   ?scopes=<scopes> — OAuth scopes to request (default: the full set
+ *                      "read:user user:email repo"; the post-scan CTA passes
+ *                      the minimal "read:user user:email" set).
  */
 export default function AuthGithubClient() {
   const [error, setError] = useState<string | null>(null);

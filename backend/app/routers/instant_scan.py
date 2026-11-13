@@ -22,12 +22,14 @@ from ..instant_scan import (
     RepoUnavailable,
     ScanBusy,
     ScanRateLimited,
+    create_instant_scan_job,
     get_scan,
+    get_scan_status,
     latest_scan_for_repo,
     link_scan_to_user,
     parse_repo_url,
     record_event,
-    run_instant_scan,
+    start_scan_worker,
 )
 
 logger = logging.getLogger(__name__)
@@ -104,7 +106,7 @@ def create_instant_scan(body: InstantScanIn, request: Request) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     record_event("scan_started", ip=ip)
     try:
-        payload = run_instant_scan(body.repo_url, ip=ip)
+        payload = create_instant_scan_job(body.repo_url, ip=ip)
     except InvalidRepoUrl as exc:  # pragma: no cover - validated above
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RepoUnavailable as exc:
@@ -122,10 +124,30 @@ def create_instant_scan(body: InstantScanIn, request: Request) -> dict:
             headers={"Retry-After": "10"},
         ) from exc
 
-    repo = payload["result"].get("repo")
-    if not payload.get("cached"):
+    result = payload.get("result")
+    repo = result.get("repo") if isinstance(result, dict) else None
+    if payload.get("cached"):
         record_event("scan_completed", scan_id=payload["scan_id"], repo_full_name=repo, ip=ip)
     return payload
+
+
+@router.get("/api/scan-status/{scan_id}")
+def read_scan_status(scan_id: str) -> dict:
+    """Status + progress + partial results for a queued/running scan."""
+    status = get_scan_status(scan_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Scan not found.")
+    return status
+
+
+@router.post("/api/scan-status/{scan_id}/retry")
+def retry_scan(scan_id: str) -> dict:
+    """Re-kick a failed/timed-out scan."""
+    status = get_scan_status(scan_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Scan not found.")
+    start_scan_worker(scan_id)
+    return {"ok": True, "scan_id": scan_id}
 
 
 @router.post("/api/instant-scan/events")

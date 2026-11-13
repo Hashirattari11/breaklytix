@@ -21,7 +21,7 @@ def client():
 def test_bad_repo_url_is_rejected_before_any_scan(client, monkeypatch):
     monkeypatch.setattr(
         router_module,
-        "run_instant_scan",
+        "create_instant_scan_job",
         lambda *a, **k: pytest.fail("scan must not run for an invalid URL"),
     )
     res = client.post("/api/instant-scan", json={"repo_url": "https://gitlab.com/a/b"})

@@ -212,16 +212,33 @@ class Settings(BaseSettings):
     github_scan_token: str = Field(default="", alias="GITHUB_SCAN_TOKEN")
     # Hard caps for the anonymous scanner: deliberately much smaller than the
     # authenticated scan so one viral repo cannot exhaust the shared quota.
-    instant_scan_max_files: int = Field(default=400, alias="INSTANT_SCAN_MAX_FILES")
+    instant_scan_max_files: int = Field(default=3000, alias="INSTANT_SCAN_MAX_FILES")
     instant_scan_max_file_bytes: int = Field(
-        default=200_000, alias="INSTANT_SCAN_MAX_FILE_BYTES"
+        default=300_000, alias="INSTANT_SCAN_MAX_FILE_BYTES"
     )
+    # GitHub tarball ceiling (streamed, aborted as soon as this is exceeded).
+    instant_scan_max_archive_bytes: int = Field(
+        default=50_000_000, alias="INSTANT_SCAN_MAX_ARCHIVE_BYTES"
+    )
+    # Internal safety cap on decompressed text kept in memory while extracting.
+    instant_scan_max_extract_bytes: int = Field(
+        default=60_000_000, alias="INSTANT_SCAN_MAX_EXTRACT_BYTES"
+    )
+    # Per-invocation budget (Vercel maxDuration is 60s on the current plan).
     instant_scan_timeout_seconds: int = Field(
-        default=25, alias="INSTANT_SCAN_TIMEOUT_SECONDS"
+        default=55, alias="INSTANT_SCAN_TIMEOUT_SECONDS"
     )
-    # 0 (the default) means unlimited: anonymous scans are never capped per IP.
-    # Set a positive value only to re-enable an hourly per-IP cap.
-    instant_scan_rate_limit: int = Field(default=0, alias="INSTANT_SCAN_RATE_LIMIT")
+    # Total wall-clock budget across resumed invocations (self-healing worker).
+    instant_scan_total_budget_seconds: int = Field(
+        default=90, alias="INSTANT_SCAN_TOTAL_BUDGET_SECONDS"
+    )
+    # A queued/scanning row older than this is assumed frozen and is resumed.
+    instant_scan_stale_seconds: int = Field(
+        default=45, alias="INSTANT_SCAN_STALE_SECONDS"
+    )
+    # 5 scans per hashed IP per hour (DB-authoritative) + 2 concurrent workers.
+    instant_scan_rate_limit: int = Field(default=5, alias="INSTANT_SCAN_RATE_LIMIT")
+    instant_scan_concurrency: int = Field(default=2, alias="INSTANT_SCAN_CONCURRENCY")
     instant_scan_cache_hours: int = Field(default=24, alias="INSTANT_SCAN_CACHE_HOURS")
     # Salt for hashing visitor IPs. Only the hash is stored. Falls back to the
     # JWT secret so a missing value never causes raw IPs to be persisted.

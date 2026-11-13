@@ -231,6 +231,67 @@ def list_repo_tree(token: str, full_name: str, branch: str) -> tuple[list[dict],
     return entries, truncated
 
 
+class GitHubArchiveTooLarge(GitHubError):
+    """The repository tarball exceeded the anonymous scanner's size ceiling."""
+
+
+def get_branch_sha(token: str, full_name: str, branch: str) -> str:
+    """Return the commit SHA of ``branch`` (used in the cache key)."""
+    from urllib.parse import quote
+
+    with httpx.Client(
+        timeout=TIMEOUT, headers=_headers(token), follow_redirects=True
+    ) as client:
+        resp = client.get(
+            f"{GITHUB_API}/repos/{full_name}/commits/{quote(branch, safe='')}"
+        )
+    if resp.status_code != 200:
+        raise GitHubError(
+            f"Failed to fetch branch {branch} for {full_name} ({resp.status_code}): {resp.text}"
+        )
+    return str(resp.json().get("sha") or "")
+
+
+def download_repo_archive(
+    token: str,
+    full_name: str,
+    ref: str,
+    *,
+    max_bytes: int | None = None,
+) -> bytes:
+    """Stream a repository tarball and return its bytes.
+
+    The tarball endpoint is ``GET /repos/{owner}/{repo}/tarball/{ref}`` (no git
+    clone). The body is streamed so a repository larger than ``max_bytes`` is
+    aborted immediately instead of buffering the whole archive in memory.
+    """
+    from urllib.parse import quote
+
+    url = f"{GITHUB_API}/repos/{full_name}/tarball/{quote(ref, safe='')}"
+    ceiling = max_bytes if max_bytes is not None else 50_000_000
+    chunks: list[bytes] = []
+    total = 0
+    with httpx.Client(
+        timeout=httpx.Timeout(60.0, connect=10.0),
+        headers=_headers(token),
+        follow_redirects=True,
+        limits=httpx.Limits(max_connections=8, max_keepalive_connections=8),
+    ) as client:
+        with client.stream("GET", url) as resp:
+            if resp.status_code != 200:
+                raise GitHubError(
+                    f"Failed to download archive for {full_name} ({resp.status_code}): {resp.text}"
+                )
+            for chunk in resp.iter_bytes():
+                total += len(chunk)
+                if total > ceiling:
+                    raise GitHubArchiveTooLarge(
+                        f"Archive for {full_name} exceeded the {ceiling} byte ceiling."
+                    )
+                chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def make_client(token: str = "") -> httpx.Client:
     """Create a pooled client for bulk calls (blobs, trees).
 
