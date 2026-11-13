@@ -553,7 +553,12 @@ def find_cached_scan(repo_full_name: str, commit_sha: str | None = None) -> dict
     The commit SHA is part of the cache key: a repository that changed since the
     last scan must never receive the old result. When ``commit_sha`` is omitted
     the lookup falls back to any commit (legacy behaviour, used by tests).
+
+    If the P1 migration has not been applied yet (the ``status``/``commit_sha``
+    columns are missing) this degrades to the legacy repo-only lookup instead of
+    failing every scan with a 400.
     """
+    rows: list[dict] = []
     try:
         query = (
             db()
@@ -570,9 +575,21 @@ def find_cached_scan(repo_full_name: str, commit_sha: str | None = None) -> dict
             .limit(1)
             .execute()
         ).data or []
-    except Exception:  # noqa: BLE001
-        logger.warning("instant scan: cache lookup failed")
-        return None
+    except Exception:  # noqa: BLE001 — P1 columns may not exist yet
+        try:
+            rows = (
+                db()
+                .table("instant_scans")
+                .select("id, repo_full_name, result_json, created_at")
+                .eq("repo_full_name", repo_full_name)
+                .gte("created_at", _cache_cutoff_iso())
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            ).data or []
+        except Exception:
+            logger.warning("instant scan: cache lookup failed")
+            return None
     if not rows:
         return None
     row = rows[0]
@@ -841,7 +858,7 @@ def _get_scan_row(scan_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
-def create_scan_row(repo_full_name: str, ip_hash: str, commit_sha: str | None = None) -> str:
+def create_scan_row(repo_full_name: str, ip_hash: str, commit_sha: str | None = None) -> str | None:
     payload = {
         "repo_full_name": repo_full_name,
         "ip_hash": ip_hash,
@@ -857,9 +874,9 @@ def create_scan_row(repo_full_name: str, ip_hash: str, commit_sha: str | None = 
         rows = res.data or []
         if rows and rows[0].get("id"):
             return str(rows[0]["id"])
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 — P1 columns may not exist yet
         logger.warning("instant scan: could not create scan row for %s", repo_full_name)
-    return hashlib.sha256(f"{repo_full_name}:{_iso()}".encode("utf-8")).hexdigest()[:32]
+    return None
 
 
 def update_scan_progress(
@@ -983,8 +1000,23 @@ def persist_scan(
         rows = res.data or []
         if rows and rows[0].get("id"):
             return str(rows[0]["id"])
-    except Exception:  # noqa: BLE001
-        logger.warning("instant scan: could not persist result for %s", repo_full_name)
+    except Exception:  # noqa: BLE001 — P1 columns may not exist yet
+        logger.warning("instant scan: could not persist result for %s; retrying legacy insert", repo_full_name)
+        try:
+            legacy = {
+                "repo_full_name": repo_full_name,
+                "result_json": result,
+                "ip_hash": ip_hash,
+                "email": email,
+                "partial": bool(result.get("partial")),
+                "duration_ms": int(result.get("duration_ms") or 0),
+            }
+            res = db().table("instant_scans").insert(legacy).execute()
+            rows = res.data or []
+            if rows and rows[0].get("id"):
+                return str(rows[0]["id"])
+        except Exception:
+            logger.warning("instant scan: could not persist result for %s (legacy insert also failed)", repo_full_name)
     # A result without a durable row cannot be shared; surface a stable id so
     # the caller still has a valid response shape. The page will 404 later.
     return hashlib.sha256(f"{repo_full_name}:{_iso()}".encode("utf-8")).hexdigest()[:32]
@@ -1138,7 +1170,12 @@ def _is_stale(updated_at: object) -> bool:
 
 
 def _public_status(row: dict) -> dict:
-    status = str(row.get("status") or "queued")
+    # If the P1 migration is missing, rows come back without `status`; treat a
+    # row that carries result_json as completed so the site keeps working.
+    if row.get("status"):
+        status = str(row["status"])
+    else:
+        status = "completed" if row.get("result_json") else "queued"
     payload = row.get("result_json")
     if isinstance(payload, str):
         try:
@@ -1213,14 +1250,31 @@ def create_instant_scan_job(raw_url: str, *, ip: str) -> dict:
         raise ScanRateLimited(retry_after=3600)
 
     scan_id = create_scan_row(repo_full_name, ip_hash, commit_sha=commit_sha)
-    start_scan_worker(scan_id)
-    logger.info("instant scan: queued repo=%s scan_id=%s", repo_full_name, scan_id)
+    if scan_id is not None:
+        start_scan_worker(scan_id)
+        logger.info("instant scan: queued repo=%s scan_id=%s", repo_full_name, scan_id)
+        return {
+            "scan_id": scan_id,
+            "cached": False,
+            "status": "queued",
+            "cached_at": None,
+            "result": None,
+        }
+
+    # P1 migration not applied: scan synchronously and persist a legacy row so
+    # the site keeps working until the schema is migrated.
+    logger.warning(
+        "instant scan: falling back to synchronous scan for %s (migration missing)",
+        repo_full_name,
+    )
+    result = scan_public_repo(repo_full_name, commit_sha=commit_sha)
+    scan_id = persist_scan(repo_full_name, result, ip_hash=ip_hash)
     return {
         "scan_id": scan_id,
         "cached": False,
-        "status": "queued",
+        "status": "completed",
         "cached_at": None,
-        "result": None,
+        "result": result,
     }
 
 

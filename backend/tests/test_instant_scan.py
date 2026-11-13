@@ -616,6 +616,54 @@ def test_run_instant_scan_rate_limit_default_is_unlimited(monkeypatch):
     assert instant_scan.settings.instant_scan_rate_limit == 0
 
 
+def test_create_instant_scan_job_falls_back_when_scan_row_unavailable(monkeypatch):
+    """If the P1 columns are missing the job scans synchronously instead."""
+    monkeypatch.setattr(
+        instant_scan,
+        "get_repo",
+        lambda token, full: {"full_name": full, "default_branch": "main", "private": False},
+    )
+    monkeypatch.setattr(instant_scan, "get_branch_sha", lambda token, full, branch: "deadbeef")
+    monkeypatch.setattr(instant_scan, "find_cached_scan", lambda *a, **k: None)
+    monkeypatch.setattr(instant_scan, "create_scan_row", lambda *a, **k: None)
+    monkeypatch.setattr(
+        instant_scan,
+        "scan_public_repo",
+        lambda repo, **k: {"repo": repo, "summary": {"provider_count": 0, "integration_count": 0, "possible_risk_count": 0}},
+    )
+    monkeypatch.setattr(instant_scan, "persist_scan", lambda repo, result, **kw: "scan-sync-id")
+
+    payload = instant_scan.create_instant_scan_job("https://github.com/acme/api", ip="1.2.3.4")
+
+    assert payload["status"] == "completed"
+    assert payload["scan_id"] == "scan-sync-id"
+    assert payload["result"]["repo"] == "acme/api"
+
+
+def test_create_instant_scan_job_returns_cached_result(monkeypatch):
+    cached_result = {
+        "repo": "acme/api",
+        "summary": {"provider_count": 1, "integration_count": 1, "possible_risk_count": 0},
+    }
+    monkeypatch.setattr(
+        instant_scan,
+        "get_repo",
+        lambda token, full: {"full_name": full, "default_branch": "main", "private": False},
+    )
+    monkeypatch.setattr(instant_scan, "get_branch_sha", lambda token, full, branch: "deadbeef")
+    monkeypatch.setattr(
+        instant_scan,
+        "find_cached_scan",
+        lambda repo, sha=None: {"id": "cached-9", "result": cached_result, "created_at": "2026-11-12T00:00:00Z"},
+    )
+
+    payload = instant_scan.create_instant_scan_job("https://github.com/acme/api", ip="1.2.3.4")
+
+    assert payload["cached"] is True
+    assert payload["status"] == "completed"
+    assert payload["scan_id"] == "cached-9"
+
+
 def test_run_instant_scan_persists_and_returns_id(monkeypatch):
     _patch_github(monkeypatch)
     _patch_db(monkeypatch)
