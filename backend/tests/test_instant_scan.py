@@ -443,6 +443,36 @@ def test_scan_public_repo_end_to_end_never_leaks_secret(monkeypatch):
                 )
 
 
+def test_scan_public_repo_uses_canonical_repo_after_redirect(monkeypatch):
+    """GitHub 301s renamed repos; tree/blob calls must use the canonical name."""
+    seen: dict = {"tree": None, "blobs": set()}
+    monkeypatch.setattr(
+        instant_scan,
+        "get_repo",
+        lambda token, full: {"full_name": "react/react", "default_branch": "main", "private": False},
+    )
+
+    def fake_tree(token, full, branch):
+        seen["tree"] = full
+        return (list(TREE), False)
+
+    def fake_blob(token, full, sha, client=None):
+        seen["blobs"].add(full)
+        return BLOBS.get(sha)
+
+    monkeypatch.setattr(instant_scan, "list_repo_tree", fake_tree)
+    monkeypatch.setattr(instant_scan, "get_blob_text", fake_blob)
+    _patch_db(monkeypatch)
+    _patch_events(monkeypatch)
+
+    result = instant_scan.scan_public_repo("facebook/react")
+
+    assert seen["tree"] == "react/react"
+    assert seen["blobs"] == {"react/react"}
+    assert result["repo"] == "react/react"
+    assert result["repo_url"] == "https://github.com/react/react"
+
+
 def test_scan_public_repo_explains_unmatched_notices(monkeypatch):
     """When notices exist but nothing overlaps, say so instead of claiming none."""
     _patch_github(monkeypatch)
