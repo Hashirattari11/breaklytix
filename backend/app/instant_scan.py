@@ -702,6 +702,10 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
             for fut in as_completed(
                 futures, timeout=max(0.1, deadline - time.monotonic())
             ):
+                # Time can run out while parsing already-fetched files too.
+                if time.monotonic() >= deadline:
+                    timed_out = True
+                    break
                 try:
                     entry, text = fut.result(timeout=0)
                 except Exception:
