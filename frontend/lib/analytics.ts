@@ -30,7 +30,8 @@ export type AnalyticsEvent =
   | "badge_copied"
   | "email_submitted"
   | "github_signup_clicked"
-  | "github_signup_completed";
+  | "github_signup_completed"
+  | "report_copied";
 
 declare global {
   interface Window {

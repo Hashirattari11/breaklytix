@@ -46,6 +46,7 @@ from .github_client import (
     get_repo,
 )
 from .instant_scan_archive import ArchiveExtractionError, ExtractedRepo, extract_archive
+from .instant_scan_health import run_health_checks
 from .instant_scan_files import (
     MANIFEST_FILES,
     classify_file,
@@ -741,6 +742,8 @@ def scan_extracted_repo(
     events = _fetch_events([p["api_name"] for p in providers])
     risks = match_risks(providers, detections, events, repo_packages=repo_packages)
 
+    health = run_health_checks(extracted, detections)
+
     duration_ms = int((time.monotonic() - started) * 1000)
     if risks:
         no_risk_message = None
@@ -818,6 +821,7 @@ def scan_extracted_repo(
         },
         "no_risk_message": no_risk_message,
         "no_integrations_message": no_integrations_message,
+        "health": health,
     }
 
 
@@ -933,6 +937,7 @@ def fail_scan(
         },
         "no_risk_message": None,
         "no_integrations_message": None,
+        "health": None,
         "error_message": message,
     }
     update_scan_progress(

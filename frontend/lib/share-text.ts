@@ -13,7 +13,10 @@ export const X_URL_WEIGHT = 23;
 export const SHARE_SITE_ORIGIN = "https://breaklytix.site";
 
 /** Shape needed to build a post; keeps tests free of full API fixtures. */
-export type ShareTextInput = Pick<ScanResult, "repo" | "summary" | "providers" | "risks">;
+export type ShareTextInput = Pick<ScanResult, "repo" | "summary" | "providers" | "risks"> & {
+  health?: ScanResult["health"];
+  files_by_type?: ScanResult["files_by_type"];
+};
 
 export function scanUrl(scanId: string): string {
   return `${SHARE_SITE_ORIGIN}/scan/${encodeURIComponent(scanId)}`;
@@ -69,22 +72,29 @@ function providerClause(names: string[], max: number): string {
 function compose(input: ShareTextInput, repo: string, names: string[], maxProviders: number): string {
   const integrations = clampCount(input.summary?.integration_count);
   const risks = clampCount(input.summary?.possible_risk_count);
+  const healthScore = clampCount(input.health?.score ?? 100);
+  const docsFiles = clampCount(input.files_by_type?.docs);
+  const codeFiles = clampCount(input.files_by_type?.code);
+  const isDocsOnly = integrations === 0 && docsFiles > codeFiles;
 
   if (integrations === 0) {
-    return `I scanned ${repo} with Breaklytix. Scan your repo free and see which APIs it depends on:`;
+    return `I scanned ${repo} with Breaklytix. Scan your repo free and see its API and code health:`;
   }
 
   const apiWord = integrations === 1 ? "API integration" : "API integrations";
+  if (isDocsOnly) {
+    return `I scanned ${repo} with Breaklytix. Scan your repo free and see its API and code health:`;
+  }
   if (risks > 0) {
-    const riskWord = risks === 1 ? "possible risk" : "possible risks";
+    const issueWord = risks === 1 ? "possible issue" : "possible issues";
     return (
-      `I scanned ${repo} with Breaklytix: ${integrations} ${apiWord} found, ` +
-      `${risks} ${riskWord}${providerClause(names, maxProviders)}. See the issues here:`
+      `I scanned ${repo} with Breaklytix: ${integrations} ${apiWord}, health score ${healthScore}/100, ` +
+      `${risks} ${issueWord}${providerClause(names, maxProviders)}. See them here:`
     );
   }
   return (
-    `I scanned ${repo} with Breaklytix: ${integrations} ${apiWord} found, ` +
-    "no recent provider breaking-change notices. Scan your repo free:"
+    `I scanned ${repo} with Breaklytix: ${integrations} ${apiWord}, health score ${healthScore}/100, ` +
+    "no recent provider notices. Scan yours free:"
   );
 }
 

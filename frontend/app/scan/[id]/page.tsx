@@ -7,12 +7,16 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 import {
   badgeMarkdown,
   getInstantScan,
+  getScanStatus,
   type ScanProvider,
   type ScanRisk,
+  type ScanStatus,
 } from "@/lib/instant-scan";
 import ScanResultClient from "./ScanResultClient";
 import { confidenceStyle, pill } from "./scanStyles";
 import ShareBlock from "./ShareBlock";
+import ScanHealthClient from "./ScanHealthClient";
+import ScanPollingClient from "./ScanPollingClient";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +48,8 @@ function plural(count: number, singular: string, pluralForm?: string): string {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const scan = await getInstantScan(id).catch(() => null);
+  const status = await getScanStatus(id).catch(() => null);
+  const scan = status?.result ? { result: status.result } : await getInstantScan(id).catch(() => null);
   if (!scan) {
     return { title: "Scan not found", robots: { index: false, follow: false } };
   }
@@ -185,10 +190,31 @@ function RiskCard({ risk }: { risk: ScanRisk }) {
 
 export default async function ScanResultPage({ params }: PageProps) {
   const { id } = await params;
-  const scan = await getInstantScan(id);
-  if (!scan) notFound();
+  const status = await getScanStatus(id);
+  if (!status) notFound();
 
-  const { result } = scan;
+  if (status.status === "queued" || status.status === "scanning") {
+    return (
+      <>
+        <header style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ maxWidth: 960, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <Link href="/" className="brand" style={{ display: "inline-flex", alignItems: "center" }}>
+              <LogoMark size={30} withWordmark />
+            </Link>
+            <Link href="/#instant-scan" style={{ fontSize: 14, fontWeight: 700, color: "var(--accent)" }}>
+              Scan another repo
+            </Link>
+          </div>
+        </header>
+        <ScanPollingClient scanId={id} />
+        <LegalFooter />
+      </>
+    );
+  }
+
+  const result = status.result;
+  if (!result) notFound();
+  const scanId = status.scan_id;
   const providers = result.providers || [];
   const risks = result.risks || [];
   const integrationCount = result.summary.integration_count;
@@ -251,11 +277,19 @@ export default async function ScanResultPage({ params }: PageProps) {
             {result.files_scanned} {plural(result.files_scanned, "file")} scanned
             {scanned ? ` · ${scanned}` : ""}
             {typeof result.duration_ms === "number" ? ` · ${(result.duration_ms / 1000).toFixed(1)}s` : ""}
+            {result.commit_sha ? ` · commit ${result.commit_sha.slice(0, 7)}` : ""}
           </p>
           <p style={{ margin: "10px 0 0", fontSize: 13.5, color: "var(--muted)" }}>
             Scanned: {result.repo}
             {scanned ? `, ${scanned}` : ""}
+            {result.commit_sha ? ` · ${result.commit_sha.slice(0, 7)}` : ""}
           </p>
+          {result.files_by_type ? (
+            <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "var(--muted)" }}>
+              Files: {result.files_by_type.code ?? 0} code · {result.files_by_type.config ?? 0} config · {result.files_by_type.docs ?? 0} docs · {result.files_by_type.other ?? 0} other
+              {result.files_skipped?.length ? ` · ${result.files_skipped.reduce((a, b) => a + (b.count || 0), 0)} skipped` : ""}
+            </p>
+          ) : null}
           {result.partial ? (
             <p
               role="status"
@@ -273,7 +307,7 @@ export default async function ScanResultPage({ params }: PageProps) {
             </p>
           ) : null}
 
-          <ShareBlock scanId={scan.id} result={result} variant="top" />
+          <ShareBlock scanId={scanId} result={result} variant="top" />
         </section>
 
         <section aria-labelledby="providers-title" style={{ marginTop: 30 }}>
@@ -298,8 +332,8 @@ export default async function ScanResultPage({ params }: PageProps) {
                 lineHeight: 1.6,
               }}
             >
-              No third-party API integrations were detected in the files we scanned. That can mean the repo
-              doesn&apos;t call a provider we recognize, or the relevant files were outside the scan limits.
+              {result.no_integrations_message ||
+                "No third-party API integrations were detected in the files we scanned. That can mean the repo doesn't call a provider we recognize, or the relevant files were outside the scan limits."}
             </div>
           )}
         </section>
@@ -333,12 +367,14 @@ export default async function ScanResultPage({ params }: PageProps) {
           )}
         </section>
 
-        <ShareBlock scanId={scan.id} result={result} variant="bottom" />
+        <ScanHealthClient scanId={scanId} repo={result.repo} health={result.health} />
+
+        <ShareBlock scanId={scanId} result={result} variant="bottom" />
 
         <ScanResultClient
-          scanId={scan.id}
+          scanId={scanId}
           result={result}
-          badgeSnippet={badgeMarkdown(result.repo, scan.id)}
+          badgeSnippet={badgeMarkdown(result.repo, scanId)}
         />
 
         <p style={{ marginTop: 24, color: "var(--muted)", fontSize: 12.5, lineHeight: 1.6 }}>

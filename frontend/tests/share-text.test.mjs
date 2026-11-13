@@ -39,7 +39,7 @@ test("no risks -> breaking-change-notice wording", () => {
     }),
   );
   assert.ok(text.length <= SHARE_TEXT_LIMIT);
-  assert.ok(text.includes("16 API integrations found, no recent provider breaking-change notices"));
+  assert.ok(text.includes("16 API integrations, health score 100/100, no recent provider notices"));
   assert.ok(!text.includes("will break"));
 });
 
@@ -56,7 +56,7 @@ test("risks found -> possible-risk wording with top providers", () => {
     }),
   );
   assert.ok(text.length <= SHARE_TEXT_LIMIT);
-  assert.ok(text.includes("3 API integrations found, 2 possible risks"));
+  assert.ok(text.includes("3 API integrations, health score 100/100, 2 possible issues"));
   assert.ok(text.includes("(Stripe, OpenAI)"));
   assert.ok(!text.includes("will break"));
 });

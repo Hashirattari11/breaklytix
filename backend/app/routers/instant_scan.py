@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["instant-scan"])
 
 _EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[A-Za-z]{2,}$")
-_ALLOWED_CLIENT_EVENTS = {"share_clicked", "badge_copied", "email_submitted", "github_signup_clicked", "github_signup_completed"}
+_ALLOWED_CLIENT_EVENTS = {"share_clicked", "badge_copied", "email_submitted", "github_signup_clicked", "github_signup_completed", "report_copied"}
 
 
 class InstantScanIn(BaseModel):
