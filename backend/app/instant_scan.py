@@ -34,6 +34,8 @@ from .config import settings
 from .crypto import get_cipher
 from .db import db, fetch_one
 from .detection import scan_file
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
+
 from .github_client import GitHubError, get_blob_text, get_repo, list_repo_tree
 from .redact import redact_snippet
 from .signatures import get_provider_category, status_for_api
@@ -665,10 +667,15 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
 
     branch = repo_meta.get("default_branch") or "main"
     try:
-        tree = list_repo_tree(token, repo_full_name, branch)
+        tree, truncated = list_repo_tree(token, repo_full_name, branch)
     except GitHubError as exc:
+        msg = str(exc)
+        if "403" in msg or "rate limit" in msg.lower():
+            raise RepoUnavailable(
+                "GitHub rate limit reached. Add GITHUB_SCAN_TOKEN or try again in a few minutes."
+            ) from exc
         raise RepoUnavailable(
-            "GitHub did not return this repository's file tree. It may be empty or too large."
+            "GitHub did not return this repository's file tree. It may be empty, very large, or rate-limited."
         ) from exc
 
     candidates, cap_partial = select_scan_files(tree)
@@ -676,44 +683,59 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
     files_scanned = 0
     timed_out = False
 
-    for entry in candidates:
-        if time.monotonic() >= deadline:
-            timed_out = True
-            break
+    def _fetch_one(entry: dict) -> tuple[dict, str | None]:
         try:
             text = get_blob_text(token, repo_full_name, entry["sha"])
         except GitHubError:
-            continue
-        if not text:
-            continue
-        files_scanned += 1
-        raw_detections = [
-            {
-                "api_name": det.api_name,
-                "file_path": det.file_path,
-                "line_number": det.line_number,
-                "matched_snippet": redact_snippet(det.matched_snippet),
-                "symbols": det.symbols,
-            }
-            for det in scan_file(entry["path"], text)
-        ]
-        basename = entry["path"].rsplit("/", 1)[-1].lower()
-        if basename in _ALLOWED_EXACT_FILES:
-            raw_detections.extend(manifest_detections(entry["path"], text))
-        for det in raw_detections:
-            detections.append(
-                {
-                    **det,
-                    "evidence": evidence_for_line(det["file_path"], det["matched_snippet"]),
-                }
-            )
+            return entry, None
+        return entry, text
+
+    if candidates:
+        # Fetch in parallel to speed up large repos while respecting the deadline.
+        max_workers = min(8, len(candidates))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(_fetch_one, entry) for entry in candidates]
+            for fut in as_completed(futures):
+                if time.monotonic() >= deadline:
+                    timed_out = True
+                    break
+                try:
+                    entry, text = fut.result(timeout=max(0.1, deadline - time.monotonic()))
+                except FuturesTimeoutError:
+                    timed_out = True
+                    break
+                except Exception:
+                    continue
+                if not text:
+                    continue
+                files_scanned += 1
+                raw_detections = [
+                    {
+                        "api_name": det.api_name,
+                        "file_path": det.file_path,
+                        "line_number": det.line_number,
+                        "matched_snippet": redact_snippet(det.matched_snippet),
+                        "symbols": det.symbols,
+                    }
+                    for det in scan_file(entry["path"], text)
+                ]
+                basename = entry["path"].rsplit("/", 1)[-1].lower()
+                if basename in _ALLOWED_EXACT_FILES:
+                    raw_detections.extend(manifest_detections(entry["path"], text))
+                for det in raw_detections:
+                    detections.append(
+                        {
+                            **det,
+                            "evidence": evidence_for_line(det["file_path"], det["matched_snippet"]),
+                        }
+                    )
+    partial = bool(cap_partial or timed_out or truncated)
 
     providers = aggregate_providers(detections)
     repo_packages = extract_repo_packages(detections)
     events = _fetch_events([p["api_name"] for p in providers])
     risks = match_risks(providers, detections, events, repo_packages=repo_packages)
 
-    partial = bool(cap_partial or timed_out)
     duration_ms = int((time.monotonic() - started) * 1000)
     if risks:
         no_risk_message = None
@@ -725,6 +747,15 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
     else:
         no_risk_message = "No recent official breaking-change notice found for your detected providers."
 
+    partial_reason = None
+    if partial:
+        if truncated:
+            partial_reason = "Very large repository: GitHub returned a truncated file tree; scanned the most relevant files found."
+        elif timed_out:
+            partial_reason = "Large repository: scan time limit reached; scanned the most relevant files first."
+        else:
+            partial_reason = "Large repository: scanned the most relevant files first (file cap)."
+
     result = {
         "repo": repo_full_name,
         "repo_url": f"https://github.com/{repo_full_name}",
@@ -732,11 +763,7 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
         "scanned_at": _iso(),
         "duration_ms": duration_ms,
         "partial": partial,
-        "partial_reason": (
-            "Large repository: the most relevant files were scanned first."
-            if partial
-            else None
-        ),
+        "partial_reason": partial_reason,
         "files_considered": len(candidates),
         "files_scanned": files_scanned,
         "providers": providers,
@@ -909,6 +936,17 @@ def link_scan_to_user(scan_id: str, user_id: str) -> dict | None:
         db().table("users").update({"notify_daily_status": True}).eq("id", user_id).execute()
     except Exception:  # noqa: BLE001
         logger.warning("instant scan: could not set daily status for user %s", user_id)
+
+    user_email = (user.get("email") or "") if isinstance(user, dict) else ""
+    if user_email:
+        # Every sign-up via the scan CTA also writes a lead row (idempotent).
+        try:
+            db().table("leads").upsert(
+                {"email": user_email, "repo": repo_full_name, "source": "instant_scan"},
+                on_conflict="email,repo,source",
+            ).execute()
+        except Exception:  # noqa: BLE001
+            logger.warning("instant scan: could not store lead for %s", repo_full_name)
 
     return {
         "ok": True,

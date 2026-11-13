@@ -82,7 +82,7 @@ def rescan_repo_fresh(repo: dict, user_id: str, *, deadline: float | None = None
         return result
 
     try:
-        tree, token = call_with_token_fallback(
+        (tree, _truncated), token = call_with_token_fallback(
             tokens, lambda tok: list_repo_tree(tok, full_name, branch)
         )
     except GitHubAuthError as exc:

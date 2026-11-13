@@ -201,8 +201,12 @@ def get_repo(token: str, full_name: str) -> dict:
     }
 
 
-def list_repo_tree(token: str, full_name: str, branch: str) -> list[dict]:
-    """Return blob entries [{path, sha, size}] for the whole repo via one call."""
+def list_repo_tree(token: str, full_name: str, branch: str) -> tuple[list[dict], bool]:
+    """Return ``(blob_entries, truncated)`` for the whole repo via one call.
+
+    ``truncated`` is True when GitHub's git/trees API could not return the full
+    tree (very large repos) — callers should treat results as partial.
+    """
     with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as client:
         resp = client.get(
             f"{GITHUB_API}/repos/{full_name}/git/trees/{branch}",
@@ -213,15 +217,13 @@ def list_repo_tree(token: str, full_name: str, branch: str) -> list[dict]:
             f"Failed to list tree for {full_name}@{branch} ({resp.status_code}): {resp.text}"
         )
     data = resp.json()
-    if data.get("truncated"):
-        # Very large repo: the trees API truncated results. We scan what we got.
-        # Phase 2 could fall back to per-directory listing here.
-        pass
-    return [
+    truncated = bool(data.get("truncated"))
+    entries = [
         {"path": e["path"], "sha": e["sha"], "size": e.get("size", 0)}
         for e in data.get("tree", [])
         if e.get("type") == "blob"
     ]
+    return entries, truncated
 
 
 def get_blob_text(token: str, full_name: str, sha: str) -> str | None:

@@ -378,7 +378,7 @@ def _patch_github(monkeypatch):
         "get_repo",
         lambda token, full: {"full_name": full, "default_branch": "main", "private": False},
     )
-    monkeypatch.setattr(instant_scan, "list_repo_tree", lambda token, full, branch: list(TREE))
+    monkeypatch.setattr(instant_scan, "list_repo_tree", lambda token, full, branch: (list(TREE), False))
     monkeypatch.setattr(instant_scan, "get_blob_text", lambda token, full, sha: BLOBS.get(sha))
 
 
@@ -590,7 +590,7 @@ def test_link_scan_to_user_arms_monitoring(monkeypatch):
         instant_scan, "get_scan", lambda scan_id: {"id": scan_id, "repo_full_name": "acme/api"}
     )
     monkeypatch.setattr(
-        instant_scan, "fetch_one", lambda table, filters: {"id": "user-1", "github_access_token": ""}
+        instant_scan, "fetch_one", lambda table, filters: {"id": "user-1", "email": "user@example.com", "github_access_token": ""}
     )
     monkeypatch.setattr(instant_scan, "db", lambda: recorder)
 
@@ -600,6 +600,11 @@ def test_link_scan_to_user_arms_monitoring(monkeypatch):
     assert out["repo_full_name"] == "acme/api"
     assert ("update", "instant_scans", {"user_id": "user-1"}) in recorder.calls
     assert any(c[0] == "update" and c[1] == "users" and c[2].get("notify_daily_status") for c in recorder.calls)
+    assert (
+        "upsert",
+        "leads",
+        {"email": "user@example.com", "repo": "acme/api", "source": "instant_scan"},
+    ) in recorder.calls
 
 
 def test_link_scan_to_user_returns_none_for_missing_scan(monkeypatch):

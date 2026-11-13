@@ -422,7 +422,7 @@ def scan_repo(repo_id: str, user_id: str = Depends(get_current_user_id)) -> Scan
     scan_started_at = datetime.now(timezone.utc).isoformat()
 
     try:
-        tree, token = call_with_token_fallback(
+        (tree, _truncated), token = call_with_token_fallback(
             _repo_scan_tokens(repo, user_id),
             lambda tok: list_repo_tree(tok, full_name, branch),
         )

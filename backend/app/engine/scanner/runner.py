@@ -102,7 +102,7 @@ def run_scan(scan_id: str, repo_id: str, full_name: str, branch: str, token: str
     files_scanned = 0
     files_skipped = 0
     try:
-        tree = list_repo_tree(token, full_name, branch)
+        tree, _truncated = list_repo_tree(token, full_name, branch)
     except GitHubError as exc:
         _set_status(scan_id, "FAILED", error_message=str(exc), finished_at=_now())
         _add_event(scan_id, "FAILED", str(exc))

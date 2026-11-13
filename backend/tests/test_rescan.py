@@ -85,7 +85,7 @@ def _patch_happy_github(monkeypatch, blob_ok=True):
     )
     monkeypatch.setattr(
         "app.github_client.list_repo_tree",
-        lambda tok, full, branch: list(TREE),
+        lambda tok, full, branch: (list(TREE), False),
     )
 
     if blob_ok:
