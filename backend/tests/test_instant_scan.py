@@ -526,7 +526,14 @@ def test_scan_two_different_repos_are_distinct_and_repeat_is_cached(monkeypatch)
     monkeypatch.setattr(
         instant_scan,
         "_scan_slots",
-        type("FakeSlots", (), {"acquire": lambda self, blocking=False: True, "release": lambda self: None})(),
+        type(
+            "FakeSlots",
+            (),
+            {
+                "acquire": lambda self, timeout=None: True,
+                "release": lambda self: None,
+            },
+        )(),
     )
     monkeypatch.setattr(instant_scan, "count_recent_scans", lambda ip_hash: 0)
 
@@ -562,7 +569,9 @@ def test_run_instant_scan_cache_hit_skips_network(monkeypatch):
     assert payload["result"] == cached_payload
 
 
-def test_run_instant_scan_enforces_ip_rate_limit(monkeypatch):
+def test_run_instant_scan_enforces_ip_rate_limit_when_configured(monkeypatch):
+    """The per-IP cap is opt-in via INSTANT_SCAN_RATE_LIMIT > 0."""
+    monkeypatch.setattr(instant_scan.settings, "instant_scan_rate_limit", 5)
     monkeypatch.setattr(instant_scan, "find_cached_scan", lambda repo: None)
     monkeypatch.setattr(instant_scan, "count_recent_scans", lambda ip_hash: 5)
     monkeypatch.setattr(
@@ -573,6 +582,34 @@ def test_run_instant_scan_enforces_ip_rate_limit(monkeypatch):
     with pytest.raises(ScanRateLimited) as exc:
         run_instant_scan("https://github.com/acme/api", ip="1.2.3.4")
     assert exc.value.retry_after > 0
+
+
+def test_run_instant_scan_is_unlimited_by_default(monkeypatch):
+    """Default settings must never 429 a visitor, no matter how many scans."""
+    assert instant_scan.settings.instant_scan_rate_limit == 0
+    monkeypatch.setattr(instant_scan, "find_cached_scan", lambda repo: None)
+    monkeypatch.setattr(
+        instant_scan, "count_recent_scans", lambda ip_hash: 10_000
+    )
+    monkeypatch.setattr(instant_scan, "scan_public_repo", lambda repo: {"repo": repo})
+    monkeypatch.setattr(instant_scan, "persist_scan", lambda repo, result, **kw: "scan-1")
+    monkeypatch.setattr(
+        instant_scan,
+        "_scan_slots",
+        type(
+            "FakeSlots",
+            (),
+            {
+                "acquire": lambda self, timeout=None: True,
+                "release": lambda self: None,
+            },
+        )(),
+    )
+
+    payload = run_instant_scan("https://github.com/acme/api", ip="1.2.3.4")
+
+    assert payload["cached"] is False
+    assert payload["scan_id"] == "scan-1"
 
 
 def test_run_instant_scan_persists_and_returns_id(monkeypatch):

@@ -556,7 +556,10 @@ def manifest_detections(path: str, text: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Rate limit + concurrency (in-process guard, DB is the cross-instance truth)
 # ---------------------------------------------------------------------------
-_scan_slots = threading.BoundedSemaphore(2)
+# Bounds only concurrent scans (memory/CPU), never how many scans a visitor may
+# run. Extra requests wait for a slot instead of getting a 429.
+_scan_slots = threading.BoundedSemaphore(4)
+_SCAN_QUEUE_TIMEOUT_SECONDS = 15.0
 
 
 def hash_ip(ip: str) -> str:
@@ -825,7 +828,11 @@ def persist_scan(
 
 
 def run_instant_scan(raw_url: str, *, ip: str) -> dict:
-    """Validate, cache-check, rate-limit and scan. Returns the API payload."""
+    """Validate, cache-check and scan. Returns the API payload.
+
+    Scans are unlimited per visitor. An hourly per-IP cap only applies when
+    ``INSTANT_SCAN_RATE_LIMIT`` is explicitly set to a positive number.
+    """
     repo_full_name = parse_repo_url(raw_url)
     ip_hash = hash_ip(ip)
 
@@ -843,12 +850,13 @@ def run_instant_scan(raw_url: str, *, ip: str) -> dict:
             "result": cached["result"],
         }
 
-    limit = max(1, settings.instant_scan_rate_limit)
-    if count_recent_scans(ip_hash) >= limit:
+    limit = settings.instant_scan_rate_limit
+    if limit > 0 and count_recent_scans(ip_hash) >= limit:
         raise ScanRateLimited(retry_after=3600)
 
-    if not _scan_slots.acquire(blocking=False):
-        raise ScanBusy("Two scans are already running. Please retry in a few seconds.")
+    # Wait briefly for a free slot so a burst queues instead of 429-ing.
+    if not _scan_slots.acquire(timeout=_SCAN_QUEUE_TIMEOUT_SECONDS):
+        raise ScanBusy("The scanner is busy right now. Please retry in a few seconds.")
     try:
         result = scan_public_repo(repo_full_name)
     finally:

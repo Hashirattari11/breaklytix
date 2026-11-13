@@ -9,11 +9,12 @@ clone.
 
 | Route | Purpose |
 | --- | --- |
-| `POST /api/instant-scan` | Validate URL, cache-check, rate-limit, scan, persist. Returns `{ scan_id, cached, result }`. |
+| `POST /api/instant-scan` | Validate URL, cache-check, scan, persist. Returns `{ scan_id, cached, result }`. Unlimited per visitor. |
 | `GET /api/instant-scan/{id}` | Public read of a stored scan (safe result JSON only). |
 | `POST /api/instant-scan/{id}/email` | Post-result email capture (writes `instant_scans.email` + `leads` row, sends confirmation). |
 | `POST /api/instant-scan/events` | Funnel events: `share_clicked`, `badge_copied`. |
 | `GET /badge/{owner}/{repo}.svg` | Live README badge from the latest cached scan. |
+| `POST /api/instant-scan/{id}/connect` | Post-scan sign-up continuation (auth): links `instant_scans.user_id`, adds the scanned public repo to the user's monitored repos, arms daily monitoring, writes a `leads` row. |
 | `GET /admin/funnel` | Admin-only funnel counts + conversion rates (401 unauthenticated, 403 non-admin). |
 
 Frontend: `/` (scan box, `#instant-scan`), `/scan/[id]` (result + OG image),
@@ -30,7 +31,7 @@ All optional except where noted. Defaults in `backend/app/config.py`.
 | `INSTANT_SCAN_MAX_FILES` | `400` | Hard cap on files considered per scan. |
 | `INSTANT_SCAN_MAX_FILE_BYTES` | `200000` | Skip blobs larger than this. |
 | `INSTANT_SCAN_TIMEOUT_SECONDS` | `25` | Per-scan wall clock; partial result on timeout. |
-| `INSTANT_SCAN_RATE_LIMIT` | `5` | Scans per hashed IP per hour. |
+| `INSTANT_SCAN_RATE_LIMIT` | `0` | Scans per hashed IP per hour. `0` = **unlimited** (default). |
 | `INSTANT_SCAN_CACHE_HOURS` | `24` | Per-repo result cache window. |
 | `INSTANT_SCAN_IP_SALT` | *(falls back to `JWT_SECRET`)* | Salt for the SHA-256 IP hash. Only the hash is stored. |
 

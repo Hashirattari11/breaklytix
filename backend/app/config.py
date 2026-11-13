@@ -219,7 +219,9 @@ class Settings(BaseSettings):
     instant_scan_timeout_seconds: int = Field(
         default=25, alias="INSTANT_SCAN_TIMEOUT_SECONDS"
     )
-    instant_scan_rate_limit: int = Field(default=5, alias="INSTANT_SCAN_RATE_LIMIT")
+    # 0 (the default) means unlimited: anonymous scans are never capped per IP.
+    # Set a positive value only to re-enable an hourly per-IP cap.
+    instant_scan_rate_limit: int = Field(default=0, alias="INSTANT_SCAN_RATE_LIMIT")
     instant_scan_cache_hours: int = Field(default=24, alias="INSTANT_SCAN_CACHE_HOURS")
     # Salt for hashing visitor IPs. Only the hash is stored. Falls back to the
     # JWT secret so a missing value never causes raw IPs to be persisted.

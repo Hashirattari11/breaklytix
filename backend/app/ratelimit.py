@@ -19,12 +19,11 @@ from collections import defaultdict, deque
 
 # (path prefix, max requests, window seconds, methods). Keep the list small and
 # focused on UNAUTHENTICATED endpoints an attacker can hammer:
-#  - /auth/*           : OAuth code exchange (each hit costs a GitHub round-trip)
-#  - /api/instant-scan : anonymous public-repo scans (the engine enforces the
-#                        stricter 5-scans/IP/hour limit; this is the blunt cap)
+#  - /auth/* : OAuth code exchange (each hit costs a GitHub round-trip)
+# Anonymous instant scans are deliberately NOT rate limited per IP. The scan
+# engine bounds concurrency instead, so visitors can run unlimited scans.
 _RATE_RULES: list[tuple[str, int, int, tuple[str, ...] | None]] = [
     ("/auth/", 20, 60, None),
-    ("/api/instant-scan", 20, 3600, ("POST",)),
 ]
 
 _MAX_TRACKED_KEYS = 20_000
