@@ -28,10 +28,15 @@ All optional except where noted. Defaults in `backend/app/config.py`.
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `GITHUB_SCAN_TOKEN` | *(empty)* | **Recommended.** Fine-grained, read-only, public-repo PAT. Server-side only, never sent to the browser. Empty ⇒ anonymous GitHub API (60 req/hour shared per egress IP), so larger scans fail or go partial. |
-| `INSTANT_SCAN_MAX_FILES` | `400` | Hard cap on files considered per scan. |
-| `INSTANT_SCAN_MAX_FILE_BYTES` | `200000` | Skip blobs larger than this. |
-| `INSTANT_SCAN_TIMEOUT_SECONDS` | `25` | Per-scan wall clock; partial result on timeout. |
-| `INSTANT_SCAN_RATE_LIMIT` | `0` | Scans per hashed IP per hour. `0` = **unlimited** (default). |
+| `INSTANT_SCAN_MAX_FILES` | `3000` | Hard cap on files scanned per scan. |
+| `INSTANT_SCAN_MAX_FILE_BYTES` | `300000` | Skip blobs larger than this. |
+| `INSTANT_SCAN_MAX_ARCHIVE_BYTES` | `50000000` | Abort the tarball download above this (50 MB). |
+| `INSTANT_SCAN_MAX_EXTRACT_BYTES` | `60000000` | In-memory extraction ceiling (60 MB). |
+| `INSTANT_SCAN_TIMEOUT_SECONDS` | `55` | Per-invocation wall clock; partial result on timeout. |
+| `INSTANT_SCAN_TOTAL_BUDGET_SECONDS` | `90` | Total budget across resumed worker invocations. |
+| `INSTANT_SCAN_STALE_SECONDS` | `45` | A queued/scanning row older than this is resumed on poll. |
+| `INSTANT_SCAN_CONCURRENCY` | `2` | Concurrent scan workers per instance. |
+| `INSTANT_SCAN_RATE_LIMIT` | `5` | Scans per hashed IP per hour (DB-authoritative). |
 | `INSTANT_SCAN_CACHE_HOURS` | `24` | Per-repo result cache window. |
 | `INSTANT_SCAN_IP_SALT` | *(falls back to `JWT_SECRET`)* | Salt for the SHA-256 IP hash. Only the hash is stored. |
 
