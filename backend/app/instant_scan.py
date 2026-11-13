@@ -665,9 +665,14 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
     if repo_meta.get("private"):
         raise RepoUnavailable("This scanner only works with public repositories.")
 
+    # GitHub answers 301 for renamed/moved repos; get_repo follows the redirect
+    # and returns the canonical name. Use it for tree/blob calls (one fewer
+    # redirect per file) and for display, while the cache key stays the
+    # requested normalized owner/repo so repeat scans of an alias still hit.
+    canonical_name = str(repo_meta.get("full_name") or repo_full_name)
     branch = repo_meta.get("default_branch") or "main"
     try:
-        tree, truncated = list_repo_tree(token, repo_full_name, branch)
+        tree, truncated = list_repo_tree(token, canonical_name, branch)
     except GitHubError as exc:
         msg = str(exc)
         if "403" in msg or "rate limit" in msg.lower():
@@ -691,7 +696,7 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
             if time.monotonic() >= deadline:
                 return entry, None
             try:
-                text = get_blob_text(token, repo_full_name, entry["sha"], client=client)
+                text = get_blob_text(token, canonical_name, entry["sha"], client=client)
             except GitHubError:
                 return entry, None
             return entry, text
@@ -770,8 +775,8 @@ def scan_public_repo(repo_full_name: str, *, deadline: float | None = None) -> d
             partial_reason = "Large repository: scanned the most relevant files first (file cap)."
 
     result = {
-        "repo": repo_full_name,
-        "repo_url": f"https://github.com/{repo_full_name}",
+        "repo": canonical_name,
+        "repo_url": f"https://github.com/{canonical_name}",
         "default_branch": branch,
         "scanned_at": _iso(),
         "duration_ms": duration_ms,

@@ -188,7 +188,10 @@ def list_user_repos(token: str, limit: int = 100) -> list[dict]:
 
 
 def get_repo(token: str, full_name: str) -> dict:
-    with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as client:
+    # follow_redirects: GitHub answers 301 for renamed/moved repositories.
+    with httpx.Client(
+        timeout=TIMEOUT, headers=_headers(token), follow_redirects=True
+    ) as client:
         resp = client.get(f"{GITHUB_API}/repos/{full_name}")
     if resp.status_code != 200:
         raise GitHubError(f"Failed to fetch repo {full_name} ({resp.status_code}): {resp.text}")
@@ -207,7 +210,9 @@ def list_repo_tree(token: str, full_name: str, branch: str) -> tuple[list[dict],
     ``truncated`` is True when GitHub's git/trees API could not return the full
     tree (very large repos) — callers should treat results as partial.
     """
-    with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as client:
+    with httpx.Client(
+        timeout=TIMEOUT, headers=_headers(token), follow_redirects=True
+    ) as client:
         resp = client.get(
             f"{GITHUB_API}/repos/{full_name}/git/trees/{branch}",
             params={"recursive": "1"},
@@ -237,6 +242,7 @@ def make_client(token: str = "") -> httpx.Client:
         timeout=TIMEOUT,
         headers=_headers(token),
         limits=httpx.Limits(max_connections=16, max_keepalive_connections=16),
+        follow_redirects=True,
     )
 
 
@@ -255,7 +261,9 @@ def get_blob_text(
     if client is not None:
         resp = client.get(f"{GITHUB_API}/repos/{full_name}/git/blobs/{sha}")
     else:
-        with httpx.Client(timeout=TIMEOUT, headers=_headers(token)) as own_client:
+        with httpx.Client(
+            timeout=TIMEOUT, headers=_headers(token), follow_redirects=True
+        ) as own_client:
             resp = own_client.get(f"{GITHUB_API}/repos/{full_name}/git/blobs/{sha}")
     if resp.status_code != 200:
         raise GitHubError(f"Failed to fetch blob ({resp.status_code}): {resp.text}")
