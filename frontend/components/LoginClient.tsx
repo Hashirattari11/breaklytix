@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { clearSession, getToken, isAuthed } from "../lib/auth";
-import { signInWithEmailOtp, verifySignInOtp } from "../lib/auth-email";
-import { isSupabaseAuthEnabled } from "../lib/supabase";
 import { LogoMark } from "./Logo";
 
 const ALLOWED_NEXT = ["/admin", "/dashboard"];
@@ -36,11 +34,6 @@ function captureNextParam(): string | null {
  */
 export default function LoginClient() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
-  const [emailState, setEmailState] = useState<"idle" | "saving" | "error">("idle");
-  const [emailMsg, setEmailMsg] = useState<string | null>(null);
 
   // Already signed in? Re-validate the stored token with the backend, refresh
   // the httpOnly gate cookie, then continue to the requested page. This is what
@@ -94,34 +87,6 @@ export default function LoginClient() {
     window.location.href = "/auth/github";
   }
 
-  async function sendEmailCode(e: React.FormEvent) {
-    e.preventDefault();
-    setEmailState("saving");
-    setEmailMsg(null);
-    const r = await signInWithEmailOtp(email.trim());
-    if (r.ok) {
-      setStep("code");
-      setEmailMsg(r.message || "Code sent.");
-      setEmailState("idle");
-    } else {
-      setEmailState("error");
-      setEmailMsg(r.message || "Failed.");
-    }
-  }
-
-  async function verifyEmailCode(e: React.FormEvent) {
-    e.preventDefault();
-    setEmailState("saving");
-    setEmailMsg(null);
-    const r = await verifySignInOtp(email.trim(), code.trim());
-    if (r.ok) {
-      router.replace("/dashboard");
-    } else {
-      setEmailState("error");
-      setEmailMsg(r.message || "Verification failed.");
-    }
-  }
-
   return (
     <main className="lp-login-wrap">
       <div className="lp-card">
@@ -141,40 +106,6 @@ export default function LoginClient() {
           </svg>
           Continue with GitHub
         </button>
-
-        {isSupabaseAuthEnabled() ? (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--muted)", fontSize: 12.5, fontWeight: 700, margin: "22px 0 14px" }}>
-              <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-              or
-              <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-            </div>
-            {step === "email" ? (
-              <form onSubmit={sendEmailCode} style={{ display: "grid", gap: 10 }}>
-                <input type="email" required placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)}
-                  style={{ height: 46, padding: "0 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 15 }} />
-                <button type="submit" disabled={emailState === "saving"} className="btn btn-primary btn-block" style={{ padding: "12px 20px", borderRadius: 10 }}>
-                  {emailState === "saving" ? "Sending…" : "Sign in with email code"}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={verifyEmailCode} style={{ display: "grid", gap: 10 }}>
-                <input type="text" required placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value)}
-                  style={{ height: 46, padding: "0 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 15, letterSpacing: 4, textAlign: "center" }} />
-                <button type="submit" disabled={emailState === "saving"} className="btn btn-primary btn-block" style={{ padding: "12px 20px", borderRadius: 10 }}>
-                  {emailState === "saving" ? "Verifying…" : "Verify code"}
-                </button>
-                <button type="button" onClick={() => setStep("email")} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Use a different email</button>
-              </form>
-            )}
-            {emailMsg ? <p style={{ marginTop: 10, fontSize: 13.5, color: emailState === "error" ? "#b91c1c" : "var(--green,#0a7d3d)" }}>{emailMsg}</p> : null}
-            <p style={{ fontSize: 12.5, color: "var(--muted)", textAlign: "center", margin: "12px 0 0" }}>
-              <Link href="/signup" className="lp-inline-link">Create an account</Link>
-              {" · "}
-              <Link href="/forgot-password" className="lp-inline-link">Forgot password</Link>
-            </p>
-          </>
-        ) : null}
 
         <p style={{ fontSize: 12.5, color: "var(--muted)", textAlign: "center", margin: "22px 0 0", lineHeight: 1.6 }}>
           By continuing you agree to the{" "}
