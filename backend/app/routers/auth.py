@@ -5,6 +5,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ..config import settings
 from ..crypto import get_cipher
 from ..db import db, fetch_one
 from ..deps import get_current_user_id, issue_session_token, require_internal_secret
