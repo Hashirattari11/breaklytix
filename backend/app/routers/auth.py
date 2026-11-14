@@ -167,20 +167,44 @@ def supabase_callback(body: SupabaseCallbackIn) -> AuthOut:
         raise HTTPException(status_code=400, detail="No email on your Supabase account.")
 
     sb_id = str(sb_user.get("id") or "")
-    row = {
-        "email": email,
-        "supabase_user_id": sb_id or None,
-    }
-    # Upsert by email so a user who signed up with GitHub and later uses email
-    # OTP with the same address is linked to the same account.
+    # Match by email first (no unique constraint required); fall back to insert.
+    user = None
     try:
-        res = db().table("users").upsert(row, on_conflict="email").execute()
-    except Exception as exc:  # noqa: BLE001 — maybe the column doesn't exist yet
-        logger.warning("Supabase upsert by email failed, retrying minimal: %s", exc)
-        res = db().table("users").upsert({"email": email}, on_conflict="email").execute()
-    if not res.data:
+        existing = db().table("users").select("*").eq("email", email).limit(1).execute().data or []
+        if existing:
+            user = existing[0]
+            update_payload = {}
+            if sb_id:
+                try:
+                    update_payload["supabase_user_id"] = sb_id
+                except Exception:  # noqa: BLE001
+                    pass
+            if update_payload:
+                try:
+                    db().table("users").update(update_payload).eq("id", user["id"]).execute()
+                    user.update(update_payload)
+                except Exception as exc:  # noqa: BLE001 — column may not exist yet
+                    logger.warning("Could not store supabase_user_id: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("User lookup by email failed: %s", exc)
+
+    if user is None:
+        try:
+            insert_payload = {"email": email}
+            try:
+                insert_payload["supabase_user_id"] = sb_id or None
+            except Exception:  # noqa: BLE001
+                pass
+            res = db().table("users").insert(insert_payload).execute()
+            rows = res.data or []
+            if rows:
+                user = rows[0]
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Failed to insert Supabase user: %s", exc)
+            raise HTTPException(status_code=500, detail="Failed to persist user") from exc
+
+    if not user:
         raise HTTPException(status_code=500, detail="Failed to persist user")
-    user = res.data[0]
 
     if user.get("is_suspended"):
         raise HTTPException(status_code=403, detail="Account suspended")
