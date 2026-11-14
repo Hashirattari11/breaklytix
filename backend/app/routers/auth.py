@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from ..crypto import get_cipher
 from ..db import db, fetch_one
 from ..deps import get_current_user_id, issue_session_token, require_internal_secret
+import requests
+
 from ..github_client import GitHubError, exchange_code_for_token, get_authenticated_user
 from ..instant_scan import link_scan_to_user
-from ..schemas import AuthOut, GitHubCallbackIn, UserOut
+from ..schemas import AuthOut, GitHubCallbackIn, SupabaseCallbackIn, UserOut
 from .consent import _user_out
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -123,6 +125,72 @@ def github_callback(body: GitHubCallbackIn) -> AuthOut:
             linked_scan = link_scan_to_user(body.scan_id, str(user["id"]))
         except Exception:  # noqa: BLE001 — never fail the session on a link hiccup
             logger.warning("GitHub callback: could not link scan %s to user", body.scan_id)
+
+    return AuthOut(
+        token=issue_session_token(user["id"]),
+        user=_user_out(user),
+    )
+
+
+@router.post("/supabase/callback", response_model=AuthOut)
+def supabase_callback(body: SupabaseCallbackIn) -> AuthOut:
+    """Exchange a Supabase Auth access token for a Breaklytix session JWT.
+
+    Used by the email-OTP sign-up / sign-in flow. The Supabase token is verified
+    against the configured Supabase project; the resulting user is upserted into
+    our ``users`` table (matched by email) and a session JWT is issued.
+    """
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        raise HTTPException(status_code=503, detail="Supabase auth is not configured on the server.")
+
+    # Verify the Supabase access token by asking Supabase Auth who it belongs to.
+    try:
+        resp = requests.get(
+            f"{settings.supabase_url.rstrip('/')}/auth/v1/user",
+            headers={
+                "apikey": settings.supabase_service_role_key,
+                "Authorization": f"Bearer {body.access_token}",
+            },
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        logger.warning("Supabase auth verification failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not verify your session. Please try again.") from exc
+
+    if resp.status_code != 200:
+        logger.warning("Supabase auth rejected token: %s", resp.status_code)
+        raise HTTPException(status_code=401, detail="Invalid or expired session. Please sign in again.")
+
+    sb_user = resp.json() or {}
+    email = (sb_user.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="No email on your Supabase account.")
+
+    sb_id = str(sb_user.get("id") or "")
+    row = {
+        "email": email,
+        "supabase_user_id": sb_id or None,
+    }
+    # Upsert by email so a user who signed up with GitHub and later uses email
+    # OTP with the same address is linked to the same account.
+    try:
+        res = db().table("users").upsert(row, on_conflict="email").execute()
+    except Exception as exc:  # noqa: BLE001 — maybe the column doesn't exist yet
+        logger.warning("Supabase upsert by email failed, retrying minimal: %s", exc)
+        res = db().table("users").upsert({"email": email}, on_conflict="email").execute()
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Failed to persist user")
+    user = res.data[0]
+
+    if user.get("is_suspended"):
+        raise HTTPException(status_code=403, detail="Account suspended")
+
+    # Post-scan sign-up continuation.
+    if body.scan_id:
+        try:
+            link_scan_to_user(body.scan_id, str(user["id"]))
+        except Exception:  # noqa: BLE001
+            logger.warning("Supabase callback: could not link scan %s to user", body.scan_id)
 
     return AuthOut(
         token=issue_session_token(user["id"]),

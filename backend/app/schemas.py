@@ -17,6 +17,13 @@ class GitHubCallbackIn(BaseModel):
     )
 
 
+class SupabaseCallbackIn(BaseModel):
+    access_token: str = Field(..., description="Supabase Auth access token (JWT)")
+    scan_id: str | None = Field(
+        default=None, max_length=64, description="Instant scan to link to the signed-up user (post-scan sign-up flow)"
+    )
+
+
 class UserOut(BaseModel):
     id: str
     email: str
