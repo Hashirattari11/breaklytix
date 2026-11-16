@@ -46,6 +46,16 @@ export function LegalFooter() {
                 <li><Link href="/dashboard">Dashboard</Link></li>
               </ul>
             </div>
+            <div className="footer-column">
+              <h2>Guides</h2>
+              <ul>
+                <li><Link href="/api-change-monitoring">API Change Monitoring</Link></li>
+                <li><Link href="/api-breaking-changes">API Breaking Changes</Link></li>
+                <li><Link href="/api-deprecation-monitoring">API Deprecation Monitoring</Link></li>
+                <li><Link href="/code-impact-analysis">Code Impact Analysis</Link></li>
+                <li><Link href="/third-party-api-monitoring">Third-Party API Monitoring</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
         <div className="footer-bottom">
