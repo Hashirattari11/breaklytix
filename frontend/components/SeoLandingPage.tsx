@@ -132,6 +132,21 @@ export default function SeoLandingPage({
           </div>
         </section>
 
+        <section style={{ marginBottom: 24 }}>
+          <h2 className="h2" style={{ fontSize: 18, marginBottom: 10 }}>Related guides</h2>
+          <ul style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 6, lineHeight: 1.7, fontSize: 14.5 }}>
+            {[
+              { href: "/api-change-monitoring", label: "API Change Monitoring" },
+              { href: "/api-breaking-changes", label: "API Breaking Changes" },
+              { href: "/api-deprecation-monitoring", label: "API Deprecation Monitoring" },
+              { href: "/code-impact-analysis", label: "Code Impact Analysis" },
+              { href: "/third-party-api-monitoring", label: "Third-Party API Monitoring" },
+            ].filter((l) => l.href !== path).map((l) => (
+              <li key={l.href}><Link href={l.href}>{l.label}</Link></li>
+            ))}
+          </ul>
+        </section>
+
         <section style={{ marginBottom: 8, textAlign: "center" }}>
           <Link href="/#instant-scan" className="btn btn-primary" style={{ display: "inline-block", padding: "14px 28px", borderRadius: 12, fontSize: 15, fontWeight: 700 }}>
             {cta}
