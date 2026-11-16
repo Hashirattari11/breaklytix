@@ -60,6 +60,11 @@ export function absoluteUrl(path = "/"): string {
  */
 export const CONTENT_UPDATED: Record<string, string> = {
   "/": "2026-11-10",
+  "/api-change-monitoring": "2026-11-16",
+  "/api-breaking-changes": "2026-11-16",
+  "/api-deprecation-monitoring": "2026-11-16",
+  "/code-impact-analysis": "2026-11-16",
+  "/third-party-api-monitoring": "2026-11-16",
   "/about": "2026-10-26",
   "/providers": "2026-10-21",
   "/pricing": "2026-10-26",
