@@ -25,7 +25,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: seo?.description ?? doc.summary,
     robots: { index: true, follow: true },
     alternates: { canonical: url },
-    openGraph: { url, type: "article", siteName: SITE_NAME },
+    openGraph: {
+      url,
+      type: "article",
+      siteName: SITE_NAME,
+      images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630, alt: `${SITE_NAME} — API change monitoring` }],
+    },
   };
 }
 
