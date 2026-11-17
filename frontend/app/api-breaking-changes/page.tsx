@@ -3,9 +3,9 @@ import { SITE_URL, pageOpenGraph } from "@/lib/site";
 import SeoLandingPage from "@/components/SeoLandingPage";
 
 export const metadata: Metadata = {
-  title: "API Breaking Changes: Detect Them Before Production",
+  title: "API Breaking Changes: Detect Them Early",
   description:
-    "Breaklytix detects API breaking changes published by your providers and maps each one to the exact files and lines in your code that use the affected endpoint.",
+    "Breaklytix detects API breaking changes published by your providers and maps each one to the exact files that call the endpoint.",
   alternates: { canonical: `${SITE_URL}/api-breaking-changes` },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/api-breaking-changes"),

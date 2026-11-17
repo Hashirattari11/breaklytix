@@ -3,9 +3,9 @@ import { SITE_URL, pageOpenGraph } from "@/lib/site";
 import SeoLandingPage from "@/components/SeoLandingPage";
 
 export const metadata: Metadata = {
-  title: "Third-Party API Monitoring for Your Repositories",
+  title: "Third-Party API Monitoring for Your Code",
   description:
-    "Breaklytix monitors the third-party APIs your repositories depend on, scanning code for API usage and alerting you when a provider publishes a breaking change.",
+    "Breaklytix monitors third-party APIs your repos depend on, scanning code for usage and alerting on breaking changes.",
   alternates: { canonical: `${SITE_URL}/third-party-api-monitoring` },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/third-party-api-monitoring"),

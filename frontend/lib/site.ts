@@ -30,7 +30,12 @@ export const LAUNCHSTAG_BADGE_SRC = "https://launchstag.com/badge-dark.svg";
  */
 export function pageOpenGraph(path = "/") {
   const url = path === "/" ? `${SITE_URL}/` : `${SITE_URL}${path}`;
-  return { url, type: "website" as const, siteName: SITE_NAME };
+  return {
+    url,
+    type: "website" as const,
+    siteName: SITE_NAME,
+    images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630, alt: `${SITE_NAME} — API change monitoring` }],
+  };
 }
 
 // Legal operator configuration. Set NEXT_PUBLIC_LEGAL_ENTITY and

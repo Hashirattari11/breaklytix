@@ -50,6 +50,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    images: [`${SITE_URL}/opengraph-image.png`],
   },
 };
 

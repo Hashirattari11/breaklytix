@@ -5,7 +5,7 @@ import SeoLandingPage from "@/components/SeoLandingPage";
 export const metadata: Metadata = {
   title: "API Change Monitoring for Your Codebase",
   description:
-    "Breaklytix monitors third-party API changelogs and maps every change to the files and lines in your repositories. Catch breaking API changes before they reach production.",
+    "Breaklytix monitors API changelogs and maps every change to the files and lines that use the affected endpoint.",
   alternates: { canonical: `${SITE_URL}/api-change-monitoring` },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/api-change-monitoring"),

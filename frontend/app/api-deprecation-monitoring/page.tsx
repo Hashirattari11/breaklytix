@@ -5,7 +5,7 @@ import SeoLandingPage from "@/components/SeoLandingPage";
 export const metadata: Metadata = {
   title: "API Deprecation Monitoring for Your Stack",
   description:
-    "Track API deprecations across the providers your code uses. Breaklytix monitors provider changelogs and alerts you when a deprecated endpoint or field is still in your code.",
+    "Track API deprecations across providers you use. Breaklytix monitors changelogs and alerts when deprecated calls are still in your code.",
   alternates: { canonical: `${SITE_URL}/api-deprecation-monitoring` },
   robots: { index: true, follow: true },
   openGraph: pageOpenGraph("/api-deprecation-monitoring"),

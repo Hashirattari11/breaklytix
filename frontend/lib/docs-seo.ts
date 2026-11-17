@@ -157,9 +157,9 @@ export const DOC_SEO: Record<string, DocSeo> = {
     updated: GUIDES,
   },
   "stripe-changelog-example": {
-    title: "Reading Stripe's API Changelog: Worked Example",
+    title: "Reading Stripe's API Changelog: Example",
     description:
-      "A worked example using Stripe's official changelog: how dated API versions work, which fields decide impact, and how to turn an entry into a code change.",
+      "How to read Stripe's official changelog: dated API versions, which fields decide impact, and turning an entry into a code change.",
     updated: GUIDES,
   },
 };
