@@ -59,6 +59,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // logs React hydration errors (#418/#423/#425) in production.
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-MGTNL7FR"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         {/* No-flash theme: applies stored/system preference before first paint.
             Runtime changes are handled by lib/theme.ts (dashboard + settings). */}
