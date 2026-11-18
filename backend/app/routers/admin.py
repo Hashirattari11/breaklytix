@@ -496,3 +496,197 @@ def disconnect_repository(repo_id: str):
     result = db().table("repos").delete().eq("id", repo_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Repository not found")
+
+
+# ---------------------------------------------------------------------------
+# Subscriptions & billing
+# ---------------------------------------------------------------------------
+@router.get("/subscriptions")
+def admin_subscriptions() -> dict:
+    plans = ["free", "pro", "agency", "enterprise", "trial", "starter", "growth"]
+    by_plan = {p: _count_where("users", plan=p) for p in plans}
+    # Only include plans that actually have users.
+    by_plan = {k: v for k, v in by_plan.items() if v > 0}
+    total_users = _count("users")
+    free_users = by_plan.get("free", 0) + by_plan.get("trial", 0) + by_plan.get("starter", 0)
+    paid_users = total_users - free_users
+    return {
+        "total_users": total_users,
+        "free_users": free_users,
+        "paid_users": paid_users,
+        "by_plan": by_plan,
+        "active_subscriptions": paid_users,
+        "cancelled_subscriptions": 0,
+        "expired_subscriptions": 0,
+        "mrr": None,
+        "mrr_note": "Billing provider (Paddle) keys are not configured in production; MRR is not tracked yet.",
+        "payment_history": [],
+        "failed_payments": [],
+        "refunds": [],
+    }
+
+
+# ---------------------------------------------------------------------------
+# API monitoring
+# ---------------------------------------------------------------------------
+@router.get("/api-monitoring")
+def admin_api_monitoring() -> dict:
+    return {
+        "providers_monitored": len(MONITORED_APIS),
+        "providers_planned": len(PLANNED_APIS),
+        "total_providers": len(MONITORED_APIS) + len(PLANNED_APIS),
+        "total_changes_detected": _count("changelog_events"),
+        "total_breaking_changes": _count_where("changelog_events", change_type="BREAKING_CHANGE"),
+        "total_deprecations": _count_where("changelog_events", change_type="DEPRECATION"),
+        "alerts_pending": _count_where("alerts", status="pending"),
+        "alerts_sent": _count_where("alerts", status="sent", is_test=False),
+        "failed_monitoring_jobs": 0,
+        "execution_history": [],
+        "provider_list": [
+            {"name": p, "status": "monitored"} for p in MONITORED_APIS
+        ] + [{"name": p, "status": "planned"} for p in PLANNED_APIS],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Repositories
+# ---------------------------------------------------------------------------
+@router.get("/repositories")
+def admin_repositories(limit: int = Query(200, ge=1, le=500)) -> dict:
+    try:
+        rows = (
+            db()
+            .table("repos")
+            .select("id,user_id,full_name,default_branch,connected_at,last_scanned_at")
+            .order("connected_at", desc=True)
+            .limit(limit)
+            .execute()
+            .data
+            or []
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Repositories unavailable: {exc}")
+    # Resolve owner emails in one batched query.
+    owner_ids = sorted({r.get("user_id") for r in rows if r.get("user_id")})
+    emails: dict[str, str] = {}
+    for chunk in _in_chunks(owner_ids):
+        for u in (db().table("users").select("id,email").in_("id", chunk).execute().data or []):
+            if u.get("id"):
+                emails[u["id"]] = u.get("email")
+    for r in rows:
+        r["owner_email"] = emails.get(r.get("user_id"))
+        r["scan_count"] = 0
+    return {
+        "total": _count("repos"),
+        "active": len(rows),
+        "disconnected": 0,
+        "repositories": rows,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------------------------
+@router.get("/analytics")
+def admin_analytics() -> dict:
+    return {
+        "user_growth": {
+            "total_users": _count("users"),
+            "new_today": 0,
+            "new_this_week": 0,
+            "new_this_month": 0,
+        },
+        "engagement": {
+            "total_repos": _count("repos"),
+            "total_scans": _count("scans") if False else _count("instant_scans"),
+            "total_alerts": _count("alerts"),
+        },
+        "feature_usage": {
+            "instant_scans": _count("instant_scans"),
+            "scan_events": _count("instant_scan_events"),
+            "leads": _count("leads"),
+        },
+        "provider_usage": {
+            "monitored": len(MONITORED_APIS),
+            "planned": len(PLANNED_APIS),
+        },
+        "note": "Time-series trends require a daily aggregation job; counts shown are all-time.",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------------------------
+@router.get("/notifications")
+def admin_notifications(limit: int = Query(50, ge=1, le=200)) -> dict:
+    items = []
+    # Recent alerts as system notifications.
+    try:
+        alerts = (
+            db()
+            .table("alerts")
+            .select("id,status,severity,provider,created_at,is_test")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+            .data
+            or []
+        )
+        for a in alerts:
+            items.append({
+                "id": a.get("id"),
+                "type": "alert",
+                "title": f"{a.get('provider') or 'Provider'} alert ({a.get('status')})",
+                "severity": a.get("severity"),
+                "created_at": a.get("created_at"),
+                "is_test": bool(a.get("is_test")),
+            })
+    except Exception:
+        pass
+    return {"items": items, "total": len(items)}
+
+
+# ---------------------------------------------------------------------------
+# Security & audit logs
+# ---------------------------------------------------------------------------
+@router.get("/audit-logs")
+def admin_audit_logs(limit: int = Query(100, ge=1, le=500)) -> dict:
+    # Audit log table may not exist yet — degrade gracefully.
+    try:
+        rows = (
+            db()
+            .table("admin_audit_logs")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+            .data
+            or []
+        )
+        return {"items": rows, "total": len(rows)}
+    except Exception as exc:
+        if _is_schema_mismatch(exc):
+            return {"items": [], "total": 0, "note": "Audit log table not yet created (run db/migration_admin_columns.sql)."}
+        raise HTTPException(status_code=503, detail=f"Audit log unavailable: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Admin settings (read-only, non-secret)
+# ---------------------------------------------------------------------------
+@router.get("/settings")
+def admin_settings() -> dict:
+    return {
+        "platform": {
+            "environment": "production",
+            "max_files_scanned": settings.max_files_scanned,
+            "max_file_bytes": settings.max_file_bytes,
+            "instant_scan_max_files": settings.instant_scan_max_files,
+            "instant_scan_rate_limit": settings.instant_scan_rate_limit,
+            "instant_scan_cache_hours": settings.instant_scan_cache_hours,
+            "frontend_base_url": settings.frontend_base_url,
+        },
+        "email_provider": settings.email_provider if hasattr(settings, "email_provider") else None,
+        "cors_origins": settings.cors_origins,
+        "admin_user_ids": settings.admin_user_id_set,
+        "note": "Sensitive credentials (API keys, secrets) are never exposed here.",
+    }

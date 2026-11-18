@@ -128,6 +128,13 @@ export const rejectAlert = (id: string) =>
 export const getAdminHealth = () => request<AdminHealthResponse>("/admin/health");
 
 export const getAdminFunnel = () => request<AdminFunnel>("/admin/funnel");
+export const getAdminSubscriptions = () => request<any>("/admin/subscriptions");
+export const getAdminApiMonitoring = () => request<any>("/admin/api-monitoring");
+export const getAdminRepositories = (limit?: number) => request<any>(`/admin/repositories${limit ? `?limit=${limit}` : ""}`);
+export const getAdminAnalytics = () => request<any>("/admin/analytics");
+export const getAdminNotifications = (limit?: number) => request<any>(`/admin/notifications${limit ? `?limit=${limit}` : ""}`);
+export const getAdminAuditLogs = (limit?: number) => request<any>(`/admin/audit-logs${limit ? `?limit=${limit}` : ""}`);
+export const getAdminSettings = () => request<any>("/admin/settings");
 
 export const getAdminUsers = (search?: string, status?: "active" | "suspended") => {
   const params = new URLSearchParams();
