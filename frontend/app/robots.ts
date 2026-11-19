@@ -4,41 +4,22 @@ import { SITE_URL } from "@/lib/site";
 /**
  * robots.txt
  *
- * Policy: allow everything that is public, block only routes a crawler has no
- * reason to spend budget on. Two rules drive the list:
+ * Policy: allow everything public AND private. Private routes (dashboard,
+ * admin, auth, consent gate) inherit `noindex` from the root layout, so
+ * blocking them in robots.txt would only prevent Google from seeing the
+ * noindex and turn them into "Blocked by robots.txt" in Search Console.
+ * Letting Googlebot crawl them exercises the noindex signal instead.
  *
- *  - Never disallow `/_next/`. Google renders pages to judge them, and a
- *    blocked JS/CSS bundle makes a perfectly good page look broken.
- *  - Do not disallow a noindexed page that is still worth crawling. `/login`
- *    inherits `noindex` from the root layout, so it must stay crawlable — a
- *    robots.txt block would hide the noindex and leave the URL eligible to be
- *    indexed from links alone.
- *
- * AI and search crawlers (Googlebot, Bingbot, OAI-SearchBot, GPTBot,
- * ChatGPT-User, PerplexityBot) are intentionally covered by the single `*`
- * group rather than named one by one. In robots.txt a named group REPLACES the
- * `*` group for that crawler, so listing a bot with only `Allow: /` would
- * silently grant it `/dashboard` and `/admin`. The wildcard keeps one ruleset.
- * Verified 2026-10-22: all six user agents above received 200 with no
- * challenge header on /docs/breaking-api-changes.
- *
- * `/authorize/<token>` is deliberately absent: the route exists and is inherited
- * from the root layout's `noindex`, so a robots.txt block would only hide that
- * directive. Disallowing a private invite URL would also add noise without
- * improving security.
+ * `/authorize/<token>` is deliberately absent for the same reason.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
+        // Private routes are noindex (via the root layout) rather than
+        // blocked, so Googlebot can crawl them and see that signal.
         allow: "/",
-        disallow: [
-          "/dashboard", // authenticated application
-          "/admin", // internal admin screens
-          "/auth", // OAuth callbacks and intermediate steps
-          "/legal-acceptance", // post-signup consent gate, no standalone value
-        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
