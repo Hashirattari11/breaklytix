@@ -18,6 +18,12 @@ export const SUPPORT_EMAIL =
 export const LAUNCHSTAG_URL = "https://launchstag.com";
 export const LAUNCHSTAG_BADGE_SRC = "https://launchstag.com/badge-dark.svg";
 
+// ShipNLaunch directory listing. Same deal as Launchstag: the badge links back
+// to the listing and is rendered in the public footers; the SVG host must be
+// allow-listed in the CSP (see next.config.js `img-src`).
+export const SHIPNLAUNCH_URL = "https://www.shipnlaunch.com/";
+export const SHIPNLAUNCH_BADGE_SRC = "https://www.shipnlaunch.com/badges/featured-dark.svg";
+
 /**
  * Build the per-page `openGraph` block for a public marketing/docs page.
  *

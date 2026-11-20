@@ -10,6 +10,7 @@ import type { ProviderCategory } from "../lib/providers/types";
 import { LEGAL_LINKS } from "./LegalLayout";
 import { LogoMark } from "./Logo";
 import LaunchstagBadge from "./LaunchstagBadge";
+import ShipNLaunchBadge from "./ShipNLaunchBadge";
 import InstantScanBox from "./InstantScanBox";
 import { SUPPORT_EMAIL } from "../lib/site";
 import { LANDING_FAQ } from "../lib/landing-faq";
@@ -1093,7 +1094,10 @@ export default function LandingPage() {
           </div>
           <div className="footer-bottom">
             <p>&copy; {new Date().getFullYear()} Breaklytix. All rights reserved.</p>
-            <LaunchstagBadge style={{ marginTop: 16 }} />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", marginTop: 16 }}>
+              <LaunchstagBadge />
+              <ShipNLaunchBadge />
+            </div>
           </div>
         </div>
       </footer>

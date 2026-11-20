@@ -105,12 +105,12 @@ const nextConfig = {
               "default-src 'self'",
               scriptSrc,
               "style-src 'self' 'unsafe-inline'",
-              // The only external image is the Launchstag listing badge
-              // (static https://launchstag.com/badge-dark.svg). Everything else
-              // is local, so the old `https:` wildcard stays removed — this
+              // The only external images are the directory listing badges
+              // (Launchstag and ShipNLaunch static SVGs). Everything else is
+              // local, so the old `https:` wildcard stays removed — this
               // resolves ZAP's "CSP: Wildcard Directive" (Medium) while still
-              // allowing the one explicitly allow-listed host.
-              "img-src 'self' data: blob: https://launchstag.com",
+              // allowing the two explicitly allow-listed hosts.
+              "img-src 'self' data: blob: https://launchstag.com https://www.shipnlaunch.com",
               "font-src 'self' data:",
               "connect-src 'self'" + apiSrc + " https://api.github.com https://github.com" + localApiSrc + " https://api.paddle.com",
               "frame-src 'self'",

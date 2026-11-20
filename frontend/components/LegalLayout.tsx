@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 import { LogoMark } from "./Logo";
 import LaunchstagBadge from "./LaunchstagBadge";
+import ShipNLaunchBadge from "./ShipNLaunchBadge";
 
 // Shared legal-link list (footer on all public marketing pages).
 export const LEGAL_LINKS = [
@@ -60,7 +61,10 @@ export function LegalFooter() {
         </div>
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.</p>
-          <LaunchstagBadge style={{ marginTop: 16 }} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", marginTop: 16 }}>
+            <LaunchstagBadge />
+            <ShipNLaunchBadge />
+          </div>
         </div>
       </div>
     </footer>
