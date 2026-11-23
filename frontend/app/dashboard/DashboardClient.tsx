@@ -79,8 +79,8 @@ function ActivationChecklist({
     <div
       className="mc-panel"
       style={{
-        background: "linear-gradient(135deg, rgba(99,91,255,0.14), rgba(124,58,237,0.08))",
-        borderColor: "rgba(124,108,255,0.4)",
+        background: "linear-gradient(135deg, rgba(200,245,66,0.12), rgba(168,217,46,0.06))",
+        borderColor: "rgba(200,245,66,0.4)",
         position: "relative",
       }}
     >
@@ -101,7 +101,7 @@ function ActivationChecklist({
         )}
       </div>
       <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden", margin: "12px 0 14px" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,#635bff,#7c3aed)", transition: "width .4s ease" }} />
+        <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,#c8f542,#a8d92e)", transition: "width .4s ease" }} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 10 }}>
         {steps.map((s) => (

@@ -80,8 +80,8 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
           position: "sticky",
           top: 0,
           zIndex: 10,
-          background: "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
+          background: "var(--surface)",
+          borderBottom: "1px solid var(--border)",
         }}
       >
         <div
@@ -156,8 +156,8 @@ export function LegalTitle({
           style={{
             margin: "20px 0 0",
             padding: "16px 20px",
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
             borderRadius: 10,
           }}
         >

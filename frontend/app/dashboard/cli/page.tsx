@@ -177,7 +177,7 @@ export default function CliPage() {
               { step: 5, title: "Review results", desc: "Run breaklytix status to see alerts returned by the API for your account." },
             ].map((s) => (
               <div key={s.step} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, var(--accent), #8b5cf6)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #c8f542, #a8d92e)", color: "#0a0a0b", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
                   {s.step}
                 </div>
                 <div>

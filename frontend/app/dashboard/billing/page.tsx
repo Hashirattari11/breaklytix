@@ -112,11 +112,11 @@ export default function BillingPage() {
               <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4 }}>
                 {usage} / {isUnlimited ? "∞" : limit}
               </div>
-              <div style={{ marginTop: 8, height: 8, background: "#eee", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ marginTop: 8, height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
                 <div
                   style={{
                     height: "100%",
-                    background: isUnlimited ? "#635bff" : usage >= limit ? "#dc3545" : "#635bff",
+                    background: isUnlimited ? "var(--accent)" : usage >= limit ? "#dc3545" : "var(--accent)",
                     width: isUnlimited ? "100%" : `${Math.min(100, (usage / Math.max(1, limit)) * 100)}%`,
                     transition: "width 0.3s ease",
                   }}
@@ -262,7 +262,7 @@ function UpgradeCard({
   const isUpgrade = !isCurrent && (plan === "enterprise" || (current === "starter" && plan === "growth") || current === "trial");
 
   return (
-    <div className="card" style={{ padding: 20, border: isCurrent ? "2px solid #635bff" : "1px solid #eee" }}>
+    <div className="card" style={{ padding: 20, border: isCurrent ? "2px solid var(--accent)" : "1px solid var(--border)" }}>
       <div style={{ marginBottom: 12 }}>
         <h3 style={{ margin: "0 0 4px" }}>{name}</h3>
         {isCurrent && <span className="pill pill-blue" style={{ fontSize: 11 }}>Current Plan</span>}

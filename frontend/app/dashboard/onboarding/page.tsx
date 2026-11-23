@@ -161,7 +161,7 @@ export default function OnboardingPage() {
             <div
               style={{
                 height: "100%",
-                background: "#635bff",
+                background: "var(--accent)",
                 borderRadius: 2,
                 width: `${(completedSteps / totalSteps) * 100}%`,
                 transition: "width 0.3s ease",

@@ -129,7 +129,7 @@ function Block({ b }: { b: DocBlock }) {
       return <p className="p" style={{ marginBottom: 12, lineHeight: 1.7 }}>{b.x}</p>;
     case "tip":
       return (
-        <div style={{ borderRadius: 10, padding: "12px 14px", margin: "16px 0", fontSize: 14, lineHeight: 1.6, background: "var(--accent-soft, rgba(99,91,255,0.08))", border: "1px solid rgba(99,91,255,0.25)" }}>
+        <div style={{ borderRadius: 10, padding: "12px 14px", margin: "16px 0", fontSize: 14, lineHeight: 1.6, background: "var(--accent-soft, rgba(200,245,66,0.08))", border: "1px solid rgba(200,245,66,0.25)" }}>
           <strong style={{ display: "block", marginBottom: 2 }}>Tip</strong>
           {b.x}
         </div>
@@ -186,7 +186,7 @@ export default async function DocArticlePage({ params }: { params: Promise<{ slu
                     padding: "3px 0 3px 10px",
                     fontSize: 13,
                     textDecoration: "none",
-                    borderLeft: a.slug === doc.slug ? "2px solid var(--accent, #635bff)" : "2px solid transparent",
+                    borderLeft: a.slug === doc.slug ? "2px solid var(--accent, #c8f542)" : "2px solid transparent",
                     color: a.slug === doc.slug ? "var(--accent-text, #4f46e5)" : "inherit",
                     opacity: a.slug === doc.slug ? 1 : 0.7,
                   }}

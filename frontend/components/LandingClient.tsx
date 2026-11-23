@@ -12,7 +12,11 @@ import { LogoMark } from "./Logo";
 import LaunchstagBadge from "./LaunchstagBadge";
 import ShipNLaunchBadge from "./ShipNLaunchBadge";
 import InstantScanBox from "./InstantScanBox";
-import InteractiveStory from "./InteractiveStory";
+import dynamic from "next/dynamic";
+
+// Below-the-fold interactive story: split into its own chunk and skip SSR so
+// the initial landing bundle + server render stay lean (faster first paint).
+const InteractiveStory = dynamic(() => import("./InteractiveStory"), { ssr: false });
 import { SUPPORT_EMAIL } from "../lib/site";
 import { LANDING_FAQ } from "../lib/landing-faq";
 
@@ -69,8 +73,8 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
 const CATEGORY_COLORS: Record<ProviderCategory, string> = {
   payment: "#635bff",
   communication: "#f22f46",
-  cloud: "#06b6d4",
-  ai: "#a78bfa",
+  cloud: "#c8f542",
+  ai: "#c8f542",
   analytics: "#f59e0b",
   database: "#22c55e",
   devtools: "#1f2328",
@@ -306,8 +310,8 @@ function BeforeAfter() {
 function WhatYouGet() {
   const r1 = useReveal(0.2); const r2 = useReveal(0.2); const r3 = useReveal(0.2); const r4 = useReveal(0.2);
   const cards = [
-    { r: r1, tag: "01 · WHAT CHANGED", body: <>Provider <strong>changed / deprecated an API</strong> — detected from the official changelog.</>, tone: "#a78bfa" },
-    { r: r2, tag: "02 · WHAT IS AFFECTED", body: <><span className="aha-mono">payments-service</span><br /><span className="aha-mono">src/payment/checkout.ts</span><br /><span className="aha-mono">createCheckoutSession()</span></>, tone: "#06b6d4" },
+    { r: r1, tag: "01 · WHAT CHANGED", body: <>Provider <strong>changed / deprecated an API</strong> — detected from the official changelog.</>, tone: "#c8f542" },
+    { r: r2, tag: "02 · WHAT IS AFFECTED", body: <><span className="aha-mono">payments-service</span><br /><span className="aha-mono">src/payment/checkout.ts</span><br /><span className="aha-mono">createCheckoutSession()</span></>, tone: "#c8f542" },
     { r: r3, tag: "03 · HOW SERIOUS IS IT", body: <><span className="aha-badge aha-badge-danger">HIGH RISK</span><br /><strong>94% confidence</strong> — scored against your detected usage.</>, tone: "#f59e0b" },
     { r: r4, tag: "04 · WHAT SHOULD I DO", body: <>Review the affected API usage and <strong>update the integration</strong> — with a link to the provider&apos;s official source.</>, tone: "#22c55e" },
   ];
@@ -341,7 +345,7 @@ function CodeImpact() {
         <div className="ci-card ci-card-code">
           <div className="lp-code-header" style={{ borderRadius: "12px 12px 0 0" }}>
             <span className="lp-code-dot" style={{ background: "#ff5f57" }} /><span className="lp-code-dot" style={{ background: "#ffbd2e" }} /><span className="lp-code-dot" style={{ background: "#28ca42" }} />
-            <span style={{ marginLeft: "auto", fontSize: 12, color: "#b3b3cf", fontFamily: "var(--font-mono)" }}>src/payment/checkout.ts</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "#a1a1aa", fontFamily: "var(--font-mono)" }}>src/payment/checkout.ts</span>
           </div>
           <pre className="ci-code"><code>{`const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -398,23 +402,24 @@ export default function LandingPage() {
       <style dangerouslySetInnerHTML={{ __html: `
         .lp-hero-bg {
           position: absolute; inset: 0; z-index: 0; overflow: hidden;
-          background: linear-gradient(135deg, #0f0a2e 0%, #1a1145 30%, #0d1b3e 60%, #0a0f2c 100%);
+          background: linear-gradient(135deg, #0a0a0b 0%, #101012 30%, #060607 60%, #0a0a0b 100%);
         }
         .lp-hero-bg::before {
           content: ""; position: absolute; inset: -50%;
           width: 200%; height: 200%;
-          background: radial-gradient(ellipse at 30% 20%, rgba(99,91,255,0.25) 0%, transparent 50%),
-                      radial-gradient(ellipse at 70% 60%, rgba(139,92,246,0.2) 0%, transparent 50%),
-                      radial-gradient(ellipse at 50% 90%, rgba(6,182,212,0.15) 0%, transparent 50%);
-          animation: meshGradient 12s ease infinite;
+          background: radial-gradient(ellipse at 30% 20%, rgba(200,245,66,0.25) 0%, transparent 50%),
+                      radial-gradient(ellipse at 70% 60%, rgba(168,217,46,0.2) 0%, transparent 50%),
+                      radial-gradient(ellipse at 50% 90%, rgba(200,245,66,0.15) 0%, transparent 50%);
+          
         }
         .lp-hero-bg::after {
           content: ""; position: absolute; inset: 0;
           background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
           background-size: 32px 32px;
         }
+        .lp-serif { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 500; letter-spacing: 0; }
         .lp-glow-btn { position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.3s; }
-        .lp-glow-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(99,91,255,0.4); }
+        .lp-glow-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(200,245,66,0.4); }
         .lp-glow-btn::after {
           content: ""; position: absolute; inset: 0;
           background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%);
@@ -426,7 +431,7 @@ export default function LandingPage() {
           border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
           padding: 28px 24px; text-align: center; transition: transform 0.3s, border-color 0.3s;
         }
-        .lp-stat-card:hover { transform: translateY(-4px); border-color: rgba(99,91,255,0.4); }
+        .lp-stat-card:hover { transform: translateY(-4px); border-color: rgba(200,245,66,0.4); }
         .lp-stat-number { font-size: 36px; font-weight: 800; color: white; line-height: 1; }
         .lp-stat-label { font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 8px; }
         .lp-api-card {
@@ -445,7 +450,7 @@ export default function LandingPage() {
           transition: transform 0.3s, box-shadow 0.3s;
         }
         .lp-pricing-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(16,24,40,0.1); }
-        .lp-pricing-card.popular { border-color: var(--accent); box-shadow: 0 8px 32px rgba(99,91,255,0.15); }
+        .lp-pricing-card.popular { border-color: var(--accent); box-shadow: 0 8px 32px rgba(200,245,66,0.15); }
         .lp-check { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; font-size: 14px; }
         .lp-check svg { width: 20px; height: 20px; color: var(--green); flex-shrink: 0; margin-top: 2px; }
         .lp-faq-list { max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
@@ -471,7 +476,7 @@ export default function LandingPage() {
         }
         .lp-cta-section {
           position: relative; overflow: hidden; padding: 80px 24px; text-align: center;
-          background: linear-gradient(135deg, #0f0a2e, #1a1145, #0d1b3e);
+          background: linear-gradient(135deg, #0a0a0b, #101012, #060607);
           border-radius: 24px; margin: 0 24px;
         }
         .lp-cta-section::before {
@@ -481,15 +486,15 @@ export default function LandingPage() {
         }
         .lp-cta-glow {
           position: absolute; width: 400px; height: 400px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(99,91,255,0.2) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(200,245,66,0.2) 0%, transparent 70%);
           top: 50%; left: 50%; transform: translate(-50%, -50%);
-          animation: pulseScale 4s ease-in-out infinite;
+          
         }
         .lp-scroll-top {
           position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px;
-          border-radius: 50%; background: var(--accent); color: white; border: none;
+          border-radius: 50%; background: var(--accent); color: #0a0a0b; border: none;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 16px rgba(99,91,255,0.3); z-index: 90;
+          box-shadow: 0 4px 16px rgba(200,245,66,0.3); z-index: 90;
           opacity: 0; transform: translateY(16px); transition: opacity 0.3s, transform 0.3s;
           pointer-events: none;
         }
@@ -497,18 +502,18 @@ export default function LandingPage() {
 
         /* ─── AHA demo ─── */
         .aha-wrap {
-          background: #131327; border: 1px solid #2d2d44; border-radius: 16px;
-          box-shadow: 0 24px 70px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,91,255,0.08);
+          background: #121214; border: 1px solid #232327; border-radius: 16px;
+          box-shadow: 0 24px 70px rgba(0,0,0,0.45), 0 0 0 1px rgba(200,245,66,0.08);
           overflow: hidden; max-width: 560px; width: 100%;
         }
         .aha-chrome {
           display: flex; align-items: center; gap: 8px; padding: 12px 16px;
-          background: #1c1c33; border-bottom: 1px solid #2d2d44;
+          background: #17171a; border-bottom: 1px solid #232327;
         }
-        .aha-chrome-title { margin-left: 6px; font-size: 12px; color: #b3b3cf; font-family: var(--font-mono); }
+        .aha-chrome-title { margin-left: 6px; font-size: 12px; color: #a1a1aa; font-family: var(--font-mono); }
         .aha-demo-tag {
           margin-left: auto; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
-          color: #b3b3cf; border: 1px solid #2d2d44; border-radius: 999px; padding: 2px 8px;
+          color: #a1a1aa; border: 1px solid #232327; border-radius: 999px; padding: 2px 8px;
         }
         .aha-body { padding: 18px 18px 20px; display: flex; flex-direction: column; }
         .aha-row { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
@@ -517,15 +522,15 @@ export default function LandingPage() {
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .aha-file-icon {
-          width: 30px; height: 30px; border-radius: 8px; color: #06b6d4; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center; background: rgba(6,182,212,0.12);
+          width: 30px; height: 30px; border-radius: 8px; color: #c8f542; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center; background: rgba(200,245,66,0.12);
         }
-        .aha-row-title { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #e4e4f4; }
-        .aha-row-sub { font-size: 13px; color: #b6b6d6; margin-top: 3px; }
-        .aha-row-meta { font-family: var(--font-mono); font-size: 11px; color: #9a9ac4; margin-top: 3px; }
-        .aha-mono { font-family: var(--font-mono); font-size: 12.5px; color: #7dd3fc; word-break: break-all; }
-        .aha-arrow { color: #9a9ac4; margin: 0 4px; }
-        .aha-fn { color: #c4b5fd; }
+        .aha-row-title { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #f4f4f5; }
+        .aha-row-sub { font-size: 13px; color: #a1a1aa; margin-top: 3px; }
+        .aha-row-meta { font-family: var(--font-mono); font-size: 11px; color: #8b8b93; margin-top: 3px; }
+        .aha-mono { font-family: var(--font-mono); font-size: 12.5px; color: #c8f542; word-break: break-all; }
+        .aha-arrow { color: #8b8b93; margin: 0 4px; }
+        .aha-fn { color: #c8f542; }
         .aha-code-lines { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
         .aha-badge {
           display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 700;
@@ -533,13 +538,13 @@ export default function LandingPage() {
         }
         .aha-badge-danger { background: rgba(239,68,68,0.15); color: #ff8a8a; border: 1px solid rgba(239,68,68,0.35); }
         .aha-badge-success { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
-        .aha-badge-neutral { background: rgba(255,255,255,0.06); color: #b3b3cf; border: 1px solid rgba(255,255,255,0.12); }
+        .aha-badge-neutral { background: rgba(255,255,255,0.06); color: #a1a1aa; border: 1px solid rgba(255,255,255,0.12); }
         .aha-pulse-dot { width: 9px; height: 9px; border-radius: 50%; background: #34d399; margin-top: 6px; }
         .aha-pulse-dot.live { animation: pulse 2s infinite; }
         .aha-connector { display: flex; align-items: center; height: 18px; padding-left: 26px; }
         .aha-connector span {
           display: block; width: 2px; height: 100%; transform-origin: top; transform: scaleY(0);
-          background: linear-gradient(180deg, #06b6d4, rgba(6,182,212,0.15)); transition: transform 0.45s ease;
+          background: linear-gradient(180deg, #c8f542, rgba(200,245,66,0.15)); transition: transform 0.45s ease;
         }
         .aha-connector.on span { transform: scaleY(1); }
         .aha-risk-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 4px 2px 0; }
@@ -548,27 +553,27 @@ export default function LandingPage() {
           background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
         }
         .aha-risk-cell.aha-why { flex: 1; min-width: 160px; }
-        .aha-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: #9a9ac4; }
+        .aha-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: #8b8b93; }
         .aha-confidence { font-size: 17px; font-weight: 800; color: #ff8a8a; font-variant-numeric: tabular-nums; }
-        .aha-why-text { font-size: 12px; color: #b6b6d6; line-height: 1.45; }
-        .aha-action { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: rgba(99,91,255,0.08); border: 1px solid rgba(99,91,255,0.25); }
+        .aha-why-text { font-size: 12px; color: #a1a1aa; line-height: 1.45; }
+        .aha-action { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: rgba(200,245,66,0.08); border: 1px solid rgba(200,245,66,0.25); }
         .aha-action-text { font-size: 13px; color: #d6d6ea; line-height: 1.5; margin: 0; }
         .aha-action-cta { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         .aha-view-btn {
           font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
-          color: #0b1020; background: linear-gradient(135deg, #22d3ee, #818cf8);
+          color: #0b1020; background: linear-gradient(135deg, #c8f542, #a8d92e);
           border-radius: 8px; padding: 6px 12px;
         }
-        .aha-action-meta { font-family: var(--font-mono); font-size: 11px; color: #9a9ac4; }
+        .aha-action-meta { font-family: var(--font-mono); font-size: 11px; color: #8b8b93; }
 
         /* ─── Before / After ─── */
         .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 1050px; margin: 0 auto; }
         .ba-col { border-radius: 16px; padding: 28px; border: 1px solid var(--border); }
         .ba-col-before { background: rgba(239,68,68,0.04); border-color: rgba(239,68,68,0.18); }
-        .ba-col-after { background: rgba(99,91,255,0.05); border-color: rgba(99,91,255,0.25); }
+        .ba-col-after { background: rgba(200,245,66,0.05); border-color: rgba(200,245,66,0.25); }
         .ba-title { font-size: 19px; font-weight: 800; margin: 0 0 18px; }
         .ba-col-before .ba-title { color: #ff8a8a; }
-        .ba-col-after .ba-title { color: #a78bfa; }
+        .ba-col-after .ba-title { color: #c8f542; }
         .ba-flow { list-style: none; margin: 0; padding: 0; }
         .ba-step { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; color: var(--text, inherit); flex-wrap: wrap; }
         .ba-idx {
@@ -576,9 +581,9 @@ export default function LandingPage() {
           display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .ba-idx-bad { background: rgba(239,68,68,0.14); color: #ff8a8a; }
-        .ba-idx-good { background: rgba(99,91,255,0.16); color: #a78bfa; }
+        .ba-idx-good { background: rgba(200,245,66,0.16); color: #c8f542; }
         .ba-arrow-bad { width: 100%; color: rgba(239,68,68,0.35); font-size: 11px; padding-left: 6px; line-height: 0.6; }
-        .ba-arrow-good { width: 100%; color: rgba(99,91,255,0.4); font-size: 11px; padding-left: 6px; line-height: 0.6; }
+        .ba-arrow-good { width: 100%; color: rgba(200,245,66,0.4); font-size: 11px; padding-left: 6px; line-height: 0.6; }
 
         /* ─── What you get ─── */
         .wyg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1200px; margin: 0 auto; }
@@ -599,9 +604,9 @@ export default function LandingPage() {
         .ci-field { font-size: 13.5px; line-height: 1.6; padding: 7px 0; border-bottom: 1px dashed var(--border); }
         .ci-field:last-child { border-bottom: none; }
         .ci-link { display: flex; align-items: center; gap: 8px; padding: 0 24px; height: 26px; }
-        .ci-link-line { flex: 1; height: 2px; background: linear-gradient(90deg, #635bff, #06b6d4); transform: scaleX(0); transform-origin: left; transition: transform 0.6s ease 0.2s; border-radius: 2px; }
+        .ci-link-line { flex: 1; height: 2px; background: linear-gradient(90deg, #c8f542, #a8d92e); transform: scaleX(0); transform-origin: left; transition: transform 0.6s ease 0.2s; border-radius: 2px; }
         .ci-link.on .ci-link-line { transform: scaleX(1); }
-        .ci-link-arrow { color: #06b6d4; opacity: 0; transition: opacity 0.4s ease 0.6s; }
+        .ci-link-arrow { color: #c8f542; opacity: 0; transition: opacity 0.4s ease 0.6s; }
         .ci-link.on .ci-link-arrow { opacity: 1; }
         .ci-card-code { overflow: hidden; }
         .ci-code {
@@ -609,12 +614,12 @@ export default function LandingPage() {
           font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: #e4e4e7; white-space: pre;
         }
         .ci-code-foot { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(255,255,255,0.02); flex-wrap: wrap; }
-        .ci-fn-chip { color: #c4b5fd; }
+        .ci-fn-chip { color: #c8f542; }
         .ci-foot-note { font-size: 11px; color: var(--muted); }
         .ci-chain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 8px 0; }
         .ci-chain-item { display: inline-flex; align-items: center; gap: 10px; }
-        .ci-chain-item .aha-mono { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.25); border-radius: 8px; padding: 5px 10px; }
-        .ci-chain-arrow { color: #9a9ac4; }
+        .ci-chain-item .aha-mono { background: rgba(200,245,66,0.08); border: 1px solid rgba(200,245,66,0.25); border-radius: 8px; padding: 5px 10px; }
+        .ci-chain-arrow { color: #8b8b93; }
 
         /* ─── Pain points / steps / diff ─── */
         .pain-card {
@@ -625,7 +630,7 @@ export default function LandingPage() {
         .pain-title { font-size: 18px; font-weight: 800; margin: 0 0 10px; }
         .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1000px; margin: 0 auto; }
         .diff-col { border-radius: 16px; padding: 28px; border: 1px solid var(--border); background: var(--surface); }
-        .diff-col.breaklytix { border-color: rgba(99,91,255,0.4); box-shadow: 0 8px 32px rgba(99,91,255,0.12); }
+        .diff-col.breaklytix { border-color: rgba(200,245,66,0.4); box-shadow: 0 8px 32px rgba(200,245,66,0.12); }
         .diff-item { display: flex; gap: 10px; padding: 8px 0; font-size: 14.5px; align-items: flex-start; }
         .diff-yes { color: var(--green); flex-shrink: 0; }
         .diff-no { color: #ff8a8a; flex-shrink: 0; }
@@ -635,16 +640,16 @@ export default function LandingPage() {
         }
         .step-card::before {
           content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-          background: linear-gradient(90deg, var(--accent), #8b5cf6); border-radius: 16px 16px 0 0;
+          background: linear-gradient(90deg, #c8f542, #a8d92e); border-radius: 16px 16px 0 0;
         }
         .step-num { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 12px; }
         .preview-panel {
-          background: #131327; border: 1px solid #2d2d44; border-radius: 18px; overflow: hidden;
+          background: #121214; border: 1px solid #232327; border-radius: 18px; overflow: hidden;
           box-shadow: 0 30px 90px rgba(0,0,0,0.4); max-width: 1080px; margin: 0 auto;
         }
-        .preview-head { display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: #1c1c33; border-bottom: 1px solid #2d2d44; flex-wrap: wrap; }
+        .preview-head { display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: #17171a; border-bottom: 1px solid #232327; flex-wrap: wrap; }
         .preview-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; }
-        .preview-left { padding: 22px; border-right: 1px solid #2d2d44; display: flex; flex-direction: column; gap: 4px; }
+        .preview-left { padding: 22px; border-right: 1px solid #232327; display: flex; flex-direction: column; gap: 4px; }
         .preview-right { padding: 22px; }
         .pv-field { padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.07); font-size: 13.5px; color: #d6d6ea; }
         .pv-field:last-child { border-bottom: none; }
@@ -661,7 +666,7 @@ export default function LandingPage() {
           .diff-grid { grid-template-columns: 1fr !important; }
           .ci-col { grid-template-columns: 1fr !important; }
           .preview-grid { grid-template-columns: 1fr !important; }
-          .preview-left { border-right: none; border-bottom: 1px solid #2d2d44; }
+          .preview-left { border-right: none; border-bottom: 1px solid #232327; }
         }
         @media (max-width: 768px) {
           .lp-hero { padding: 100px 16px 60px !important; }
@@ -736,12 +741,12 @@ export default function LandingPage() {
           <div className="lp-hero-bg" />
           <div className="container lp-hero-grid" style={{ position: "relative", zIndex: 1 }} ref={hero.ref}>
             <div style={{ opacity: hero.visible ? 1 : 0, transform: hero.visible ? "translateY(0)" : "translateY(32px)", transition: "all 0.7s ease" }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, background: "rgba(99,91,255,0.15)", border: "1px solid rgba(99,91,255,0.3)", color: "#a78bfa", fontSize: 13, fontWeight: 600, marginBottom: 24 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, background: "rgba(200,245,66,0.15)", border: "1px solid rgba(200,245,66,0.3)", color: "#c8f542", fontSize: 13, fontWeight: 600, marginBottom: 24 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", animation: "pulse 2s infinite" }} />
                 Early access is open
               </div>
               <h1 id="hero-title" style={{ fontSize: "clamp(34px, 4.6vw, 52px)", fontWeight: 800, lineHeight: 1.12, margin: "0 0 22px", letterSpacing: "-0.02em", color: "white" }}>
-                Is your code using an API that&apos;s <span style={{ background: "linear-gradient(135deg, #a78bfa, #06b6d4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>about to change</span>?
+                Never let a broken API catch you <span className="lp-serif" style={{ color: "#c8f542" }}>off guard</span>.
               </h1>
               <p style={{ fontSize: 18, lineHeight: 1.7, color: "rgba(255,255,255,0.68)", margin: "0 0 30px", maxWidth: 540 }}>
                 Paste a public GitHub repo and see which third-party APIs it uses — and whether any official provider notice may affect it. No account needed.
@@ -803,7 +808,7 @@ export default function LandingPage() {
             <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto" }}>
               <h2 style={{ fontSize: "clamp(26px, 3.6vw, 34px)", fontWeight: 800, color: "white", margin: "0 0 14px", lineHeight: 1.25 }}>Your APIs are dependencies. Start monitoring them.</h2>
               <p style={{ fontSize: 16.5, color: "rgba(255,255,255,0.65)", margin: "0 0 28px", lineHeight: 1.6 }}>See your API dependencies and potential impact before they become production problems.</p>
-              <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 34px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }} event="github_connect_click">
+              <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 34px", background: "linear-gradient(135deg, #c8f542, #a8d92e)", border: "none", borderRadius: 12 }} event="github_connect_click">
                 Scan My Repository — Free
               </GithubCta>
             </div>
@@ -909,7 +914,7 @@ export default function LandingPage() {
               <div className="preview-panel">
                 <div className="preview-head">
                   <span className="lp-code-dot" style={{ background: "#ff5f57" }} /><span className="lp-code-dot" style={{ background: "#ffbd2e" }} /><span className="lp-code-dot" style={{ background: "#28ca42" }} />
-                  <span style={{ marginLeft: 8, fontSize: 12, color: "#b3b3cf", fontFamily: "var(--font-mono)" }}>Breaklytix — Breaking change alert</span>
+                  <span style={{ marginLeft: 8, fontSize: 12, color: "#a1a1aa", fontFamily: "var(--font-mono)" }}>Breaklytix — Breaking change alert</span>
                   <span className="aha-demo-tag" style={{ marginLeft: "auto" }}>illustrative demo</span>
                 </div>
                 <div className="preview-grid">
@@ -941,11 +946,11 @@ export default function LandingPage() {
         </section>
 
         {/* ═══════ GITHUB CTA ═══════ */}
-        <section id="get-started" className="section" style={{ background: "linear-gradient(135deg, #0f0a2e, #1a1145 60%, #0d1b3e)" }} aria-labelledby="gh-title">
+        <section id="get-started" className="section" style={{ background: "linear-gradient(135deg, #0a0a0b, #101012 60%, #060607)" }} aria-labelledby="gh-title">
           <div className="container" style={{ textAlign: "center" }}>
             <h2 id="gh-title" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, color: "white", margin: "0 0 14px" }}>Find your API risks in minutes.</h2>
             <p style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", margin: "0 0 28px" }}>Connect GitHub, choose a repository, and let Breaklytix map your API dependencies.</p>
-            <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 34px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }} event="github_connect_click">
+            <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 34px", background: "linear-gradient(135deg, #c8f542, #a8d92e)", border: "none", borderRadius: 12 }} event="github_connect_click">
               Connect GitHub — Free
             </GithubCta>
             <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.5)", marginTop: 16 }}>Start with one repository. No credit card required.</p>
@@ -1047,7 +1052,7 @@ export default function LandingPage() {
               <h2 style={{ fontSize: "clamp(28px, 4vw, 36px)", fontWeight: 800, color: "white", margin: "0 0 14px", lineHeight: 1.2 }}>Stop finding API problems in production.</h2>
               <p style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", margin: "0 0 30px", lineHeight: 1.6 }}>Know what changed. Know what is affected. Know what to fix.</p>
               <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-                <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 36px", background: "linear-gradient(135deg, var(--accent), #7c3aed)", border: "none", borderRadius: 12 }} event="github_connect_click">
+                <GithubCta className="btn btn-primary btn-lg lp-glow-btn" style={{ fontSize: 16, padding: "16px 36px", background: "linear-gradient(135deg, #c8f542, #a8d92e)", border: "none", borderRadius: 12 }} event="github_connect_click">
                   Scan My Repository — Free
                 </GithubCta>
                 <Link href="#product" className="btn btn-lg" style={{ fontSize: 15, padding: "16px 26px", background: "rgba(255,255,255,0.07)", color: "white", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12 }}>
@@ -1144,8 +1149,8 @@ function StickyCta() {
         gap: 14,
         padding: "10px 12px 10px 20px",
         borderRadius: 999,
-        background: "rgba(13,10,38,0.92)",
-        border: "1px solid rgba(124,108,255,0.45)",
+        background: "rgba(10,10,11,0.92)",
+        border: "1px solid rgba(200,245,66,0.45)",
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
         backdropFilter: "blur(10px)",
         transition: "bottom 0.35s ease",
@@ -1158,7 +1163,7 @@ function StickyCta() {
       </span>
       <GithubCta
         className="btn btn-primary"
-        style={{ fontSize: 13.5, padding: "9px 18px", borderRadius: 999, whiteSpace: "nowrap", background: "linear-gradient(135deg,#635bff,#7c3aed)", border: "none" }}
+        style={{ fontSize: 13.5, padding: "9px 18px", borderRadius: 999, whiteSpace: "nowrap", background: "linear-gradient(135deg,#c8f542,#a8d92e)", border: "none" }}
         event="sticky_cta_click"
       >
         Connect GitHub — free

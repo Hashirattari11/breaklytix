@@ -138,7 +138,7 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #eee", textAlign: "center" }}>
+        <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid var(--border)", textAlign: "center" }}>
           <h2 style={{ marginBottom: 16, fontSize: 24 }}>Frequently asked questions</h2>
           <div style={{ display: "grid", gap: 12, maxWidth: 700, margin: "0 auto", textAlign: "left" }}>
             {PRICING_FAQ.map((item) => (
@@ -168,13 +168,13 @@ function PlanCard({
         padding: 24,
         display: "flex",
         flexDirection: "column",
-        border: plan.popular ? "2px solid #635bff" : "1px solid #eee",
+        border: plan.popular ? "2px solid var(--accent)" : "1px solid var(--border)",
         position: "relative",
       }}
     >
       {plan.popular && (
         <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)" }}>
-          <span className="pill" style={{ background: "#635bff", color: "white", fontSize: 11, fontWeight: 600 }}>
+          <span className="pill" style={{ background: "var(--accent)", color: "#0a0a0b", fontSize: 11, fontWeight: 600 }}>
             Most Popular
           </span>
         </div>
@@ -190,9 +190,9 @@ function PlanCard({
         <span className="muted" style={{ fontSize: 16 }}>{plan.period}</span>
       </div>
 
-      <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: "1px solid #eee" }}>
+      <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span className="badge" style={{ background: "#635bff", fontSize: 12 }}>
+          <span className="badge" style={{ background: "var(--accent)", color: "#0a0a0b", fontSize: 12 }}>
             {plan.apiLimit === -1 ? "∞" : plan.apiLimit} APIs
           </span>
         </div>

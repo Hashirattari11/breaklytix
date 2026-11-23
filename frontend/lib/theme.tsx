@@ -8,14 +8,14 @@ export type ResolvedTheme = "light" | "dark";
 export const THEME_KEY = "autofix_theme";
 
 export function getStoredTheme(): ThemePref {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return "dark";
   try {
     const raw = window.localStorage.getItem(THEME_KEY);
     if (raw === "light" || raw === "dark" || raw === "system") return raw;
   } catch {
-    // Storage unavailable (private mode etc.) — fall through to system.
+    // Storage unavailable (private mode etc.) — fall through to dark default.
   }
-  return "system";
+  return "dark";
 }
 
 export function systemPrefersDark(): boolean {

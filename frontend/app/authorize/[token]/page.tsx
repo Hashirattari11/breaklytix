@@ -74,8 +74,8 @@ export default function AuthorizePage() {
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         .auth-page { min-height: 100vh; background: #f7f7fb; display: flex; align-items: center; justify-content: center; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        .auth-card { max-width: 480px; width: 100%; background: white; border-radius: 16px; border: 1px solid #e6e6ef; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
-        .auth-header { background: linear-gradient(135deg, #635bff, #8b5cf6); padding: 32px; text-align: center; color: white; }
+        .auth-card { max-width: 480px; width: 100%; background: white; border-radius: 16px; border: 1px solid #d4d4d8; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+        .auth-header { background: linear-gradient(135deg, #c8f542, #a8d92e); padding: 32px; text-align: center; color: #0a0a0b; }
         .auth-header h1 { font-size: 24px; font-weight: 800; margin: 0 0 8px; }
         .auth-header p { font-size: 14px; margin: 0; opacity: 0.85; }
         .auth-body { padding: 32px; }
@@ -84,7 +84,7 @@ export default function AuthorizePage() {
         .auth-error h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 0 0 12px; }
         .auth-error p { font-size: 15px; color: #6b7280; line-height: 1.6; margin: 0 0 24px; }
         .auth-success { text-align: center; }
-        .auth-success .icon { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, rgba(99,91,255,0.1), rgba(139,92,246,0.1)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .auth-success .icon { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, rgba(200,245,66,0.14), rgba(168,217,46,0.14)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
         .auth-success h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 0 0 12px; }
         .auth-success p { font-size: 15px; color: #6b7280; line-height: 1.6; margin: 0 0 8px; }
         .auth-success .email { font-weight: 600; color: #1a1a2e; }
@@ -96,11 +96,11 @@ export default function AuthorizePage() {
         .auth-cta button { padding: 14px 32px; background: #1f2328; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: background 0.15s, transform 0.15s; }
         .auth-cta button:hover { background: #000; transform: translateY(-1px); }
         .auth-cta button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .auth-footer { padding: 16px 32px; border-top: 1px solid #e6e6ef; text-align: center; }
+        .auth-footer { padding: 16px 32px; border-top: 1px solid #d4d4d8; text-align: center; }
         .auth-footer p { font-size: 12px; color: #9ca3af; margin: 0; }
-        .auth-footer a { color: #635bff; text-decoration: none; }
+        .auth-footer a { color: #4d7c0f; text-decoration: none; }
         .auth-footer a:hover { text-decoration: underline; }
-        .spinner-sm { display: inline-block; width: 18px; height: 18px; border: 2px solid #e6e6ef; border-top-color: #635bff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        .spinner-sm { display: inline-block; width: 18px; height: 18px; border: 2px solid #d4d4d8; border-top-color: #4d7c0f; border-radius: 50%; animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}} />
 
@@ -115,7 +115,7 @@ export default function AuthorizePage() {
             {installed && (
               <div className="auth-success">
                 <div className="icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#635bff" strokeWidth="2">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4d7c0f" strokeWidth="2">
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 </div>
@@ -128,7 +128,7 @@ export default function AuthorizePage() {
                   You can review or revoke this access at any time from your GitHub
                   settings under Installed GitHub Apps.
                 </p>
-                <Link href="/" style={{ color: "#635bff", textDecoration: "none", fontWeight: 600 }}>
+                <Link href="/" style={{ color: "#4d7c0f", textDecoration: "none", fontWeight: 600 }}>
                   ← Back to Breaklytix
                 </Link>
               </div>
@@ -146,7 +146,7 @@ export default function AuthorizePage() {
                 <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
                 <h2>Something went wrong</h2>
                 <p>{error}</p>
-                <Link href="/" style={{ color: "#635bff", textDecoration: "none", fontWeight: 600 }}>← Back to home</Link>
+                <Link href="/" style={{ color: "#4d7c0f", textDecoration: "none", fontWeight: 600 }}>← Back to home</Link>
               </div>
             )}
 
@@ -158,14 +158,14 @@ export default function AuthorizePage() {
                 {info.client_email && (
                   <p style={{ fontSize: 13, color: "#9ca3af" }}>Email: {info.client_email}</p>
                 )}
-                <Link href="/" style={{ color: "#635bff", textDecoration: "none", fontWeight: 600 }}>← Back to home</Link>
+                <Link href="/" style={{ color: "#4d7c0f", textDecoration: "none", fontWeight: 600 }}>← Back to home</Link>
               </div>
             )}
 
             {info && info.valid && (
               <div className="auth-success">
                 <div className="icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#635bff" strokeWidth="2">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4d7c0f" strokeWidth="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                     <circle cx="9" cy="7" r="4" />
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87" />

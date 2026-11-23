@@ -75,7 +75,7 @@ gtag('js', new Date());`,
             Runtime changes are handled by lib/theme.ts (dashboard + settings). */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("autofix_theme");var d=t==="dark"||(t!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("autofix_theme");var d=t!=="light";document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}})();`,
           }}
         />
         {children}

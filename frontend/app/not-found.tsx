@@ -17,7 +17,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          style={{ display: "inline-block", padding: "12px 22px", borderRadius: 10, background: "linear-gradient(135deg, #635bff, #8b5cf6)", color: "white", fontWeight: 600, fontSize: 14, textDecoration: "none" }}
+          style={{ display: "inline-block", padding: "12px 22px", borderRadius: 10, background: "linear-gradient(135deg, #c8f542, #a8d92e)", color: "#0a0a0b", fontWeight: 600, fontSize: 14, textDecoration: "none" }}
         >
           ← Back to home
         </Link>

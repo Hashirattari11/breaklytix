@@ -12,9 +12,9 @@
      that passes in both themes: 6.9:1 for --muted-strong on --bg and 5.9:1
      for --accent-text on --bg. Use them for any small text, never opacity. */
   --muted-strong: #55555f;
-  --accent-text: #4f46e5;
-  --accent: #635bff;
-  --accent-dark: #4b45c6;
+  --accent-text: #4d7c0f;
+  --accent: #c8f542;
+  --accent-dark: #a8d92e;
   --green: #0a7d3d;
   --green-bg: #e7f6ec;
   --amber: #8a6d00;
@@ -208,10 +208,13 @@ h2 {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: #0a0a0b;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px rgba(200, 245, 66, 0.25), 0 6px 24px rgba(200, 245, 66, 0.22);
 }
 .btn-primary:hover {
   background: var(--accent-dark);
+  box-shadow: 0 0 0 1px rgba(200, 245, 66, 0.35), 0 8px 30px rgba(200, 245, 66, 0.3);
 }
 .btn:disabled {
   opacity: 0.55;
@@ -391,7 +394,7 @@ h2 {
   text-decoration: none;
 }
 .landing-nav .brand .dot {
-  background: linear-gradient(135deg, #635bff, #8b5cf6);
+  background: linear-gradient(135deg, #635bff, #a8d92e);
 }
 
 /* ---- Hero ---- */
@@ -419,7 +422,7 @@ h2 {
   letter-spacing: -0.02em;
 }
 .hero .highlight {
-  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a8d92e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -552,7 +555,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a8d92e 100%);
   border-radius: 12px;
   color: white;
   margin-bottom: 20px;
@@ -598,7 +601,7 @@ h2 {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  background: linear-gradient(90deg, var(--accent), #a8d92e);
   border-radius: var(--radius) var(--radius) 0 0;
 }
 .step.future {
@@ -760,7 +763,7 @@ h2 {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  background: linear-gradient(90deg, var(--accent), #a8d92e);
   border-radius: var(--radius) var(--radius) 0 0;
 }
 .pricing-card:hover {
@@ -1161,7 +1164,7 @@ h2 {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a8d92e 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -1430,7 +1433,7 @@ h2 {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a8d92e 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -1947,7 +1950,7 @@ h2 {
   position: absolute;
   inset: -2px;
   border-radius: calc(var(--radius) + 2px);
-  background: linear-gradient(135deg, var(--accent), #8b5cf6, #06b6d4, var(--accent));
+  background: linear-gradient(135deg, var(--accent), #a8d92e, #e4ff7a, var(--accent));
   background-size: 300% 300%;
   animation: gradientMove 4s ease infinite;
   z-index: -1;
@@ -2571,18 +2574,19 @@ h2 {
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --footer-bg: #0b0d12;
+  --footer-bg: #060607;
 
-  /* Core surfaces + text */
-  --bg: #0e1016;
-  --surface: #171a22;
-  --border: #262b38;
-  --text: #e9eaf0;
-  --muted: #9ca3b5;
-  --muted-strong: #a9adbd;
-  --accent-text: #a49eff;
-  --accent: #7d76ff;
-  --accent-dark: #5f58f0;
+  /* Core surfaces + text — near-black / white / lime (Northline palette) */
+  --bg: #0a0a0b;
+  --surface: #121214;
+  --card: #121214;
+  --border: #232327;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --muted-strong: #b8b8c0;
+  --accent-text: #c8f542;
+  --accent: #c8f542;
+  --accent-dark: #a8d92e;
 
   --green: #34d399;
   --green-bg: #14271d;
@@ -2595,10 +2599,10 @@ h2 {
   --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
 
   /* Premium tokens (override premium.css :root) */
-  --p-bg-soft: #13151d;
-  --p-surface-2: #1b1f2a;
-  --p-ring: rgba(125, 118, 255, 0.45);
-  --p-ring-soft: rgba(125, 118, 255, 0.16);
+  --p-bg-soft: #101012;
+  --p-surface-2: #17171a;
+  --p-ring: rgba(200, 245, 66, 0.45);
+  --p-ring-soft: rgba(200, 245, 66, 0.16);
   --p-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
   --p-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35);
   --p-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0, 0, 0, 0.4);
@@ -2606,10 +2610,10 @@ h2 {
 
 /* Hardcoded light values that must adapt to dark */
 :root[data-theme="dark"] code {
-  background: #1d2130;
+  background: #1a1a1d;
 }
 :root[data-theme="dark"] .btn:hover {
-  background: #1d2130;
+  background: #1a1a1d;
 }
 :root[data-theme="dark"] .pill-gray,
 :root[data-theme="dark"] .status-unavailable,

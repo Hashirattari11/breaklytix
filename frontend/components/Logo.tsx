@@ -18,7 +18,7 @@ export function LogoMark({ size = 32, withWordmark = false, className }: LogoPro
           borderRadius: Math.round(size * 0.28),
           overflow: "hidden",
           flexShrink: 0,
-          boxShadow: "0 2px 8px rgba(99, 91, 255, 0.35)",
+          boxShadow: "0 2px 8px rgba(200, 245, 66, 0.35)",
           background: "#0b0b14",
           display: "inline-block",
           position: "relative",

@@ -136,7 +136,7 @@ export default function InstantScanBox() {
               borderRadius: 12,
               fontSize: 15.5,
               fontWeight: 700,
-              background: "linear-gradient(135deg, var(--accent), #7c3aed)",
+              background: "linear-gradient(135deg, #c8f542, #a8d92e)",
               border: "none",
               opacity: busy ? 0.75 : 1,
               cursor: busy ? "wait" : "pointer",

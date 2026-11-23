@@ -110,43 +110,43 @@ export default function InteractiveStory() {
   return (
     <section className="story-section" aria-labelledby="story-title">
       <style>{`
-        .story-section { background: linear-gradient(180deg, #0b0820 0%, #120c33 100%); padding: 84px 24px; color: #fff; }
+        .story-section { background: linear-gradient(180deg, #0a0a0b 0%, #101012 100%); padding: 84px 24px; color: #fff; }
         .story-inner { max-width: 920px; margin: 0 auto; }
-        .story-kicker { display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#a78bfa; margin-bottom:14px; }
+        .story-kicker { display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#c8f542; margin-bottom:14px; }
         .story-title { font-size: clamp(28px, 4vw, 40px); font-weight: 800; line-height: 1.18; margin: 0 0 12px; letter-spacing: -0.02em; }
         .story-sub { font-size: 16.5px; line-height: 1.65; color: rgba(255,255,255,0.66); margin: 0 0 28px; max-width: 640px; }
         .story-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 26px; }
         .story-chip { display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:999px; border:1px solid rgba(255,255,255,0.16); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.85); font-size:14px; font-weight:600; cursor:pointer; transition:all .18s ease; }
         .story-chip:hover { border-color: rgba(255,255,255,0.4); transform: translateY(-1px); }
-        .story-chip[aria-pressed="true"] { background: rgba(99,91,255,0.22); border-color: #7c6cff; color:#fff; box-shadow: 0 0 0 1px rgba(124,108,255,0.4); }
+        .story-chip[aria-pressed="true"] { background: rgba(200,245,66,0.22); border-color: #c8f542; color:#fff; box-shadow: 0 0 0 1px rgba(200,245,66,0.4); }
         .story-chip-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-        .story-stage { border:1px solid rgba(255,255,255,0.12); border-radius:18px; background:rgba(10,8,28,0.6); overflow:hidden; }
+        .story-stage { border:1px solid rgba(255,255,255,0.12); border-radius:18px; background:rgba(10,10,11,0.6); overflow:hidden; }
         .story-stage-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); }
         .story-stage-label { font-size:12.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:rgba(255,255,255,0.55); }
         .story-dots { display:flex; gap:7px; }
         .story-dot { width:9px; height:9px; border-radius:50%; border:none; padding:0; cursor:pointer; background:rgba(255,255,255,0.2); transition:all .2s ease; }
-        .story-dot[aria-current="true"] { background:#7c6cff; transform:scale(1.25); }
-        .story-dot.done { background:rgba(124,108,255,0.55); }
+        .story-dot[aria-current="true"] { background:#c8f542; transform:scale(1.25); }
+        .story-dot.done { background:rgba(200,245,66,0.55); }
         .story-body { padding:26px 24px; min-height:280px; }
         .story-time { font-size:12.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:10px; }
         .story-h { font-size:21px; font-weight:800; margin:0 0 12px; line-height:1.3; }
         .story-p { font-size:15px; line-height:1.7; color:rgba(255,255,255,0.72); margin:0 0 16px; max-width:640px; }
-        .story-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; line-height:1.6; background:#0a0a16; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px 18px; white-space:pre; overflow-x:auto; color:#c9d1ff; }
+        .story-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; line-height:1.6; background:#0a0a0b; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px 18px; white-space:pre; overflow-x:auto; color:#d9f99d; }
         .story-card { border-radius:12px; padding:16px 18px; border:1px solid; font-size:14px; line-height:1.6; }
         .story-card.bad { background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.4); color:#ffb4b4; }
         .story-card.good { background:rgba(34,197,94,0.1); border-color:rgba(34,197,94,0.4); color:#a7f3c0; }
-        .story-card.info { background:rgba(99,91,255,0.12); border-color:rgba(99,91,255,0.4); color:#c9c2ff; }
+        .story-card.info { background:rgba(200,245,66,0.12); border-color:rgba(200,245,66,0.4); color:#e4ff7a; }
         .story-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12.5px; }
         .story-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-top:1px solid rgba(255,255,255,0.08); }
         .story-btn { padding:11px 22px; border-radius:11px; font-size:14.5px; font-weight:700; cursor:pointer; border:1px solid transparent; transition:all .18s ease; }
-        .story-btn-primary { background:linear-gradient(135deg,#635bff,#7c3aed); color:#fff; }
+        .story-btn-primary { background:linear-gradient(135deg,#c8f542,#a8d92e); color:#fff; }
         .story-btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
         .story-btn-ghost { background:transparent; color:rgba(255,255,255,0.7); border-color:rgba(255,255,255,0.18); }
         .story-btn-ghost:hover:not(:disabled) { border-color:rgba(255,255,255,0.4); color:#fff; }
         .story-btn:disabled { opacity:.35; cursor:not-allowed; }
         .story-count { font-size:13px; color:rgba(255,255,255,0.5); font-variant-numeric:tabular-nums; }
         .story-final { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:6px; }
-        .story-cta { display:inline-flex; align-items:center; gap:10px; padding:15px 28px; border-radius:12px; background:linear-gradient(135deg,#635bff,#7c3aed); color:#fff; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 8px 30px rgba(99,91,255,0.35); transition:all .18s ease; }
+        .story-cta { display:inline-flex; align-items:center; gap:10px; padding:15px 28px; border-radius:12px; background:linear-gradient(135deg,#c8f542,#a8d92e); color:#fff; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 8px 30px rgba(200,245,66,0.35); transition:all .18s ease; }
         .story-cta:hover { transform:translateY(-2px); filter:brightness(1.08); }
         .story-cta-secondary { font-size:14px; color:rgba(255,255,255,0.7); text-decoration:underline; text-underline-offset:3px; }
         .story-note { font-size:12.5px; color:rgba(255,255,255,0.45); margin-top:18px; line-height:1.6; }
@@ -271,7 +271,7 @@ export default function InteractiveStory() {
 
             {step === 4 && (
               <div>
-                <div className="story-time" style={{ color: "#a78bfa" }}>The difference</div>
+                <div className="story-time" style={{ color: "#c8f542" }}>The difference</div>
                 <h3 className="story-h">Same change. One team sleeps, one team pages.</h3>
                 <div className="story-compare">
                   <div className="story-card bad">

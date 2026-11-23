@@ -10,10 +10,10 @@
 :root {
   --p-bg-soft: #fafafd;
   --p-surface-2: #f4f4fb;
-  --p-ring: rgba(99, 91, 255, 0.35);
-  --p-ring-soft: rgba(99, 91, 255, 0.14);
-  --p-gradient: linear-gradient(135deg, #635bff 0%, #8b5cf6 55%, #06b6d4 130%);
-  --p-gradient-soft: linear-gradient(135deg, rgba(99, 91, 255, 0.1), rgba(139, 92, 246, 0.08));
+  --p-ring: rgba(101, 163, 13, 0.5);
+  --p-ring-soft: rgba(163, 217, 46, 0.18);
+  --p-gradient: linear-gradient(135deg, #c8f542 0%, #a8d92e 55%, #e4ff7a 130%);
+  --p-gradient-soft: linear-gradient(135deg, rgba(200, 245, 66, 0.12), rgba(168, 217, 46, 0.08));
   --p-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
   --p-shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06), 0 2px 4px rgba(16, 24, 40, 0.04);
   --p-shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.1), 0 4px 8px rgba(16, 24, 40, 0.05);
@@ -34,7 +34,7 @@
 }
 
 .p-app ::selection {
-  background: rgba(99, 91, 255, 0.18);
+  background: rgba(200, 245, 66, 0.18);
 }
 
 .dashboard-content {
@@ -47,7 +47,7 @@
   height: 8px;
 }
 .p-scroll-thin::-webkit-scrollbar-thumb {
-  background: rgba(99, 91, 255, 0.25);
+  background: rgba(200, 245, 66, 0.25);
   border-radius: 99px;
 }
 .p-scroll-thin::-webkit-scrollbar-track {
@@ -186,7 +186,7 @@
 }
 .p-card--hover:hover {
   box-shadow: var(--p-shadow-md);
-  border-color: rgba(99, 91, 255, 0.3);
+  border-color: rgba(200, 245, 66, 0.3);
   transform: translateY(-2px);
 }
 .p-card-header {
@@ -342,12 +342,12 @@
   text-decoration: none;
   color: #fff;
   background: var(--p-gradient);
-  box-shadow: 0 4px 14px rgba(99, 91, 255, 0.28);
+  box-shadow: 0 4px 14px rgba(200, 245, 66, 0.28);
   transition: transform 0.15s var(--p-ease), box-shadow 0.2s var(--p-ease), filter 0.15s;
 }
 .p-btn:hover {
   filter: brightness(1.06);
-  box-shadow: 0 6px 18px rgba(99, 91, 255, 0.34);
+  box-shadow: 0 6px 18px rgba(200, 245, 66, 0.34);
   transform: translateY(-1px);
   text-decoration: none;
   color: #fff;
@@ -368,7 +368,7 @@
 }
 .p-btn--ghost:hover {
   background: var(--p-surface-2);
-  border-color: rgba(99, 91, 255, 0.4);
+  border-color: rgba(200, 245, 66, 0.4);
   color: var(--text);
   box-shadow: none;
 }
@@ -1010,7 +1010,7 @@ a.p-list-item {
 }
 .p-icon-btn:hover {
   color: var(--accent);
-  border-color: rgba(99, 91, 255, 0.4);
+  border-color: rgba(200, 245, 66, 0.4);
   background: var(--p-surface-2);
 }
 
@@ -1109,7 +1109,7 @@ a.p-list-item {
   transition: border-color 0.15s, background 0.15s;
 }
 .p-avatar-btn:hover {
-  border-color: rgba(99, 91, 255, 0.4);
+  border-color: rgba(200, 245, 66, 0.4);
   background: var(--p-surface-2);
 }
 .p-avatar {
@@ -1492,7 +1492,7 @@ a.p-list-item {
   background: var(--surface, #ffffff); border: 1px solid var(--border, rgba(128,128,128,.22));
   transition: border-color .15s ease, transform .15s ease;
 }
-.p-docs-card:hover { border-color: var(--accent, #635bff); transform: translateY(-1px); }
+.p-docs-card:hover { border-color: var(--accent, #c8f542); transform: translateY(-1px); }
 .p-docs-card strong { font-size: 14.5px; color: inherit; }
 .p-docs-result { color: inherit; background: var(--surface, #ffffff); }
 .p-docs-result:hover { background: var(--accent-soft, rgba(99,91,255,.08)); }
@@ -2016,7 +2016,7 @@ button:active { transform: scale(0.98); }
   justify-content: center;
   padding: 40px 16px;
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(99, 91, 255, 0.18), transparent 60%),
+    radial-gradient(1200px 600px at 50% -10%, rgba(200, 245, 66, 0.18), transparent 60%),
     var(--bg, #0a0b10);
 }
 .lp-card {

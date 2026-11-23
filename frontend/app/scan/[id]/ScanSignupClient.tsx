@@ -133,7 +133,7 @@ export default function ScanSignupClient({ scanId, result }: { scanId: string; r
             type="button"
             disabled={connecting}
             onClick={() => void addToDashboard()}
-            style={{ ...bigButton, background: "linear-gradient(135deg, var(--accent), #7c3aed)" }}
+            style={{ ...bigButton, background: "linear-gradient(135deg, #c8f542, #a8d92e)" }}
           >
             {connecting ? "Adding…" : "Add to my dashboard"}
           </button>

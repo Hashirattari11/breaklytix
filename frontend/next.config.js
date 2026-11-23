@@ -45,6 +45,11 @@ const PUBLIC_CACHE_PATHS = [
   "/security",
   "/acceptable-use",
   "/cookies",
+  "/api-change-monitoring",
+  "/api-breaking-changes",
+  "/api-deprecation-monitoring",
+  "/code-impact-analysis",
+  "/third-party-api-monitoring",
 ];
 const nextConfig = {
   reactStrictMode: true,
