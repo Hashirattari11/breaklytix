@@ -387,6 +387,13 @@ h2 {
 .landing-nav-links a:hover {
   color: white;
 }
+/* The lime CTA must keep black text even inside the nav link color rule. */
+.landing-nav-links a.btn-primary,
+.landing-nav-links a.btn-primary:hover,
+.landing-nav a.btn-primary,
+.landing-nav a.btn-primary:hover {
+  color: #0a0a0b;
+}
 .landing-nav .brand {
   color: white !important;
 }
@@ -394,7 +401,7 @@ h2 {
   text-decoration: none;
 }
 .landing-nav .brand .dot {
-  background: linear-gradient(135deg, #635bff, #a8d92e);
+  background: linear-gradient(135deg, #c8f542, #a8d92e);
 }
 
 /* ---- Hero ---- */

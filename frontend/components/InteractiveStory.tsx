@@ -146,7 +146,7 @@ export default function InteractiveStory() {
         .story-btn:disabled { opacity:.35; cursor:not-allowed; }
         .story-count { font-size:13px; color:rgba(255,255,255,0.5); font-variant-numeric:tabular-nums; }
         .story-final { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:6px; }
-        .story-cta { display:inline-flex; align-items:center; gap:10px; padding:15px 28px; border-radius:12px; background:linear-gradient(135deg,#c8f542,#a8d92e); color:#fff; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 8px 30px rgba(200,245,66,0.35); transition:all .18s ease; }
+        .story-cta { display:inline-flex; align-items:center; gap:10px; padding:15px 28px; border-radius:12px; background:linear-gradient(135deg,#c8f542,#a8d92e); color:#0a0a0b; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 8px 30px rgba(200,245,66,0.35); transition:all .18s ease; }
         .story-cta:hover { transform:translateY(-2px); filter:brightness(1.08); }
         .story-cta-secondary { font-size:14px; color:rgba(255,255,255,0.7); text-decoration:underline; text-underline-offset:3px; }
         .story-note { font-size:12.5px; color:rgba(255,255,255,0.45); margin-top:18px; line-height:1.6; }
