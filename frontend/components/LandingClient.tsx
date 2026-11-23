@@ -12,6 +12,7 @@ import { LogoMark } from "./Logo";
 import LaunchstagBadge from "./LaunchstagBadge";
 import ShipNLaunchBadge from "./ShipNLaunchBadge";
 import InstantScanBox from "./InstantScanBox";
+import InteractiveStory from "./InteractiveStory";
 import { SUPPORT_EMAIL } from "../lib/site";
 import { LANDING_FAQ } from "../lib/landing-faq";
 
@@ -770,6 +771,9 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ═══════ INTERACTIVE STORY ═══════ */}
+        <InteractiveStory />
+
         {/* ═══════ BEFORE / AFTER ═══════ */}
         <section id="before-after" className="section" style={{ background: "var(--bg)" }} aria-labelledby="ba-title-h">
           <div className="container">
@@ -1103,7 +1107,63 @@ export default function LandingPage() {
       </footer>
 
       <ScrollToTop />
+      <StickyCta />
     </>
+  );
+}
+
+/* Persistent conversion bar: appears after the hero, hides near the final CTA
+   so it never doubles up with the in-page "Get started" section. */
+function StickyCta() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const nearBottom = y + window.innerHeight > document.body.scrollHeight - 1500;
+      setShow(y > 900 && !nearBottom);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+  return (
+    <div
+      aria-hidden={!show}
+      style={{
+        position: "fixed",
+        left: "50%",
+        bottom: show ? 18 : -120,
+        transform: "translateX(-50%)",
+        zIndex: 60,
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "10px 12px 10px 20px",
+        borderRadius: 999,
+        background: "rgba(13,10,38,0.92)",
+        border: "1px solid rgba(124,108,255,0.45)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
+        backdropFilter: "blur(10px)",
+        transition: "bottom 0.35s ease",
+        maxWidth: "calc(100vw - 24px)",
+        pointerEvents: show ? "auto" : "none",
+      }}
+    >
+      <span style={{ fontSize: 13.5, fontWeight: 600, color: "rgba(255,255,255,0.85)", whiteSpace: "nowrap" }}>
+        Know before your APIs break
+      </span>
+      <GithubCta
+        className="btn btn-primary"
+        style={{ fontSize: 13.5, padding: "9px 18px", borderRadius: 999, whiteSpace: "nowrap", background: "linear-gradient(135deg,#635bff,#7c3aed)", border: "none" }}
+        event="sticky_cta_click"
+      >
+        Connect GitHub — free
+      </GithubCta>
+    </div>
   );
 }
 

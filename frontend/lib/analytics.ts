@@ -31,7 +31,13 @@ export type AnalyticsEvent =
   | "email_submitted"
   | "github_signup_clicked"
   | "github_signup_completed"
-  | "report_copied";
+  | "report_copied"
+  | "story_provider_selected"
+  | "story_started"
+  | "story_step_advanced"
+  | "story_completed"
+  | "story_cta_click"
+  | "sticky_cta_click";
 
 declare global {
   interface Window {

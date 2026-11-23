@@ -59,6 +59,132 @@ function dotTone(tone: string): string {
   return tone === "green" ? "green" : tone === "amber" ? "amber" : tone === "red" ? "red" : "gray";
 }
 
+/* ── Activation checklist ──────────────────────────────────────────
+   Drives first-run engagement. Every "done" flag is derived from REAL
+   backend state (repos, scans, provider connections, alerts) — nothing
+   is simulated. Dismissal is remembered locally only. */
+type ChecklistStep = { label: string; href: string; done: boolean; cta: string };
+
+function ActivationChecklist({
+  steps,
+  onDismiss,
+}: {
+  steps: ChecklistStep[];
+  onDismiss: () => void;
+}) {
+  const done = steps.filter((s) => s.done).length;
+  const pct = Math.round((done / steps.length) * 100);
+  const next = steps.find((s) => !s.done);
+  return (
+    <div
+      className="mc-panel"
+      style={{
+        background: "linear-gradient(135deg, rgba(99,91,255,0.14), rgba(124,58,237,0.08))",
+        borderColor: "rgba(124,108,255,0.4)",
+        position: "relative",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss setup checklist"
+        style={{ position: "absolute", top: 10, right: 12, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
+      >
+        ×
+      </button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "baseline", justifyContent: "space-between", paddingRight: 24 }}>
+        <h3 style={{ margin: 0 }}>Get set up · {done} of {steps.length} complete</h3>
+        {next && (
+          <Link href={next.href} className="btn btn-primary" style={{ fontSize: 12.5, padding: "7px 14px" }}>
+            {next.cta} →
+          </Link>
+        )}
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden", margin: "12px 0 14px" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,#635bff,#7c3aed)", transition: "width .4s ease" }} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 10 }}>
+        {steps.map((s) => (
+          <Link
+            key={s.label}
+            href={s.href}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "10px 12px",
+              borderRadius: 10,
+              textDecoration: "none",
+              color: "inherit",
+              border: "1px solid var(--border)",
+              background: s.done ? "rgba(34,197,94,0.08)" : "var(--card, #0d1117)",
+              opacity: s.done ? 0.75 : 1,
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 800,
+                background: s.done ? "#22c55e" : "rgba(255,255,255,0.1)",
+                color: s.done ? "#04140a" : "var(--muted)",
+              }}
+            >
+              {s.done ? "✓" : ""}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 600, textDecoration: s.done ? "line-through" : "none" }}>{s.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Real-data area chart (API errors / day) ───────────────────────
+   Plots the same real counts the old bar chart used, as a smooth area.
+   No invented points: missing days are genuine zeros. */
+function PerfAreaChart({ days }: { days: { label: string; count: number }[] }) {
+  const W = 560;
+  const H = 130;
+  const PAD = 8;
+  const max = Math.max(1, ...days.map((d) => d.count));
+  const stepX = (W - PAD * 2) / Math.max(1, days.length - 1);
+  const pts = days.map((d, i) => ({
+    x: PAD + i * stepX,
+    y: H - PAD - (d.count / max) * (H - PAD * 2 - 14),
+    ...d,
+  }));
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${H - PAD} L${pts[0].x.toFixed(1)},${H - PAD} Z`;
+  const total = days.reduce((s, d) => s + d.count, 0);
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label={`API errors per day, last 7 days, ${total} total`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="perfArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={total > 0 ? "#f87171" : "#22c55e"} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={total > 0 ? "#f87171" : "#22c55e"} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#perfArea)" />
+        <path d={line} fill="none" stroke={total > 0 ? "#f87171" : "#22c55e"} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p) => (
+          <circle key={p.label} cx={p.x} cy={p.y} r={p.count > 0 ? 3.5 : 2.5} fill={p.count > 0 ? "#f87171" : "#22c55e"} />
+        ))}
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+        {days.map((d) => (
+          <span key={d.label} style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", flex: 1 }}>
+            <b style={{ display: "block", color: d.count > 0 ? "#f87171" : "var(--muted)", fontSize: 12 }}>{d.count}</b>
+            {d.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardClient() {
   // GLOBAL overview: intentionally NOT scoped by ?repository_id. All fetches
   // are unscoped (the backend still enforces per-user ownership), so the page
@@ -71,6 +197,15 @@ export default function DashboardClient() {
   const [incidents, setIncidents] = useState<ProviderIncident[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setChecklistDismissed(localStorage.getItem("bx_dash_checklist_dismissed") === "1");
+    } catch {
+      /* storage unavailable — checklist simply stays visible */
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -225,6 +360,26 @@ export default function DashboardClient() {
     );
   }, [errorIssues]);
 
+  // First-run activation steps — all flags from real backend state.
+  const checklistSteps: ChecklistStep[] = useMemo(
+    () => [
+      { label: "Connect a GitHub repository", href: "/dashboard/repos", done: (repos?.length ?? 0) > 0, cta: "Connect repo" },
+      { label: "Run your first scan", href: "/dashboard/health/scanner", done: (stats?.scans_completed ?? 0) > 0, cta: "Run scan" },
+      { label: "Connect a provider", href: "/dashboard/providers", done: connected.length > 0, cta: "Connect provider" },
+      { label: "Review your alerts", href: "/dashboard/alerts", done: (alerts?.length ?? 0) > 0, cta: "View alerts" },
+    ],
+    [repos, stats, connected, alerts]
+  );
+  const checklistComplete = checklistSteps.every((s) => s.done);
+  const dismissChecklist = useCallback(() => {
+    setChecklistDismissed(true);
+    try {
+      localStorage.setItem("bx_dash_checklist_dismissed", "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
 
   if (loading) {
     return (
@@ -257,6 +412,11 @@ export default function DashboardClient() {
           {healthStatus}
         </Link>
       </div>
+
+      {/* ── First-run activation checklist (real state) ────────── */}
+      {!checklistDismissed && !checklistComplete && (
+        <ActivationChecklist steps={checklistSteps} onDismiss={dismissChecklist} />
+      )}
 
       {/* ── Metric cards (real, GLOBAL aggregates) ─────────────── */}
       <div className="mc-grid mc-cards">
@@ -307,15 +467,7 @@ export default function DashboardClient() {
           </p>
         ) : (
           <>
-            <div className="mc-bars">
-              {perfBars.map((b) => (
-                <div key={b.label} className={`mc-bar ${b.count > 0 ? "red" : "green"}`}>
-                  <b style={{ height: `${Math.max(b.count > 0 ? 8 : 2, (b.count / (perfBars.reduce((s, x) => s + x.count, 0) || 1)) * 100)}px` }} />
-                  <span>{b.count}</span>
-                  <small>{b.label}</small>
-                </div>
-              ))}
-            </div>
+            <PerfAreaChart days={perfBars} />
             <p className="mc-sub" style={{ marginTop: 8 }}>
               Real API errors per day (last 7 days) — {errorIssues.length} total detected.
             </p>
@@ -412,7 +564,8 @@ export default function DashboardClient() {
         )}
       </div>
 
-      {/* ── Potential API Breaks (real open alerts) ────────────── */}
+      {/* ── Breaks + Issues (two-column on wide screens) ───────── */}
+      <div className="mc-grid mc-panels">
       <div className="mc-panel">
         <h3>Potential API Breaks</h3>
         {!alerts ? (
@@ -487,6 +640,7 @@ export default function DashboardClient() {
             View all issues →
           </Link>
         </div>
+      </div>
       </div>
 
       {/* ── Quick Actions ──────────────────────────────────────── */}
